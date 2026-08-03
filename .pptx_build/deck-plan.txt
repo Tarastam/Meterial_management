@@ -1,0 +1,20 @@
+Communication job: By the end, operators and administrators should be able to navigate the Material Management app, record daily values correctly, review history, and request corrections with fewer data-entry errors.
+
+Narrative: orient to the app -> monitor and review -> record data -> understand fields -> calculate and investigate -> correct safely -> verify before submit.
+
+Scope: end-user (non-admin) workflows only.
+
+Slides:
+1. Cover
+2. Navigation overview
+3. Dashboard
+4. Summary
+5. Record Data
+6. Three-step entry workflow
+7. Entry field definitions
+8. Consumption calculator
+9. Transactions
+10. Request Change
+11. Pre-submit checklist
+12. Closing quick reference
+

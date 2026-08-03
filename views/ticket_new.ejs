@@ -1,0 +1,40 @@
+<%- include('partials/head', { title: 'Request Change - Material Management' }) %>
+<h1>Request a Data Change</h1>
+
+<% if (error) { %><div class="alert error"><%= error %></div><% } %>
+<% if (success) { %><div class="alert success">Ticket submitted. An admin will review your request.</div><% } %>
+
+<form class="card form-card" method="post" action="/tickets/new">
+  <div class="field">
+    <label>Emp No. *</label>
+    <input type="number" name="emp_no" required value="<%= values.emp_no || '' %>">
+  </div>
+  <div class="field">
+    <label>First Name-Last Name *</label>
+    <input type="text" name="full_name" required value="<%= values.full_name || '' %>">
+  </div>
+  <div class="field">
+    <label>Shift *</label>
+    <select name="shift" required>
+      <option value="">Select shift...</option>
+      <% shifts.forEach(s => { %>
+      <option value="<%= s %>" <%= values.shift === s ? 'selected' : '' %>><%= s %></option>
+      <% }) %>
+    </select>
+  </div>
+  <div class="field">
+    <label>Workshop *</label>
+    <select name="workshop" required>
+      <option value="">Select workshop...</option>
+      <% workshops.forEach(w => { %>
+      <option value="<%= w %>" <%= values.workshop === w ? 'selected' : '' %>><%= w %></option>
+      <% }) %>
+    </select>
+  </div>
+  <div class="field">
+    <label>Detail *</label>
+    <textarea name="detail" rows="5" placeholder="Describe what needs to be corrected and why" required><%= values.detail || '' %></textarea>
+  </div>
+  <button class="btn" type="submit">Submit Ticket</button>
+</form>
+<%- include('partials/foot') %>

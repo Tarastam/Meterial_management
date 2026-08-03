@@ -1,0 +1,117 @@
+<%- include('partials/head', { title: 'Transactions - Material Management' }) %>
+<div class="actions-row">
+  <h1>Transactions</h1>
+  <div>
+    <a class="btn secondary" href="/tickets/new">Request Change</a>
+    <a class="btn secondary" href="/export/transactions.csv?<%= new URLSearchParams({ material_id: filters.material_id || '0', employee_id: filters.employee_id, workshop: filters.workshop, shift: filters.shift, date_from: filters.date_from, date_to: filters.date_to }).toString() %>">Export CSV</a>
+  </div>
+</div>
+
+<form class="filters" method="get" action="/transactions">
+  <div class="field" style="margin-bottom:0;">
+    <label>Material</label>
+    <select name="material_id">
+      <option value="0">All Materials</option>
+      <% materials.forEach(m => { %>
+      <option value="<%= m.id %>" <%= filters.material_id === m.id ? 'selected' : '' %>><%= m.prod_material_code %> - <%= m.name %></option>
+      <% }) %>
+    </select>
+  </div>
+  <div class="field" style="margin-bottom:0;">
+    <label>Employee ID</label>
+    <input type="text" name="employee_id" value="<%= filters.employee_id %>" placeholder="7-digit ID">
+  </div>
+  <div class="field" style="margin-bottom:0;">
+    <label>Workshop</label>
+    <select name="workshop">
+      <option value="">All Workshops</option>
+      <% workshops.forEach(w => { %>
+      <option value="<%= w %>" <%= filters.workshop === w ? 'selected' : '' %>><%= w %></option>
+      <% }) %>
+    </select>
+  </div>
+  <div class="field" style="margin-bottom:0;">
+    <label>Shift</label>
+    <select name="shift">
+      <option value="">All</option>
+      <% shifts.forEach(s => { %>
+      <option value="<%= s %>" <%= filters.shift === s ? 'selected' : '' %>><%= s %></option>
+      <% }) %>
+    </select>
+  </div>
+  <div style="flex-basis:100%; height:0;"></div>
+  <div class="field" style="margin-bottom:0;">
+    <label>From Date</label>
+    <input type="date" name="date_from" value="<%= filters.date_from %>">
+  </div>
+  <div class="field" style="margin-bottom:0;">
+    <label>To Date</label>
+    <input type="date" name="date_to" value="<%= filters.date_to %>">
+  </div>
+  <div class="field" style="margin-bottom:0; align-self:flex-end;">
+    <button class="btn secondary" type="submit">Filter</button>
+  </div>
+</form>
+
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <% if (isAdmin) { %><th>ID</th><% } %>
+        <th>Date</th>
+        <% if (isAdmin) { %><th>Entry Date</th><% } %>
+        <th>Material</th><th>Workshop</th><th>Unit</th><th>Current Stock</th><th>Issue</th><th>Issue NCN</th><th>Return NCN</th><th>Employee ID</th><th>Shift</th>
+        <% if (isAdmin) { %><th>Voided Reason</th><% } %>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% transactions.forEach(t => { %>
+      <tr>
+        <% if (isAdmin) { %><td><%= t.id %></td><% } %>
+        <td><%= fmtDate(t.created_at) %></td>
+        <% if (isAdmin) { %><td><%= fmtDateOnly(t.entry_date) %></td><% } %>
+        <td><%= t.prod_material_code %> - <%= t.material_name %></td>
+        <td><%= t.material_workshop %></td>
+        <td><%= t.material_unit %></td>
+        <td><%= t.current_stock != null ? fmtNum(t.current_stock) : '' %></td>
+        <td><%= t.issue_qty != null ? fmtNum(t.issue_qty) : '' %></td>
+        <td><%= t.issue_ncn != null ? fmtNum(t.issue_ncn) : '' %></td>
+        <td><%= t.return_ncn != null ? fmtNum(t.return_ncn) : '' %></td>
+        <td><%= t.employee_id %></td>
+        <td><%= t.shift %></td>
+        <% if (isAdmin) { %><td><%= t.voided ? t.voided_reason : '' %></td><% } %>
+        <td>
+          <% if (t.voided) { %>
+          <span class="badge voided" title="<%= t.voided_reason %>">VOIDED</span>
+          <% } else if (isAdmin) { %>
+          <form class="inline" method="post" action="/transactions/<%= t.id %>/void" onsubmit="return handleVoid(event, this);">
+            <button class="btn small secondary" type="submit">Void</button>
+          </form>
+          <% } %>
+          <% if (isAdmin) { %>
+          <a class="btn small secondary" href="/transactions/<%= t.id %>/edit">Edit</a>
+          <% } %>
+        </td>
+      </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+<% if (!transactions.length) { %>
+<div class="card empty-state">No transactions found.</div>
+<% } %>
+
+<script>
+function handleVoid(event, form) {
+  const reason = prompt('Reason for voiding this transaction (this correction will be visible in history):');
+  if (reason === null) { event.preventDefault(); return false; }
+  const input = document.createElement('input');
+  input.type = 'hidden';
+  input.name = 'voided_reason';
+  input.value = reason;
+  form.appendChild(input);
+  return true;
+}
+</script>
+<%- include('partials/foot') %>

@@ -1,0 +1,24 @@
+{
+  "name": "material_management",
+  "version": "1.0.0",
+  "description": "Simple local-network material stock tracking app. Replaces the manual Excel process with validated, dropdown-driven forms, a low-stock dashboard, and a full transaction audit trail (mistakes are corrected with \"Void\", not deletion).",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "deploy": "deploy.cmd",
+    "import": "node scripts/import-material-list.js",
+    "update-cost": "node scripts/update-material-cost.js",
+    "test-db": "node scripts/test-db-connection.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "ejs": "^6.0.1",
+    "express": "^5.2.1",
+    "mssql": "^12.7.0",
+    "xlsx": "^0.18.5"
+  }
+}

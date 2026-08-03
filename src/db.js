@@ -1,0 +1,131 @@
+require('dotenv').config();
+const sql = require('mssql');
+
+const config = {
+  server: process.env.DB_SERVER,
+  port: process.env.DB_PORT ? Number(process.env.DB_PORT) : undefined,
+  database: process.env.DB_NAME,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  options: {
+    instanceName: process.env.DB_INSTANCE || undefined,
+    trustServerCertificate: process.env.DB_TRUST_SERVER_CERT !== 'false',
+    encrypt: true,
+  },
+};
+
+let poolPromise = null;
+function getPool() {
+  if (!poolPromise) poolPromise = sql.connect(config);
+  return poolPromise;
+}
+
+function inferType(value) {
+  if (value === null || value === undefined) return sql.NVarChar(sql.MAX);
+  if (typeof value === 'number') return sql.Float;
+  if (typeof value === 'boolean') return sql.Bit;
+  if (value instanceof Date) return sql.DateTime2;
+  return sql.NVarChar(sql.MAX);
+}
+
+// Converts positional `?` placeholders (SQLite-style) to named @p0, @p1, ... for mssql.
+function toNamedParams(sqlText) {
+  let i = 0;
+  return sqlText.replace(/\?/g, () => `@p${i++}`);
+}
+
+async function request(params) {
+  const pool = await getPool();
+  const req = pool.request();
+  params.forEach((value, i) => {
+    req.input(`p${i}`, inferType(value), value === undefined ? null : value);
+  });
+  return req;
+}
+
+async function all(sqlText, params = []) {
+  const req = await request(params);
+  const result = await req.query(toNamedParams(sqlText));
+  return result.recordset;
+}
+
+async function get(sqlText, params = []) {
+  const rows = await all(sqlText, params);
+  return rows[0];
+}
+
+async function run(sqlText, params = []) {
+  const req = await request(params);
+  await req.query(toNamedParams(sqlText));
+}
+
+async function exec(sqlText) {
+  const pool = await getPool();
+  await pool.request().query(sqlText);
+}
+
+async function ensureSchema() {
+  await exec(`
+    IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'materials')
+    BEGIN
+      CREATE TABLE materials (
+        id INT IDENTITY(1,1) PRIMARY KEY,
+        prod_material_code NVARCHAR(100) NOT NULL UNIQUE,
+        material_code NVARCHAR(100) NOT NULL DEFAULT '',
+        name NVARCHAR(255) NOT NULL,
+        unit NVARCHAR(50) NOT NULL,
+        workshop NVARCHAR(100) NOT NULL,
+        min_stock FLOAT NOT NULL DEFAULT 0,
+        created_at DATETIME2 NOT NULL DEFAULT SYSDATETIME()
+      )
+    END
+  `);
+
+  await exec(`
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('materials') AND name = 'cost')
+    BEGIN
+      ALTER TABLE materials ADD cost FLOAT NULL
+    END
+  `);
+
+  await exec(`
+    IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'issue_entries')
+    BEGIN
+      CREATE TABLE issue_entries (
+        id INT IDENTITY(1,1) PRIMARY KEY,
+        material_id INT NOT NULL REFERENCES materials(id),
+        entry_date DATE NOT NULL,
+        current_stock FLOAT NULL,
+        issue_qty FLOAT NULL,
+        issue_ncn FLOAT NULL,
+        return_ncn FLOAT NULL,
+        employee_id NVARCHAR(20) NOT NULL,
+        shift NVARCHAR(1) NOT NULL CHECK(shift IN ('A','B','C')),
+        created_at DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+        voided BIT NOT NULL DEFAULT 0,
+        voided_reason NVARCHAR(MAX) NOT NULL DEFAULT ''
+      );
+      CREATE INDEX idx_issue_entries_material_date ON issue_entries(material_id, entry_date);
+    END
+  `);
+
+  await exec(`
+    IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'tickets')
+    BEGIN
+      CREATE TABLE tickets (
+        id INT IDENTITY(1,1) PRIMARY KEY,
+        emp_no NVARCHAR(20) NOT NULL,
+        full_name NVARCHAR(255) NOT NULL,
+        shift NVARCHAR(1) NOT NULL CHECK(shift IN ('A','B','C')),
+        workshop NVARCHAR(100) NOT NULL,
+        detail NVARCHAR(MAX) NOT NULL,
+        status NVARCHAR(20) NOT NULL DEFAULT 'OPEN' CHECK(status IN ('OPEN','RESOLVED')),
+        created_at DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+        resolved_at DATETIME2 NULL,
+        resolved_note NVARCHAR(MAX) NOT NULL DEFAULT ''
+      )
+    END
+  `);
+}
+
+module.exports = { all, get, run, exec, ensureSchema, getPool };

@@ -1,0 +1,48 @@
+<%- include('partials/head', { title: (editingId ? 'Edit' : 'Add') + ' Material' }) %>
+<h1><%= editingId ? 'Edit Material' : 'Add Material' %></h1>
+
+<% if (error) { %><div class="alert error"><%= error %></div><% } %>
+
+<form class="card form-card" method="post" action="<%= editingId ? '/materials/' + editingId + '/edit' : '/materials/new' %>">
+  <div class="field">
+    <label>Material Code (unique)<%= editingId ? ' *' : ' (auto-generated)' %></label>
+    <% if (editingId) { %>
+    <input type="text" name="prod_material_code" value="<%= material ? material.prod_material_code : '' %>" required>
+    <% } else { %>
+    <input type="text" value="<%= material ? material.prod_material_code : '' %>" readonly disabled>
+    <% } %>
+  </div>
+  <div class="field">
+    <label>ERP Material Code</label>
+    <input type="text" name="material_code" value="<%= material ? material.material_code : '' %>">
+  </div>
+  <div class="field">
+    <label>Name *</label>
+    <input type="text" name="name" value="<%= material ? material.name : '' %>" required>
+  </div>
+  <div class="field">
+    <label>Unit *</label>
+    <select name="unit" required>
+      <option value="">Select unit...</option>
+      <% units.forEach(u => { %>
+      <option value="<%= u %>" <%= material && material.unit === u ? 'selected' : '' %>><%= u %></option>
+      <% }) %>
+    </select>
+  </div>
+  <div class="field">
+    <label>Workshop *</label>
+    <select name="workshop" required>
+      <option value="">Select workshop...</option>
+      <% workshops.forEach(w => { %>
+      <option value="<%= w %>" <%= material && material.workshop === w ? 'selected' : '' %>><%= w %></option>
+      <% }) %>
+    </select>
+  </div>
+  <div class="field">
+    <label>Minimum Stock (for low-stock alerts)</label>
+    <input type="number" step="any" min="0" name="min_stock" value="<%= material ? material.min_stock : 0 %>">
+  </div>
+  <button class="btn" type="submit"><%= editingId ? 'Save Changes' : 'Add Material' %></button>
+  <a class="btn secondary" href="/materials">Cancel</a>
+</form>
+<%- include('partials/foot') %>

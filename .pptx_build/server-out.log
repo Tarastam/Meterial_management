@@ -1,0 +1,4 @@
+◇ injected env (9) from .env // tip: ⌘ enable debugging { debug: true }
+Material Management running on port 8000
+  Local:   http://localhost:8000
+  Network: http://10.249.128.101:8000

@@ -1,0 +1,73 @@
+<%- include('partials/head', { title: 'Ticket Log - Material Management' }) %>
+<div class="actions-row">
+  <h1>Ticket Log</h1>
+  <div class="kpi" style="padding:0.6rem 1.1rem;">
+    <div class="value" style="font-size:1.4rem;"><%= openCount %></div>
+    <div class="label">Open</div>
+  </div>
+</div>
+
+<form class="filters" method="get" action="/tickets">
+  <div class="field" style="margin-bottom:0;">
+    <label>Status</label>
+    <select name="status" onchange="this.form.submit()">
+      <option value="">All</option>
+      <option value="OPEN" <%= status === 'OPEN' ? 'selected' : '' %>>Open</option>
+      <option value="RESOLVED" <%= status === 'RESOLVED' ? 'selected' : '' %>>Resolved</option>
+    </select>
+  </div>
+</form>
+
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th><th>Emp No.</th><th>Name</th><th>Shift</th><th>Workshop</th>
+        <th>Detail</th><th>Status</th><th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% tickets.forEach(t => { %>
+      <tr>
+        <td><%= fmtDate(t.created_at) %></td>
+        <td><%= t.emp_no %></td>
+        <td><%= t.full_name %></td>
+        <td><%= t.shift %></td>
+        <td><%= t.workshop %></td>
+        <td><%= t.detail %></td>
+        <td>
+          <% if (t.status === 'OPEN') { %>
+          <span class="badge open">OPEN</span>
+          <% } else { %>
+          <span class="badge resolved" title="<%= t.resolved_note %>">RESOLVED</span>
+          <% } %>
+        </td>
+        <td>
+          <% if (t.status === 'OPEN') { %>
+          <form class="inline" method="post" action="/tickets/<%= t.id %>/resolve" onsubmit="return handleResolve(event, this);">
+            <button class="btn small secondary" type="submit">Resolve</button>
+          </form>
+          <% } %>
+        </td>
+      </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+<% if (!tickets.length) { %>
+<div class="card empty-state">No tickets found.</div>
+<% } %>
+
+<script>
+function handleResolve(event, form) {
+  const note = prompt('Resolution note (optional):');
+  if (note === null) { event.preventDefault(); return false; }
+  const input = document.createElement('input');
+  input.type = 'hidden';
+  input.name = 'resolved_note';
+  input.value = note;
+  form.appendChild(input);
+  return true;
+}
+</script>
+<%- include('partials/foot') %>

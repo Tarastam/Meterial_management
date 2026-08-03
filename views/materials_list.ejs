@@ -1,0 +1,94 @@
+<%- include('partials/head', { title: 'Summary - Material Management' }) %>
+<%
+function sortLink(col, label) {
+  const params = new URLSearchParams({ q, workshop: selectedWorkshop, from, to, sort: col });
+  const nextDir = (sort === col && dir === 'asc') ? 'desc' : 'asc';
+  params.set('dir', nextDir);
+  const arrow = sort === col ? (dir === 'asc' ? ' ▲' : ' ▼') : '';
+  return `<a href="/materials?${params.toString()}" class="sort-link">${label}${arrow}</a>`;
+}
+%>
+<div class="actions-row">
+  <h1>Summary</h1>
+  <div>
+    <a class="btn secondary" href="/export/materials.csv?<%= new URLSearchParams({ q, workshop: selectedWorkshop, from, to }).toString() %>">Export CSV</a>
+    <% if (isAdmin) { %>
+    <a class="btn" href="/materials/new">+ Add Material</a>
+    <% } %>
+  </div>
+</div>
+
+<form class="filters" method="get" action="/materials">
+  <div class="field" style="margin-bottom:0;">
+    <label>Search</label>
+    <input type="text" name="q" value="<%= q %>" placeholder="Code or name">
+  </div>
+  <div class="field" style="margin-bottom:0;">
+    <label>Workshop</label>
+    <select name="workshop">
+      <option value="">All Workshops</option>
+      <% workshops.forEach(w => { %>
+      <option value="<%= w %>" <%= w === selectedWorkshop ? 'selected' : '' %>><%= w %></option>
+      <% }) %>
+    </select>
+  </div>
+  <div class="field" style="margin-bottom:0;">
+    <label>From</label>
+    <input type="date" name="from" value="<%= from %>">
+  </div>
+  <div class="field" style="margin-bottom:0;">
+    <label>To</label>
+    <input type="date" name="to" value="<%= to %>">
+  </div>
+  <input type="hidden" name="sort" value="<%= sort %>">
+  <input type="hidden" name="dir" value="<%= dir %>">
+  <div class="field" style="margin-bottom:0; align-self:flex-end;">
+    <button class="btn secondary" type="submit">Filter</button>
+  </div>
+</form>
+
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th><%- sortLink('code', 'Code') %></th>
+        <th class="col-erp"><%- sortLink('erp_code', 'ERP Code') %></th>
+        <th class="col-name"><%- sortLink('name', 'Name') %></th>
+        <th class="col-center"><%- sortLink('unit', 'Unit') %></th>
+        <th class="col-center"><%- sortLink('workshop', 'Workshop') %></th>
+        <th class="col-num"><%- sortLink('issue', 'Issue') %></th>
+        <th class="col-num"><%- sortLink('usage', 'Usage') %></th>
+        <th class="col-num"><%- sortLink('stock', 'On Hand') %></th>
+        <th class="col-num"><%- sortLink('hold', 'Hold') %></th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% rows.forEach(row => { const m = row.material; %>
+      <tr>
+        <td><%= m.prod_material_code %></td>
+        <td class="col-erp"><%= m.material_code %></td>
+        <td class="col-name"><%= m.name %></td>
+        <td class="col-center"><%= m.unit %></td>
+        <td class="col-center"><%= m.workshop %></td>
+        <td class="col-num"><%= fmtNum(row.issue) %></td>
+        <td class="col-num"><%= fmtNum(row.usage) %></td>
+        <td class="col-num"><%= fmtNum(row.stock) %></td>
+        <td class="col-num"><%= fmtNum(row.hold) %></td>
+        <td>
+          <% if (isAdmin) { %>
+          <a class="btn small secondary" href="/materials/<%= m.id %>/edit">Edit</a>
+          <form class="inline" method="post" action="/materials/<%= m.id %>/delete" onsubmit="return confirm('Delete <%= m.prod_material_code %>? This also deletes its issue history.');">
+            <button class="btn small danger" type="submit">Delete</button>
+          </form>
+          <% } %>
+        </td>
+      </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+<% if (!rows.length) { %>
+<div class="card empty-state">No materials found.</div>
+<% } %>
+<%- include('partials/foot') %>

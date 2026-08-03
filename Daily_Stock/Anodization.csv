@@ -1,0 +1,353 @@
+OccurredOn,MaterialCode,MaterialName,Issue,Remain,Unit,Shift,Workshop,Usage
+6/30/26 12:54 AM,1201201001,Methanol 99.8,32,44.7,"Liter
+",A,Anodize,22.4
+6/30/26 12:54 AM,1201200005,Phosphoric  Acid (LS),60,110,"Liter
+",A,Anodize,30
+6/30/26 12:54 AM,1201220006,Acetic Acid Glacial,0,4906,"Liter
+",A,Anodize,426
+6/30/26 12:54 AM,1201201002,KBM 403,0,4713,"Liter
+",A,Anodize,1332
+6/30/26 12:54 AM,1201201004,Silicone coating (R6102),906,906,"g
+",A,Anodize,203
+6/30/26 12:54 AM,1201201003,Xylenes,4000,5000,"g
+",A,Anodize,1200
+6/30/26 12:54 AM,1401220013,Hydrogen,0,2,"g
+",A,Anodize,0
+6/30/26 12:54 AM,1201200001,Sodium Tetraborate,20000,23347,"kg
+",A,Anodize,3504
+7/1/26 2:46 AM,1201201001,Methanol 99.8,32,54.3,"Liter
+",A,Anodize,22.4
+7/1/26 2:46 AM,1201200005,Phosphoric  Acid (LS),70,130,"Liter
+",A,Anodize,50
+7/1/26 2:46 AM,1201220006,Acetic Acid Glacial,0,4570,"g
+",A,Anodize,336
+7/1/26 2:46 AM,1201201002,KBM 403,18000,21579,"g
+",A,Anodize,1134
+7/1/26 2:46 AM,1201201004,Silicone coating (R6102),0,606,"g
+",A,Anodize,300
+7/1/26 2:46 AM,1201201003,Xylenes,0,3800,"g
+",A,Anodize,1200
+7/1/26 2:46 AM,1401220013,Hydrogen,0,2,"Liter
+",A,Anodize,0
+7/1/26 2:46 AM,1201200001,Sodium Tetraborate,0,19425,"g
+",A,Anodize,3922
+7/2/26 12:58 AM,1201201001,Methanol 99.8,32,63.9,"Liter
+",A,Anodize,22.4
+7/2/26 12:58 AM,1201200005,Phosphoric  Acid (LS),70,140,"Liter
+",A,Anodize,60
+7/2/26 12:58 AM,1201220006,Acetic Acid Glacial,0,4054,"g
+",A,Anodize,516
+7/2/26 12:58 AM,1201201002,KBM 403,0,20049,"g
+",A,Anodize,1530
+7/2/26 12:58 AM,1201201004,Silicone coating (R6102),0,406,"g
+",A,Anodize,200
+7/2/26 12:58 AM,1201201003,Xylenes,0,3000,"g
+",A,Anodize,800
+7/2/26 12:58 AM,1401220013,Hydrogen,0,2,"Liter
+",A,Anodize,0
+7/2/26 12:58 AM,1201200001,Sodium Tetraborate,0,16190,"g
+",A,Anodize,3235
+7/3/26 12:23 AM,1201201001,Methanol 99.8,32,70.7,"Liter
+",C,Anodize,25.2
+7/3/26 12:23 AM,1201200005,Phosphoric  Acid (LS),70,170,"Liter
+",C,Anodize,40
+7/3/26 12:23 AM,1201220006,Acetic Acid Glacial,0,3496,"g
+",C,Anodize,558
+7/3/26 12:23 AM,1201201002,KBM 403,0,18675,"g
+",C,Anodize,1374
+7/3/26 12:23 AM,1201201004,Silicone coating (R6102),906,906,"g
+",C,Anodize,406
+7/3/26 12:23 AM,1201201003,Xylenes,4000,5400,"g
+",C,Anodize,1600
+7/3/26 12:23 AM,1401220013,Hydrogen,0,2,"Liter
+",C,Anodize,0
+7/3/26 12:23 AM,1201200001,Sodium Tetraborate,0,12686,"g
+",C,Anodize,3504
+7/4/26 12:35 AM,1201201001,Methanol 99.8,0,48.3,"Liter
+",C,Anodize,22.4
+7/4/26 12:35 AM,1201200005,Phosphoric  Acid (LS),0,130,"Liter
+",C,Anodize,40
+7/4/26 12:35 AM,1201220006,Acetic Acid Glacial,0,3160,"g
+",C,Anodize,336
+7/4/26 12:35 AM,1201201002,KBM 403,0,17301,"g
+",C,Anodize,1374
+7/4/26 12:35 AM,1201201004,Silicone coating (R6102),0,556,"g
+",C,Anodize,350
+7/4/26 12:35 AM,1201201003,Xylenes,0,4000,"g
+",C,Anodize,1400
+7/4/26 12:35 AM,1401220013,Hydrogen,0,1,"Liter
+",C,Anodize,1
+7/4/26 12:35 AM,1201200001,Sodium Tetraborate,0,12686,"g
+",C,Anodize,0
+7/5/26 12:23 AM,1201201001,Methanol 99.8,0,25.9,"Liter
+",C,Anodize,22.4
+7/5/26 12:23 AM,1201200005,Phosphoric  Acid (LS),0,80,"Liter
+",C,Anodize,50
+7/5/26 12:23 AM,1201220006,Acetic Acid Glacial,0,2824,"g
+",C,Anodize,336
+7/5/26 12:23 AM,1201201002,KBM 403,0,13180,"g
+",C,Anodize,4121
+7/5/26 12:23 AM,1201201004,Silicone coating (R6102),0,256,"g
+",C,Anodize,300
+7/5/26 12:23 AM,1201201003,Xylenes,0,2800,"g
+",C,Anodize,1200
+7/5/26 12:23 AM,1401220013,Hydrogen,0,1,"Liter
+",C,Anodize,0
+7/5/26 12:23 AM,1201200001,Sodium Tetraborate,0,5535,"g
+",C,Anodize,7151
+7/6/26 12:48 AM,1201201001,Methanol 99.8,16,9.5,"Liter
+",C,Anodize,32.4
+7/6/26 12:48 AM,1201200005,Phosphoric  Acid (LS),70,100,"Liter
+",C,Anodize,50
+7/6/26 12:48 AM,1201220006,Acetic Acid Glacial,0,2488,"g
+",C,Anodize,336
+7/6/26 12:48 AM,1201201002,KBM 403,0,10912,"g
+",C,Anodize,2268
+7/6/26 12:48 AM,1201201004,Silicone coating (R6102),906,1062,"g
+",C,Anodize,100
+7/6/26 12:48 AM,1201201003,Xylenes,0,2000,"g
+",C,Anodize,800
+7/6/26 12:48 AM,1401220013,Hydrogen,0,1,"Liter
+",C,Anodize,0
+7/6/26 12:48 AM,1201200001,Sodium Tetraborate,20000,22031,"g
+",C,Anodize,3504
+7/7/26 1:00 AM,1201220006,Acetic Acid Glacial,0,1900,"Liter
+",B,Anodize,588
+7/7/26 1:00 AM,1201201002,KBM 403,0,9440,"Liter
+",B,Anodize,1472
+7/7/26 1:00 AM,1201201004,Silicone coating (R6102),0,753,"g
+",B,Anodize,309
+7/7/26 1:00 AM,1401220013,Hydrogen,0,1,"g
+",B,Anodize,0
+7/7/26 1:00 AM,1201200001,Sodium Tetraborate,0,18527,"kg
+",B,Anodize,3504
+7/7/26 1:01 AM,1201201001,Methanol 99.8,80,58,"Liter
+",B,Anodize,31.5
+7/7/26 1:03 AM,1201201003,Xylenes,4000,4800,"g
+",B,Anodize,1200
+7/7/26 1:03 AM,1201200005,Phosphoric  Acid (LS),70,100,"Liter
+",B,Anodize,70
+7/8/26 12:31 AM,1201201001,Methanol 99.8,32,67.6,"Liter
+",B,Anodize,22.4
+7/8/26 12:31 AM,1201200005,Phosphoric  Acid (LS),70,130,"Liter
+",B,Anodize,40
+7/8/26 12:31 AM,1201220006,Acetic Acid Glacial,0,1564,"Liter
+",B,Anodize,336
+7/8/26 12:31 AM,1201201002,KBM 403,0,8306,"Liter
+",B,Anodize,1134
+7/8/26 12:31 AM,1201201004,Silicone coating (R6102),906,1359,"g
+",B,Anodize,300
+7/8/26 12:31 AM,1201201003,Xylenes,0,3600,"g
+",B,Anodize,1200
+7/8/26 12:31 AM,1401220013,Hydrogen,2.5,3.5,"g
+",B,Anodize,0
+7/8/26 12:31 AM,1201200001,Sodium Tetraborate,0,15305,"kg
+",B,Anodize,3222
+7/9/26 12:42 AM,1201201001,Methanol 99.8,32,77.2,"Liter
+",B,Anodize,22.4
+7/9/26 12:42 AM,1201200005,Phosphoric  Acid (LS),70,150,"Liter
+",B,Anodize,50
+7/9/26 12:42 AM,1201220006,Acetic Acid Glacial,0,1138,"Liter
+",B,Anodize,426
+7/9/26 12:42 AM,1201201002,KBM 403,18000,24974,"Liter
+",B,Anodize,1332
+7/9/26 12:42 AM,1201201004,Silicone coating (R6102),0,1056,"g
+",B,Anodize,303
+7/9/26 12:42 AM,1201201003,Xylenes,8000,10400,"g
+",B,Anodize,1200
+7/9/26 12:42 AM,1401220013,Hydrogen,0,2.5,"g
+",B,Anodize,1
+7/9/26 12:42 AM,1201200001,Sodium Tetraborate,0,11785,"kg
+",B,Anodize,3520
+7/10/26 12:09 AM,1201201001,Methanol 99.8,32,86.8,"Liter
+",B,Anodize,22.4
+7/10/26 12:09 AM,1201200005,Phosphoric  Acid (LS),70,140,"Liter
+",B,Anodize,80
+7/10/26 12:09 AM,1201220006,Acetic Acid Glacial,4000,4802,"Liter
+",B,Anodize,336
+7/10/26 12:09 AM,1201201002,KBM 403,0,23840,"Liter
+",B,Anodize,1134
+7/10/26 12:09 AM,1201201004,Silicone coating (R6102),906,1662,"g
+",B,Anodize,300
+7/10/26 12:09 AM,1201201003,Xylenes,0,9200,"g
+",B,Anodize,1200
+7/10/26 12:09 AM,1401220013,Hydrogen,0,2.5,"g
+",B,Anodize,0
+7/10/26 12:09 AM,1201200001,Sodium Tetraborate,20000,28573,"kg
+",B,Anodize,3212
+7/11/26 12:18 AM,1201201001,Methanol 99.8,0,64.4,"Liter
+",A,Anodize,22.4
+7/11/26 12:18 AM,1201200005,Phosphoric  Acid (LS),0,100,"Liter
+",A,Anodize,40
+7/11/26 12:18 AM,1201220006,Acetic Acid Glacial,0,4374,"Liter
+",A,Anodize,428
+7/11/26 12:18 AM,1201201002,KBM 403,0,22336,"Liter
+",A,Anodize,1504
+7/11/26 12:18 AM,1201201004,Silicone coating (R6102),0,1262,"g
+",A,Anodize,400
+7/11/26 12:18 AM,1201201003,Xylenes,0,6800,"g
+",A,Anodize,2400
+7/11/26 12:18 AM,1401220013,Hydrogen,0,2.5,"g
+",A,Anodize,0
+7/11/26 12:18 AM,1201200001,Sodium Tetraborate,0,24700,"kg
+",A,Anodize,3873
+7/12/26 2:15 AM,1201201001,Methanol 99.8,0,42,"Liter
+",A,Anodize,22.4
+7/12/26 2:15 AM,1201200005,Phosphoric  Acid (LS),0,40,"Liter
+",A,Anodize,60
+7/12/26 2:15 AM,1201220006,Acetic Acid Glacial,0,4000,"Liter
+",A,Anodize,374
+7/12/26 2:15 AM,1201201002,KBM 403,0,21345,"Liter
+",A,Anodize,991
+7/12/26 2:15 AM,1201201004,Silicone coating (R6102),0,1040,"g
+",A,Anodize,222
+7/12/26 2:15 AM,1201201003,Xylenes,0,5600,"g
+",A,Anodize,1200
+7/12/26 2:15 AM,1401220013,Hydrogen,0,2.5,"g
+",A,Anodize,0
+7/12/26 2:15 AM,1201200001,Sodium Tetraborate,0,21100,"kg
+",A,Anodize,3600
+7/13/26 2:56 AM,1201201001,Methanol 99.8,16,30,"Liter
+",A,Anodize,28
+7/13/26 2:56 AM,1201200005,Phosphoric  Acid (LS),70,60,"Liter
+",A,Anodize,50
+7/13/26 2:56 AM,1201220006,Acetic Acid Glacial,0,3580,"Liter
+",A,Anodize,420
+7/13/26 2:56 AM,1201201002,KBM 403,0,19651,"Liter
+",A,Anodize,1694
+7/13/26 2:56 AM,1201201004,Silicone coating (R6102),0,740,"g
+",A,Anodize,300
+7/13/26 2:56 AM,1201201003,Xylenes,0,4400,"g
+",A,Anodize,1200
+7/13/26 2:56 AM,1401220013,Hydrogen,0,2.5,"g
+",A,Anodize,0
+7/13/26 2:56 AM,1201200001,Sodium Tetraborate,0,17440,"kg
+",A,Anodize,3660
+7/14/26 1:45 AM,1201201001,Methanol 99.8,64,71.6,"Liter
+",A,Anodize,22.4
+7/14/26 1:45 AM,1201200005,Phosphoric  Acid (LS),70,80,"Liter
+",A,Anodize,50
+7/14/26 1:45 AM,1201220006,Acetic Acid Glacial,0,3244,"g
+",A,Anodize,336
+7/14/26 1:45 AM,1201201002,KBM 403,0,18000,"g
+",A,Anodize,1651
+7/14/26 1:45 AM,1201201004,Silicone coating (R6102),0,440,"g
+",A,Anodize,300
+7/14/26 1:45 AM,1201201003,Xylenes,0,3200,"g
+",A,Anodize,1200
+7/14/26 1:45 AM,1401220013,Hydrogen,0,2.5,"Liter
+",A,Anodize,0
+7/14/26 1:45 AM,1201200001,Sodium Tetraborate,0,13470,"g
+",A,Anodize,3970
+7/15/26 12:33 AM,1201201001,Methanol 99.8,32,81.2,"Liter
+",C,Anodize,22.4
+7/15/26 12:33 AM,1201200005,Phosphoric  Acid (LS),60,100,"Liter
+",C,Anodize,40
+7/15/26 12:33 AM,1201220006,Acetic Acid Glacial,0,2908,"g
+",C,Anodize,336
+7/15/26 12:33 AM,1201201002,KBM 403,0,16866,"g
+",C,Anodize,1134
+7/15/26 12:33 AM,1201201004,Silicone coating (R6102),906,1146,"g
+",C,Anodize,200
+7/15/26 12:33 AM,1201201003,Xylenes,4000,6400,"g
+",C,Anodize,800
+7/15/26 12:33 AM,1401220013,Hydrogen,0,2.5,"Liter
+",C,Anodize,0
+7/15/26 12:33 AM,1201200001,Sodium Tetraborate,0,9966,"g
+",C,Anodize,3504
+7/16/26 12:29 AM,1201201001,Methanol 99.8,32,90.8,"Liter
+",C,Anodize,22.4
+7/16/26 12:29 AM,1201200005,Phosphoric  Acid (LS),70,120,"Liter
+",C,Anodize,50
+7/16/26 12:29 AM,1201220006,Acetic Acid Glacial,0,2572,"g
+",C,Anodize,336
+7/16/26 12:29 AM,1201201002,KBM 403,0,15732,"g
+",C,Anodize,1134
+7/16/26 12:29 AM,1201201004,Silicone coating (R6102),0,906,"g
+",C,Anodize,240
+7/16/26 12:29 AM,1201201003,Xylenes,0,5200,"g
+",C,Anodize,1200
+7/16/26 12:29 AM,1401220013,Hydrogen,0,2.5,"Liter
+",C,Anodize,0
+7/16/26 12:29 AM,1201200001,Sodium Tetraborate,20000,26462,"g
+",C,Anodize,3504
+7/17/26 1:19 AM,1201201001,Methanol 99.8,32,100.4,"Liter
+",C,Anodize,22.4
+7/17/26 1:19 AM,1201200005,Phosphoric  Acid (LS),70,150,"Liter
+",C,Anodize,40
+7/17/26 1:19 AM,1201220006,Acetic Acid Glacial,0,2236,"Liter
+",C,Anodize,336
+7/17/26 1:19 AM,1201201002,KBM 403,0,14598,"Liter
+",C,Anodize,1134
+7/17/26 1:19 AM,1201201004,Silicone coating (R6102),906,1512,"g
+",C,Anodize,300
+7/17/26 1:19 AM,1201201003,Xylenes,0,4000,"g
+",C,Anodize,1200
+7/17/26 1:19 AM,1401220013,Hydrogen,0,2.5,"g
+",C,Anodize,0
+7/17/26 1:19 AM,1201200001,Sodium Tetraborate,0,22958,"kg
+",C,Anodize,3504
+7/18/26 12:27 AM,1201201001,Methanol 99.8,0,78,"Liter
+",C,Anodize,22.4
+7/18/26 12:27 AM,1201200005,Phosphoric  Acid (LS),0,100,"Liter
+",C,Anodize,50
+7/18/26 12:27 AM,1201220006,Acetic Acid Glacial,0,1900,"Liter
+",C,Anodize,336
+7/18/26 12:27 AM,1201201002,KBM 403,0,13464,"Liter
+",C,Anodize,1134
+7/18/26 12:27 AM,1201201004,Silicone coating (R6102),0,1209,"g
+",C,Anodize,303
+7/18/26 12:27 AM,1201201003,Xylenes,0,2800,"g
+",C,Anodize,1200
+7/18/26 12:27 AM,1401220013,Hydrogen,0,1.5,"g
+",C,Anodize,1
+7/18/26 12:27 AM,1201200001,Sodium Tetraborate,0,19454,"kg
+",C,Anodize,3504
+7/19/26 12:15 AM,1201201001,Methanol 99.8,0,55.6,"Liter
+",B,Anodize,22.4
+7/19/26 12:15 AM,1201200005,Phosphoric  Acid (LS),0,40,"Liter
+",B,Anodize,60
+7/19/26 12:15 AM,1201220006,Acetic Acid Glacial,0,1564,"Liter
+",B,Anodize,336
+7/19/26 12:16 AM,1201201002,KBM 403,0,12330,"Liter
+",B,Anodize,1134
+7/19/26 12:16 AM,1201201004,Silicone coating (R6102),0,856,"g
+",B,Anodize,353
+7/19/26 12:16 AM,1201201003,Xylenes,0,1400,"g
+",B,Anodize,1400
+7/19/26 12:16 AM,1401220013,Hydrogen,0,1.5,"g
+",B,Anodize,0
+7/19/26 12:16 AM,1201200001,Sodium Tetraborate,0,16795,"kg
+",B,Anodize,2659
+7/20/26 12:16 AM,1201201001,Methanol 99.8,16,43.6,"Liter
+",B,Anodize,28
+7/20/26 12:16 AM,1201200005,Phosphoric  Acid (LS),70,70,"Liter
+",B,Anodize,40
+7/20/26 12:16 AM,1201220006,Acetic Acid Glacial,4000,5144,"Liter
+",B,Anodize,420
+7/20/26 12:16 AM,1201201002,KBM 403,0,10636,"Liter
+",B,Anodize,1694
+7/20/26 12:16 AM,1201201004,Silicone coating (R6102),906,1359,"g
+",B,Anodize,403
+7/20/26 12:16 AM,1201201003,Xylenes,4000,3800,"g
+",B,Anodize,1600
+7/20/26 12:16 AM,1401220013,Hydrogen,0,1.5,"g
+",B,Anodize,0
+7/20/26 12:16 AM,1201200001,Sodium Tetraborate,0,13583,"kg
+",B,Anodize,3212
+7/21/26 12:33 AM,1201201001,Methanol 99.8,32,53.2,"Liter
+",B,Anodize,22.4
+7/21/26 12:33 AM,1201200005,Phosphoric  Acid (LS),70,80,"Liter
+",B,Anodize,60
+7/21/26 12:33 AM,1201220006,Acetic Acid Glacial,0,4718,"Liter
+",B,Anodize,426
+7/21/26 12:33 AM,1201201002,KBM 403,18000,27304,"Liter
+",B,Anodize,1332
+7/21/26 12:33 AM,1201201004,Silicone coating (R6102),0,1159,"g
+",B,Anodize,200
+7/21/26 12:33 AM,1201201003,Xylenes,0,3000,"g
+",B,Anodize,800
+7/21/26 12:33 AM,1401220013,Hydrogen,0,1.5,"g
+",B,Anodize,0
+7/21/26 12:33 AM,1201200001,Sodium Tetraborate,0,9735,"kg
+",B,Anodize,3848

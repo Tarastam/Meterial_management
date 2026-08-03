@@ -1,0 +1,62 @@
+<%- include('partials/head', { title: 'Edit Transaction - Material Management' }) %>
+<h1>Edit Transaction</h1>
+
+<% if (error) { %><div class="alert error"><%= error %></div><% } %>
+
+<div class="card form-card">
+  <p><strong>ID:</strong> <%= entry.id %></p>
+  <p><strong>Created At:</strong> <%= fmtDate(entry.created_at) %> <span class="hint">(not editable)</span></p>
+
+  <form method="post" action="/transactions/<%= entry.id %>/edit">
+    <div class="field">
+      <label>Material *</label>
+      <select name="material_id" required>
+        <% materials.forEach(m => { %>
+        <option value="<%= m.id %>" <%= entry.material_id === m.id ? 'selected' : '' %>><%= m.prod_material_code %> - <%= m.name %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="field">
+      <label>Entry Date *</label>
+      <input type="date" name="entry_date" required value="<%= typeof entry.entry_date === 'string' ? entry.entry_date.slice(0, 10) : entry.entry_date.toISOString().slice(0, 10) %>">
+    </div>
+    <div class="field">
+      <label>Current Stock</label>
+      <input type="number" step="any" min="0" name="current_stock" value="<%= entry.current_stock != null ? entry.current_stock : '' %>">
+    </div>
+    <div class="field">
+      <label>Issue</label>
+      <input type="number" step="any" min="0" name="issue_qty" value="<%= entry.issue_qty != null ? entry.issue_qty : '' %>">
+    </div>
+    <div class="field">
+      <label>Issue NCN</label>
+      <input type="number" step="any" min="0" name="issue_ncn" value="<%= entry.issue_ncn != null ? entry.issue_ncn : '' %>">
+    </div>
+    <div class="field">
+      <label>Return NCN</label>
+      <input type="number" step="any" min="0" name="return_ncn" value="<%= entry.return_ncn != null ? entry.return_ncn : '' %>">
+    </div>
+    <div class="field">
+      <label>Employee ID *</label>
+      <input type="text" name="employee_id" pattern="\d{7}|admin" maxlength="7" required value="<%= entry.employee_id %>">
+    </div>
+    <div class="field">
+      <label>Shift *</label>
+      <select name="shift" required>
+        <% shifts.forEach(s => { %>
+        <option value="<%= s %>" <%= entry.shift === s ? 'selected' : '' %>><%= s %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="field">
+      <label><input type="checkbox" name="voided" value="1" <%= entry.voided ? 'checked' : '' %>> Voided</label>
+    </div>
+    <div class="field">
+      <label>Voided Reason</label>
+      <input type="text" name="voided_reason" value="<%= entry.voided_reason || '' %>">
+    </div>
+    <button class="btn" type="submit">Save Correction</button>
+    <a class="btn secondary" href="/transactions">Cancel</a>
+  </form>
+</div>
+<%- include('partials/foot') %>

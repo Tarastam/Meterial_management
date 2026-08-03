@@ -1,0 +1,97 @@
+<%- include('partials/head', { title: 'Record Data - Material Management' }) %>
+<h1>Record Data</h1>
+
+<% if (error) { %><div class="alert error"><%= error %></div><% } %>
+<% if (success) { %><div class="alert success">Issue entries recorded successfully.</div><% } %>
+<% if (warnings) { %>
+<div class="alert error">
+  <strong>Saved — but usage came out negative for these materials. Double-check the Current Stock / Issue values, or have an admin correct the previous day's readings:</strong>
+  <ul>
+    <% warnings.forEach(w => { %>
+    <li><%= w.code %> - <%= w.name %>: usage <%= fmtNum(w.usage) %></li>
+    <% }) %>
+  </ul>
+</div>
+<% } %>
+
+<form class="filters" method="get" action="/issue">
+  <div class="field" style="margin-bottom:0;">
+    <label>Workshop</label>
+    <select name="workshop" onchange="this.form.submit()">
+      <option value="">All Workshops</option>
+      <% workshops.forEach(w => { %>
+      <option value="<%= w %>" <%= w === selectedWorkshop ? 'selected' : '' %>><%= w %></option>
+      <% }) %>
+    </select>
+  </div>
+  <% if (isAdmin) { %>
+  <div class="field" style="margin-bottom:0;">
+    <label>Date</label>
+    <input type="date" name="date" value="<%= entryDate %>" onchange="this.form.submit()">
+  </div>
+  <% } %>
+</form>
+<% if (isAdmin && entryDate !== today) { %>
+<div class="alert error">Backdating entries to <%= entryDate %> (admin mode).</div>
+<% } %>
+
+<% if (!materials.length) { %>
+<div class="card empty-state">No materials found. <a href="/materials/new">Add a material first</a>.</div>
+<% } else { %>
+<form method="post" action="/issue">
+  <input type="hidden" name="workshop" value="<%= selectedWorkshop %>">
+  <input type="hidden" name="entry_date" value="<%= entryDate %>">
+  <div class="table-wrap">
+    <table class="issue-table">
+      <thead>
+        <tr>
+          <th>Code</th><th class="col-erp">ERP Code</th><th class="col-name">Name</th><th class="col-center">Unit</th><th class="col-center">Workshop</th>
+          <th class="col-input">Current Stock</th><th class="col-input">Issue</th><th class="col-input">Issue NCN</th><th class="col-input">Return NCN</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% materials.forEach(m => { %>
+        <% const v = values[m.id] || {}; %>
+        <tr>
+          <td><%= m.prod_material_code %></td>
+          <td class="col-erp"><%= m.material_code %></td>
+          <td class="col-name"><%= m.name %></td>
+          <td class="col-center"><%= m.unit %></td>
+          <td class="col-center"><%= m.workshop %></td>
+          <td class="col-input"><input type="number" step="any" min="0" name="current_stock_<%= m.id %>" value="<%= v.current_stock || '' %>" placeholder="<%= stockMap[m.id] != null ? fmtNum(stockMap[m.id]) : '' %>"></td>
+          <td class="col-input"><input type="number" step="any" min="0" name="issue_qty_<%= m.id %>" value="<%= v.issue_qty || '' %>"></td>
+          <td class="col-input"><input type="number" step="any" min="0" name="issue_ncn_<%= m.id %>" value="<%= v.issue_ncn || '' %>"></td>
+          <td class="col-input"><input type="number" step="any" min="0" name="return_ncn_<%= m.id %>" value="<%= v.return_ncn || '' %>"></td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="issue-footer">
+    <div class="field">
+      <label>Employee ID *</label>
+      <input type="text" name="employee_id" pattern="\d{7}|admin" maxlength="7" placeholder="7-digit ID" value="<%= employeeId %>" required>
+    </div>
+    <div class="field">
+      <label>Shift *</label>
+      <select name="shift" required>
+        <option value="">Select shift...</option>
+        <% shifts.forEach(s => { %>
+        <option value="<%= s %>" <%= shift === s ? 'selected' : '' %>><%= s %></option>
+        <% }) %>
+      </select>
+    </div>
+    <button class="btn" type="submit">Submit</button>
+  </div>
+</form>
+<% } %>
+<% if (warnings) { %>
+<script>
+  alert(<%- JSON.stringify(
+    'Saved — but usage came out negative for:\n\n' +
+    warnings.map(w => `${w.code} - ${w.name}: usage ${fmtNum(w.usage)}`).join('\n')
+  ) %>);
+</script>
+<% } %>
+<%- include('partials/foot') %>

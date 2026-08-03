@@ -1,0 +1,62 @@
+<%- include('partials/head', { title: 'Consumption - Material Management' }) %>
+<h1>Consumption</h1>
+<p style="color:var(--gray-600); margin-top:-0.5rem;">Consumption = Material Usage &divide; Product Output, for a material over a period of time.</p>
+
+<% if (error) { %><div class="alert error"><%= error %></div><% } %>
+
+<form class="card form-card" method="get" action="/consumption">
+  <div class="field">
+    <label>Workshop</label>
+    <select name="workshop" onchange="this.form.submit()">
+      <option value="">All Workshops</option>
+      <% workshops.forEach(w => { %>
+      <option value="<%= w %>" <%= w === selectedWorkshop ? 'selected' : '' %>><%= w %></option>
+      <% }) %>
+    </select>
+  </div>
+  <div class="field">
+    <label>Material *</label>
+    <select name="material_id" required>
+      <option value="">Select material...</option>
+      <% materials.forEach(m => { %>
+      <option value="<%= m.id %>" <%= String(selectedMaterialId) === String(m.id) ? 'selected' : '' %>><%= m.prod_material_code %> - <%= m.name %></option>
+      <% }) %>
+    </select>
+  </div>
+  <div class="field">
+    <label>From *</label>
+    <input type="date" name="from" value="<%= from %>" required>
+  </div>
+  <div class="field">
+    <label>To *</label>
+    <input type="date" name="to" value="<%= to %>" required>
+  </div>
+  <div class="field">
+    <label>Product Output (kPcs)</label>
+    <input type="number" step="any" min="0" name="output" value="<%= outputRaw %>" placeholder="Units produced in this period">
+  </div>
+  <button class="btn" type="submit">Calculate</button>
+</form>
+
+<% if (result) { %>
+<h2>Result</h2>
+<div class="kpi-row">
+  <div class="kpi">
+    <div class="value"><%= fmtNum(result.usage) %></div>
+    <div class="label">Usage (<%= result.material.unit %>)</div>
+  </div>
+  <div class="kpi">
+    <div class="value"><%= result.output != null ? fmtNum(result.output) : '-' %></div>
+    <div class="label">Product Output(kPcs)</div>
+  </div>
+  <div class="kpi">
+    <div class="value"><%= result.consumption != null ? fmtNum(result.consumption, 4) : '-' %></div>
+    <div class="label">Consumption (<%= result.material.unit %>/kPcs)</div>
+  </div>
+</div>
+<div class="card">
+  <p><strong>Material:</strong> <%= result.material.prod_material_code %> - <%= result.material.name %> (<%= result.material.workshop %>)</p>
+  <p><strong>Period:</strong> <%= from %> to <%= to %></p>
+</div>
+<% } %>
+<%- include('partials/foot') %>

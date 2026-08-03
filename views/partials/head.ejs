@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= typeof title !== 'undefined' ? title : 'Material Management' %></title>
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="48x48" href="/static/favicon-48.png">
+  <link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <nav>
+    <span class="brand">Material Management</span>
+    <a href="/">Dashboard</a>
+    <a href="/materials">Summary</a>
+    <a href="/issue">Record Data</a>
+    <a href="/consumption">Consumption</a>
+    <a href="/transactions">Transactions</a>
+    <a href="/tickets/new">Request Change</a>
+    <% if (isAdmin) { %>
+    <a href="/tickets">Ticket Log</a>
+    <% } %>
+    <div class="nav-right">
+      <% if (isAdmin) { %>
+      <form class="inline nav-logout" method="post" action="/admin/logout">
+        <span class="nav-admin-badge">Admin</span>
+        <button class="nav-link-btn" type="submit">Logout</button>
+      </form>
+      <% } else { %>
+      <a href="/admin/login">Admin Login</a>
+      <% } %>
+    </div>
+  </nav>
+  <main>

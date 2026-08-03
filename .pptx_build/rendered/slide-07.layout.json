@@ -1,0 +1,1354 @@
+{
+  "schema": "openai.presentation.layout/v4",
+  "unit": "px",
+  "slide": {
+    "aid": "sl/17nr8e",
+    "id": "17nr8e",
+    "slide": 7,
+    "layoutId": "bc8debcd-8331-4b9e-b412-6fc0fb07febb",
+    "layoutName": "Title Slide",
+    "layoutType": "title",
+    "masterLayoutId": "bcf9d5c1-fe8f-4d8e-82f3-b80fd4b398ad",
+    "masterLayoutName": "Master",
+    "frame": {
+      "left": 0,
+      "top": 0,
+      "width": 1280,
+      "height": 720
+    }
+  },
+  "theme": {
+    "colorSchemeName": "ChatGPT",
+    "colors": {
+      "accent1": "#156082",
+      "accent2": "#E97132",
+      "accent3": "#196B24",
+      "accent4": "#0F9ED5",
+      "accent5": "#A02B93",
+      "accent6": "#4EA72E",
+      "bg1": "#FFFFFF",
+      "bg2": "#000000",
+      "tx1": "#1F1F1F",
+      "tx2": "#FFFFFF",
+      "dk1": "#000000",
+      "lt1": "#FFFFFF",
+      "dk2": "#0E2841",
+      "lt2": "#E8E8E8",
+      "hlink": "#467886",
+      "folHlink": "#96607D"
+    },
+    "typefaces": [
+      "Helvetica Neue"
+    ]
+  },
+  "inheritedLayers": [
+    {
+      "scope": "layout",
+      "id": "bc8debcd-8331-4b9e-b412-6fc0fb07febb",
+      "name": "Title Slide",
+      "type": "title",
+      "parentLayoutId": "bcf9d5c1-fe8f-4d8e-82f3-b80fd4b398ad",
+      "elements": []
+    },
+    {
+      "scope": "master",
+      "id": "bcf9d5c1-fe8f-4d8e-82f3-b80fd4b398ad",
+      "name": "Master",
+      "type": "master",
+      "elements": []
+    }
+  ],
+  "elements": [
+    {
+      "order": 1,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/zaxs3mxs",
+      "id": "1",
+      "name": "Google-Shape-532-p58-2",
+      "bbox": [
+        1184.18,
+        659.24,
+        54.48,
+        25.33
+      ],
+      "composeSource": {
+        "run": 1,
+        "path": "0.0"
+      },
+      "geometry": "rect",
+      "text": "7",
+      "textPreview": "7",
+      "resolvedFontSize": 13.33,
+      "resolvedTextStyle": {
+        "anchor": 3,
+        "fontSize": 13.33,
+        "typeface": "Helvetica Neue",
+        "color": "#000000",
+        "alignment": "right",
+        "verticalAlignment": "bottom",
+        "wrap": "square",
+        "autoFit": "none",
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "7"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "7",
+          "resolvedTextStyle": {
+            "anchor": 3,
+            "fontSize": 13.33,
+            "typeface": "Helvetica Neue",
+            "color": "#000000",
+            "alignment": "right",
+            "verticalAlignment": "bottom",
+            "wrap": "square",
+            "autoFit": "none",
+            "insets": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            }
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "7",
+              "anchor": 3,
+              "fontSize": 13.33,
+              "typeface": "Helvetica Neue",
+              "color": "#000000",
+              "alignment": "right",
+              "verticalAlignment": "bottom",
+              "wrap": "square",
+              "autoFit": "none",
+              "insets": {
+                "top": 0,
+                "right": 0,
+                "bottom": 0,
+                "left": 0
+              }
+            }
+          ],
+          "marginLeft": 0
+        }
+      ]
+    },
+    {
+      "order": 2,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/0b6tcred",
+      "id": "2",
+      "name": "Google-Shape-533-p58-3",
+      "bbox": [
+        41.33,
+        36.17,
+        1197.33,
+        67.64
+      ],
+      "composeSource": {
+        "run": 1,
+        "path": "0.1"
+      },
+      "geometry": "rect",
+      "text": "Each Record Data field has a different meaning",
+      "textPreview": "Each Record Data field has a different meaning",
+      "resolvedFontSize": 38.67,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 38.67,
+        "typeface": "Helvetica Neue",
+        "color": "#000000",
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "wrap": "square",
+        "autoFit": "none",
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Each Record Data field has a different meaning"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Each Record Data field has a different meaning",
+          "lineSpacingPercent": 90000,
+          "spaceAfter": 0,
+          "resolvedTextStyle": {
+            "anchor": 1,
+            "fontSize": 38.67,
+            "typeface": "Helvetica Neue",
+            "color": "#000000",
+            "alignment": "left",
+            "verticalAlignment": "top",
+            "wrap": "square",
+            "autoFit": "none",
+            "insets": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            }
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Each Record Data field has a different meaning",
+              "fontSize": 38.67,
+              "typeface": "Helvetica Neue",
+              "color": "#000000"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ]
+    },
+    {
+      "order": 3,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/lcfa5wfy",
+      "id": "3",
+      "name": "Rounded-Rectangle-1-4",
+      "bbox": [
+        41.68,
+        350.56,
+        580.99,
+        138.67
+      ],
+      "composeSource": {
+        "run": 1,
+        "path": "0.2"
+      },
+      "geometry": "roundRect",
+      "fillColor": "#F2F2F2"
+    },
+    {
+      "order": 4,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/q54b6hwb",
+      "id": "4",
+      "name": "Content-Placeholder-10-5",
+      "bbox": [
+        72.89,
+        376.69,
+        523.56,
+        92.16
+      ],
+      "composeSource": {
+        "run": 1,
+        "path": "0.3"
+      },
+      "geometry": "rect",
+      "text": "Stock and Issue",
+      "textPreview": "Stock and Issue",
+      "resolvedFontSize": 32,
+      "resolvedTextStyle": {
+        "fontSize": 32,
+        "typeface": "Helvetica Neue",
+        "color": "#000000",
+        "alignment": "left",
+        "autoFit": "none",
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Stock and Issue"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Stock and Issue",
+          "lineSpacingPercent": 112000,
+          "spaceAfter": 650,
+          "resolvedTextStyle": {
+            "fontSize": 32,
+            "typeface": "Helvetica Neue",
+            "color": "#000000",
+            "alignment": "left",
+            "autoFit": "none",
+            "insets": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            }
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Stock and Issue",
+              "fontSize": 21.33,
+              "typeface": "Helvetica Neue",
+              "color": "#000000",
+              "bold": true
+            }
+          ],
+          "marginLeft": 0
+        }
+      ]
+    },
+    {
+      "order": 5,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/b6dszmxw",
+      "id": "5",
+      "name": "Content-Placeholder-15-6",
+      "bbox": [
+        72.89,
+        506.94,
+        549.78,
+        102.67
+      ],
+      "composeSource": {
+        "run": 1,
+        "path": "0.4"
+      },
+      "geometry": "rect",
+      "text": "Current Stock: physical on-hand quantity.\nIssue: quantity issued in the period.\nMatch the displayed unit before typing.",
+      "textPreview": "Current Stock: physical on-hand quantity. | Issue: quantity issued in the period. | Match the displayed unit before typing.",
+      "resolvedFontSize": 21.33,
+      "resolvedTextStyle": {
+        "fontSize": 21.33,
+        "typeface": "Helvetica Neue",
+        "color": "#000000",
+        "alignment": "left",
+        "autoFit": "none",
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 3,
+        "lines": [
+          {
+            "index": 1,
+            "text": "• Current Stock: physical on-hand quantity."
+          },
+          {
+            "index": 2,
+            "text": "• Issue: quantity issued in the period."
+          },
+          {
+            "index": 3,
+            "text": "• Match the displayed unit before typing."
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Current Stock: physical on-hand quantity.",
+          "bulletCharacter": "•",
+          "marginLeft": 228600,
+          "indent": -228600,
+          "lineSpacingPercent": 112000,
+          "spaceAfter": 600,
+          "resolvedTextStyle": {
+            "fontSize": 21.33,
+            "typeface": "Helvetica Neue",
+            "color": "#000000",
+            "alignment": "left",
+            "autoFit": "none",
+            "insets": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            }
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Current Stock: physical on-hand quantity.",
+              "fontSize": 18.67,
+              "typeface": "Helvetica Neue",
+              "color": "#000000"
+            }
+          ]
+        },
+        {
+          "index": 2,
+          "text": "Issue: quantity issued in the period.",
+          "bulletCharacter": "•",
+          "marginLeft": 228600,
+          "indent": -228600,
+          "lineSpacingPercent": 112000,
+          "spaceAfter": 600,
+          "resolvedTextStyle": {
+            "fontSize": 21.33,
+            "typeface": "Helvetica Neue",
+            "color": "#000000",
+            "alignment": "left",
+            "autoFit": "none",
+            "insets": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            }
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Issue: quantity issued in the period.",
+              "fontSize": 18.67,
+              "typeface": "Helvetica Neue",
+              "color": "#000000"
+            }
+          ]
+        },
+        {
+          "index": 3,
+          "text": "Match the displayed unit before typing.",
+          "bulletCharacter": "•",
+          "marginLeft": 228600,
+          "indent": -228600,
+          "lineSpacingPercent": 112000,
+          "spaceAfter": 600,
+          "resolvedTextStyle": {
+            "fontSize": 21.33,
+            "typeface": "Helvetica Neue",
+            "color": "#000000",
+            "alignment": "left",
+            "autoFit": "none",
+            "insets": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            }
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Match the displayed unit before typing.",
+              "fontSize": 18.67,
+              "typeface": "Helvetica Neue",
+              "color": "#000000"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "order": 6,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/c76t87e1",
+      "id": "6",
+      "name": "Rounded-Rectangle-7-7",
+      "bbox": [
+        657.3,
+        350.56,
+        580.99,
+        138.67
+      ],
+      "composeSource": {
+        "run": 1,
+        "path": "0.5"
+      },
+      "geometry": "roundRect",
+      "fillColor": "#F2F2F2"
+    },
+    {
+      "order": 7,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/d8fa1cfm",
+      "id": "7",
+      "name": "Content-Placeholder-10-8",
+      "bbox": [
+        688.51,
+        376.69,
+        523.56,
+        92.16
+      ],
+      "composeSource": {
+        "run": 1,
+        "path": "0.6"
+      },
+      "geometry": "rect",
+      "text": "NCN movements",
+      "textPreview": "NCN movements",
+      "resolvedFontSize": 32,
+      "resolvedTextStyle": {
+        "fontSize": 32,
+        "typeface": "Helvetica Neue",
+        "color": "#000000",
+        "alignment": "left",
+        "autoFit": "none",
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "NCN movements"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "NCN movements",
+          "lineSpacingPercent": 112000,
+          "spaceAfter": 650,
+          "resolvedTextStyle": {
+            "fontSize": 32,
+            "typeface": "Helvetica Neue",
+            "color": "#000000",
+            "alignment": "left",
+            "autoFit": "none",
+            "insets": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            }
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "NCN movements",
+              "fontSize": 21.33,
+              "typeface": "Helvetica Neue",
+              "color": "#000000",
+              "bold": true
+            }
+          ],
+          "marginLeft": 0
+        }
+      ]
+    },
+    {
+      "order": 8,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/2h4b2xwz",
+      "id": "8",
+      "name": "Content-Placeholder-15-9",
+      "bbox": [
+        688.51,
+        506.94,
+        549.78,
+        102.67
+      ],
+      "composeSource": {
+        "run": 1,
+        "path": "0.7"
+      },
+      "geometry": "rect",
+      "text": "Issue NCN: quantity moved to NCN.\nReturn NCN: quantity returned from NCN.\nNever swap the two NCN columns.",
+      "textPreview": "Issue NCN: quantity moved to NCN. | Return NCN: quantity returned from NCN. | Never swap the two NCN columns.",
+      "resolvedFontSize": 21.33,
+      "resolvedTextStyle": {
+        "fontSize": 21.33,
+        "typeface": "Helvetica Neue",
+        "color": "#000000",
+        "alignment": "left",
+        "autoFit": "none",
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 3,
+        "lines": [
+          {
+            "index": 1,
+            "text": "• Issue NCN: quantity moved to NCN."
+          },
+          {
+            "index": 2,
+            "text": "• Return NCN: quantity returned from NCN."
+          },
+          {
+            "index": 3,
+            "text": "• Never swap the two NCN columns."
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Issue NCN: quantity moved to NCN.",
+          "bulletCharacter": "•",
+          "marginLeft": 228600,
+          "indent": -228600,
+          "lineSpacingPercent": 112000,
+          "spaceAfter": 600,
+          "resolvedTextStyle": {
+            "fontSize": 21.33,
+            "typeface": "Helvetica Neue",
+            "color": "#000000",
+            "alignment": "left",
+            "autoFit": "none",
+            "insets": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            }
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Issue NCN: quantity moved to NCN.",
+              "fontSize": 18.67,
+              "typeface": "Helvetica Neue",
+              "color": "#000000"
+            }
+          ]
+        },
+        {
+          "index": 2,
+          "text": "Return NCN: quantity returned from NCN.",
+          "bulletCharacter": "•",
+          "marginLeft": 228600,
+          "indent": -228600,
+          "lineSpacingPercent": 112000,
+          "spaceAfter": 600,
+          "resolvedTextStyle": {
+            "fontSize": 21.33,
+            "typeface": "Helvetica Neue",
+            "color": "#000000",
+            "alignment": "left",
+            "autoFit": "none",
+            "insets": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            }
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Return NCN: quantity returned from NCN.",
+              "fontSize": 18.67,
+              "typeface": "Helvetica Neue",
+              "color": "#000000"
+            }
+          ]
+        },
+        {
+          "index": 3,
+          "text": "Never swap the two NCN columns.",
+          "bulletCharacter": "•",
+          "marginLeft": 228600,
+          "indent": -228600,
+          "lineSpacingPercent": 112000,
+          "spaceAfter": 600,
+          "resolvedTextStyle": {
+            "fontSize": 21.33,
+            "typeface": "Helvetica Neue",
+            "color": "#000000",
+            "alignment": "left",
+            "autoFit": "none",
+            "insets": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            }
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Never swap the two NCN columns.",
+              "fontSize": 18.67,
+              "typeface": "Helvetica Neue",
+              "color": "#000000"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "order": 9,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/3idsv2xk",
+      "id": "9",
+      "name": "Content-Placeholder-15-10",
+      "bbox": [
+        42.09,
+        121.52,
+        1197.33,
+        171.05
+      ],
+      "composeSource": {
+        "run": 1,
+        "path": "0.8"
+      },
+      "geometry": "rect",
+      "text": "Enter the physical value shown for the selected material and unit.\nDo not copy a number from another row. Blank means no value was recorded; zero means the value is actually zero.\n",
+      "textPreview": "Enter the physical value shown for the selected material and unit. | Do not copy a number from another row. Blank means no value was reco...",
+      "resolvedFontSize": 21.33,
+      "resolvedTextStyle": {
+        "fontSize": 21.33,
+        "typeface": "Helvetica Neue",
+        "color": "#000000",
+        "alignment": "left",
+        "autoFit": "none",
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 3,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Enter the physical value shown for the selected material and unit."
+          },
+          {
+            "index": 2,
+            "text": "Do not copy a number from another row. Blank means no value was recorded; zero means the value is actually zero."
+          },
+          {
+            "index": 3,
+            "text": ""
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Enter the physical value shown for the selected material and unit.",
+          "lineSpacingPercent": 112000,
+          "spaceAfter": 650,
+          "resolvedTextStyle": {
+            "fontSize": 21.33,
+            "typeface": "Helvetica Neue",
+            "color": "#000000",
+            "alignment": "left",
+            "autoFit": "none",
+            "insets": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            }
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Enter the physical value shown for the selected material and unit.",
+              "fontSize": 21.33,
+              "typeface": "Helvetica Neue",
+              "color": "#000000",
+              "bold": true
+            }
+          ],
+          "marginLeft": 0
+        },
+        {
+          "index": 2,
+          "text": "Do not copy a number from another row. Blank means no value was recorded; zero means the value is actually zero.",
+          "lineSpacingPercent": 112000,
+          "spaceAfter": 650,
+          "resolvedTextStyle": {
+            "fontSize": 21.33,
+            "typeface": "Helvetica Neue",
+            "color": "#000000",
+            "alignment": "left",
+            "autoFit": "none",
+            "insets": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            }
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Do not copy a number from another row. Blank means no value was recorded; zero means the value is actually zero.",
+              "fontSize": 18.67,
+              "typeface": "Helvetica Neue",
+              "color": "#000000"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ]
+    }
+  ],
+  "composeRuns": [
+    {
+      "index": 1,
+      "frame": {
+        "left": 0,
+        "top": 0,
+        "width": 1280,
+        "height": 720
+      },
+      "baseUnit": 1,
+      "root": {
+        "path": "0",
+        "kind": "layers",
+        "name": "codex-grid-layout-library#slide-11",
+        "requestedSize": {
+          "width": {
+            "mode": "fill",
+            "value": 1
+          },
+          "height": {
+            "mode": "fill",
+            "value": 1
+          }
+        },
+        "intrinsicSize": {
+          "width": 1239.42,
+          "height": 684.57
+        },
+        "frame": {
+          "left": 0,
+          "top": 0,
+          "width": 1280,
+          "height": 720
+        },
+        "children": [
+          {
+            "path": "0.0",
+            "kind": "text",
+            "name": "Google-Shape-532-p58-2",
+            "position": {
+              "left": 1184.18,
+              "top": 659.24
+            },
+            "requestedSize": {
+              "width": {
+                "mode": "fixed",
+                "value": 54.48
+              },
+              "height": {
+                "mode": "fixed",
+                "value": 25.33
+              }
+            },
+            "intrinsicSize": {
+              "width": 54.48,
+              "height": 25.33
+            },
+            "frame": {
+              "left": 1184.18,
+              "top": 659.24,
+              "width": 54.48,
+              "height": 25.33
+            },
+            "snappedFrame": {
+              "left": 1184.18,
+              "top": 659.24,
+              "width": 54.48,
+              "height": 25.33
+            },
+            "children": [],
+            "text": "7",
+            "transform": "none",
+            "element": {
+              "aid": "sh/zaxs3mxs",
+              "id": "1",
+              "kind": "shape"
+            }
+          },
+          {
+            "path": "0.1",
+            "kind": "text",
+            "name": "Google-Shape-533-p58-3",
+            "position": {
+              "left": 41.33,
+              "top": 36.17
+            },
+            "requestedSize": {
+              "width": {
+                "mode": "fixed",
+                "value": 1197.33
+              },
+              "height": {
+                "mode": "fixed",
+                "value": 67.64
+              }
+            },
+            "intrinsicSize": {
+              "width": 1197.33,
+              "height": 67.64
+            },
+            "frame": {
+              "left": 41.33,
+              "top": 36.17,
+              "width": 1197.33,
+              "height": 67.64
+            },
+            "snappedFrame": {
+              "left": 41.33,
+              "top": 36.17,
+              "width": 1197.33,
+              "height": 67.64
+            },
+            "children": [],
+            "text": "Each Record Data field has a different meaning",
+            "transform": "none",
+            "element": {
+              "aid": "sh/0b6tcred",
+              "id": "2",
+              "kind": "shape"
+            }
+          },
+          {
+            "path": "0.2",
+            "kind": "shape",
+            "name": "Rounded-Rectangle-1-4",
+            "position": {
+              "left": 41.68,
+              "top": 350.56
+            },
+            "requestedSize": {
+              "width": {
+                "mode": "fixed",
+                "value": 580.99
+              },
+              "height": {
+                "mode": "fixed",
+                "value": 138.67
+              }
+            },
+            "intrinsicSize": {
+              "width": 580.99,
+              "height": 138.67
+            },
+            "frame": {
+              "left": 41.68,
+              "top": 350.56,
+              "width": 580.99,
+              "height": 138.67
+            },
+            "snappedFrame": {
+              "left": 41.68,
+              "top": 350.56,
+              "width": 580.99,
+              "height": 138.67
+            },
+            "children": [],
+            "geometry": "roundRect",
+            "element": {
+              "aid": "sh/lcfa5wfy",
+              "id": "3",
+              "kind": "shape"
+            }
+          },
+          {
+            "path": "0.3",
+            "kind": "text",
+            "name": "Content-Placeholder-10-5",
+            "position": {
+              "left": 72.89,
+              "top": 376.69
+            },
+            "requestedSize": {
+              "width": {
+                "mode": "fixed",
+                "value": 523.56
+              },
+              "height": {
+                "mode": "fixed",
+                "value": 92.16
+              }
+            },
+            "intrinsicSize": {
+              "width": 523.56,
+              "height": 92.16
+            },
+            "frame": {
+              "left": 72.89,
+              "top": 376.69,
+              "width": 523.56,
+              "height": 92.16
+            },
+            "snappedFrame": {
+              "left": 72.89,
+              "top": 376.69,
+              "width": 523.56,
+              "height": 92.16
+            },
+            "children": [],
+            "text": "Stock and Issue",
+            "transform": "none",
+            "element": {
+              "aid": "sh/q54b6hwb",
+              "id": "4",
+              "kind": "shape"
+            }
+          },
+          {
+            "path": "0.4",
+            "kind": "text",
+            "name": "Content-Placeholder-15-6",
+            "position": {
+              "left": 72.89,
+              "top": 506.94
+            },
+            "requestedSize": {
+              "width": {
+                "mode": "fixed",
+                "value": 549.78
+              },
+              "height": {
+                "mode": "fixed",
+                "value": 102.67
+              }
+            },
+            "intrinsicSize": {
+              "width": 549.78,
+              "height": 102.67
+            },
+            "frame": {
+              "left": 72.89,
+              "top": 506.94,
+              "width": 549.78,
+              "height": 102.67
+            },
+            "snappedFrame": {
+              "left": 72.89,
+              "top": 506.94,
+              "width": 549.78,
+              "height": 102.67
+            },
+            "children": [],
+            "text": "Current Stock: physical on-hand quantity.\nIssue: quantity issued in the period.\nMatch the displayed unit before typing.",
+            "transform": "none",
+            "element": {
+              "aid": "sh/b6dszmxw",
+              "id": "5",
+              "kind": "shape"
+            }
+          },
+          {
+            "path": "0.5",
+            "kind": "shape",
+            "name": "Rounded-Rectangle-7-7",
+            "position": {
+              "left": 657.3,
+              "top": 350.56
+            },
+            "requestedSize": {
+              "width": {
+                "mode": "fixed",
+                "value": 580.99
+              },
+              "height": {
+                "mode": "fixed",
+                "value": 138.67
+              }
+            },
+            "intrinsicSize": {
+              "width": 580.99,
+              "height": 138.67
+            },
+            "frame": {
+              "left": 657.3,
+              "top": 350.56,
+              "width": 580.99,
+              "height": 138.67
+            },
+            "snappedFrame": {
+              "left": 657.3,
+              "top": 350.56,
+              "width": 580.99,
+              "height": 138.67
+            },
+            "children": [],
+            "geometry": "roundRect",
+            "element": {
+              "aid": "sh/c76t87e1",
+              "id": "6",
+              "kind": "shape"
+            }
+          },
+          {
+            "path": "0.6",
+            "kind": "text",
+            "name": "Content-Placeholder-10-8",
+            "position": {
+              "left": 688.51,
+              "top": 376.69
+            },
+            "requestedSize": {
+              "width": {
+                "mode": "fixed",
+                "value": 523.56
+              },
+              "height": {
+                "mode": "fixed",
+                "value": 92.16
+              }
+            },
+            "intrinsicSize": {
+              "width": 523.56,
+              "height": 92.16
+            },
+            "frame": {
+              "left": 688.51,
+              "top": 376.69,
+              "width": 523.56,
+              "height": 92.16
+            },
+            "snappedFrame": {
+              "left": 688.51,
+              "top": 376.69,
+              "width": 523.56,
+              "height": 92.16
+            },
+            "children": [],
+            "text": "NCN movements",
+            "transform": "none",
+            "element": {
+              "aid": "sh/d8fa1cfm",
+              "id": "7",
+              "kind": "shape"
+            }
+          },
+          {
+            "path": "0.7",
+            "kind": "text",
+            "name": "Content-Placeholder-15-9",
+            "position": {
+              "left": 688.51,
+              "top": 506.94
+            },
+            "requestedSize": {
+              "width": {
+                "mode": "fixed",
+                "value": 549.78
+              },
+              "height": {
+                "mode": "fixed",
+                "value": 102.67
+              }
+            },
+            "intrinsicSize": {
+              "width": 549.78,
+              "height": 102.67
+            },
+            "frame": {
+              "left": 688.51,
+              "top": 506.94,
+              "width": 549.78,
+              "height": 102.67
+            },
+            "snappedFrame": {
+              "left": 688.51,
+              "top": 506.94,
+              "width": 549.78,
+              "height": 102.67
+            },
+            "children": [],
+            "text": "Issue NCN: quantity moved to NCN.\nReturn NCN: quantity returned from NCN.\nNever swap the two NCN columns.",
+            "transform": "none",
+            "element": {
+              "aid": "sh/2h4b2xwz",
+              "id": "8",
+              "kind": "shape"
+            }
+          },
+          {
+            "path": "0.8",
+            "kind": "text",
+            "name": "Content-Placeholder-15-10",
+            "position": {
+              "left": 42.09,
+              "top": 121.52
+            },
+            "requestedSize": {
+              "width": {
+                "mode": "fixed",
+                "value": 1197.33
+              },
+              "height": {
+                "mode": "fixed",
+                "value": 171.05
+              }
+            },
+            "intrinsicSize": {
+              "width": 1197.33,
+              "height": 171.05
+            },
+            "frame": {
+              "left": 42.09,
+              "top": 121.52,
+              "width": 1197.33,
+              "height": 171.05
+            },
+            "snappedFrame": {
+              "left": 42.09,
+              "top": 121.52,
+              "width": 1197.33,
+              "height": 171.05
+            },
+            "children": [],
+            "text": "Enter the physical value shown for the selected material and unit.\nDo not copy a number from another row. Blank means no value was recorded; zero means the value is actually zero.\n",
+            "transform": "none",
+            "element": {
+              "aid": "sh/3idsv2xk",
+              "id": "9",
+              "kind": "shape"
+            }
+          }
+        ],
+        "padding": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        },
+        "alignItems": "stretch",
+        "justifyItems": "stretch",
+        "contentFrame": {
+          "left": 0,
+          "top": 0,
+          "width": 1280,
+          "height": 720
+        },
+        "items": [
+          {
+            "path": "0.0",
+            "frame": {
+              "left": 1184.18,
+              "top": 659.24,
+              "width": 54.48,
+              "height": 25.33
+            }
+          },
+          {
+            "path": "0.1",
+            "frame": {
+              "left": 41.33,
+              "top": 36.17,
+              "width": 1197.33,
+              "height": 67.64
+            }
+          },
+          {
+            "path": "0.2",
+            "frame": {
+              "left": 41.68,
+              "top": 350.56,
+              "width": 580.99,
+              "height": 138.67
+            }
+          },
+          {
+            "path": "0.3",
+            "frame": {
+              "left": 72.89,
+              "top": 376.69,
+              "width": 523.56,
+              "height": 92.16
+            }
+          },
+          {
+            "path": "0.4",
+            "frame": {
+              "left": 72.89,
+              "top": 506.94,
+              "width": 549.78,
+              "height": 102.67
+            }
+          },
+          {
+            "path": "0.5",
+            "frame": {
+              "left": 657.3,
+              "top": 350.56,
+              "width": 580.99,
+              "height": 138.67
+            }
+          },
+          {
+            "path": "0.6",
+            "frame": {
+              "left": 688.51,
+              "top": 376.69,
+              "width": 523.56,
+              "height": 92.16
+            }
+          },
+          {
+            "path": "0.7",
+            "frame": {
+              "left": 688.51,
+              "top": 506.94,
+              "width": 549.78,
+              "height": 102.67
+            }
+          },
+          {
+            "path": "0.8",
+            "frame": {
+              "left": 42.09,
+              "top": 121.52,
+              "width": 1197.33,
+              "height": 171.05
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

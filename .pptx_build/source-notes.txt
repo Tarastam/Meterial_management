@@ -1,0 +1,4 @@
+All screenshots were captured from the local Material Management web app at http://localhost:8000 on 2026-08-03.
+The deck uses only local application screens and behavior verified from the project source code.
+No external images, claims, or web sources were used.
+

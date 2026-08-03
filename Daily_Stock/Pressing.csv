@@ -1,0 +1,1202 @@
+OccurredOn,MaterialCode,MaterialName,Issue,Remain,Unit,Shift,Workshop,Usage
+6/30/26 12:48 AM,1208101013,TA S-15MB  ( DK ),0,2000,g,A,Pressing,0
+6/30/26 12:48 AM,1208101016,TA TTS-23KM  (TM ),40000,45000,"g
+",A,Pressing,0
+6/30/26 12:48 AM,1208101044,TA S-15 HV  ( DH ),0,17500,"g
+",A,Pressing,0
+6/30/26 12:48 AM,1208101035,TA TTS-40KMH  ( TT ),0,0,"g
+",A,Pressing,0
+6/30/26 12:48 AM,1208101009,TA TTS-50KMD  ( TD ),0,0,"g
+",A,Pressing,0
+6/30/26 12:48 AM,1208101018,TA TTS-80KM  (TZ ),0,55000,"g
+",A,Pressing,0
+6/30/26 12:48 AM,1208101036,TA TTS-100KM  ( TJ ),0,0,"g
+",A,Pressing,0
+6/30/26 12:48 AM,1208101023,TA STA-150KA  ( GK ),0,0,"g
+",A,Pressing,0
+6/30/26 12:48 AM,1208101039,TA TTS-150KM  ( TK ),0,0,"g
+",A,Pressing,0
+6/30/26 12:48 AM,1208101040,TA STA-200KA  ( GP ),0,0,"g
+",A,Pressing,0
+6/30/26 12:48 AM,1208101042,TA STA-255KA  ( GR )            ,0,0,"g
+",A,Pressing,0
+6/30/26 12:48 AM,1208101043,TA S-25MB  ( DR ),0,0,"g
+",A,Pressing,0
+6/30/26 12:48 AM,1208101046,TA S-10 HV  (DG),0,0,"g
+",A,Pressing,0
+6/30/26 12:48 AM,1208101045,TA S-708  (DC),0,0,"g
+",A,Pressing,0
+6/30/26 12:48 AM,1208102003,TA-Wire    0.19 ,0,3710,"g
+",A,Pressing,760
+6/30/26 12:48 AM,KDW0074D,TA-Wire   0.19KD,0,0,lb,A,Pressing,0
+6/30/26 12:48 AM,1208102015,TA-Wire    0.22,0,0,"g
+",A,Pressing,0
+6/30/26 12:48 AM,1208102020,TA-Wire    0.22S,0,0,"g
+",A,Pressing,0
+6/30/26 12:48 AM,1208102005,TA-Wire    0.29,0,12010,"g
+",A,Pressing,0
+6/30/26 12:48 AM,1208102018,TA-Wire    0.34D,0,25840,"g
+",A,Pressing,7870
+6/30/26 12:48 AM,1208102017,TA-Wire    0.40,0,0,"g
+",A,Pressing,0
+6/30/26 12:48 AM,1208102016,TA-Wire    0.47,0,1840,"g
+",A,Pressing,0
+6/30/26 12:48 AM,120810001,ACRYBASE - IB30(D),0,21.275,Liter,A,Pressing,0
+6/30/26 12:48 AM,1000000001,Toluene,0,36.5,Liter,A,Pressing,0
+6/30/26 12:48 AM,10000000005,Sodium Chloride (?????),0,275,"kg
+",A,Pressing,0
+6/30/26 12:48 AM,1405100009,MR-200,0,30,"kg
+",A,Pressing,0
+6/30/26 12:48 AM,1208101047 ,TA S-10HV (RG),0,0,"g
+",A,Pressing,0
+6/30/26 12:48 AM,YDW0074D,TA-Wire   0.19YD,0,6900,"g
+",A,Pressing,0
+6/30/26 12:49 AM,YDW133DR,TA-Wire   0.34(Recycle),0,22120,"g
+",A,Pressing,0
+6/30/26 12:49 AM,1208101050,TA S-808,0,5000,"g
+",A,Pressing,0
+7/1/26 1:02 AM,1208101013,TA S-15MB  ( DK ),0,2000,g,A,Pressing,0
+7/1/26 1:02 AM,1208101016,TA TTS-23KM  (TM ),0,35000,"g
+",A,Pressing,10000
+7/1/26 1:02 AM,1208101044,TA S-15 HV  ( DH ),0,0,"g
+",A,Pressing,17500
+7/1/26 1:02 AM,1208101035,TA TTS-40KMH  ( TT ),0,0,"g
+",A,Pressing,0
+7/1/26 1:02 AM,1208101009,TA TTS-50KMD  ( TD ),0,0,"g
+",A,Pressing,0
+7/1/26 1:02 AM,1208101018,TA TTS-80KM  (TZ ),0,55000,"g
+",A,Pressing,0
+7/1/26 1:02 AM,1208101036,TA TTS-100KM  ( TJ ),0,0,"g
+",A,Pressing,0
+7/1/26 1:02 AM,1208101023,TA STA-150KA  ( GK ),0,0,"g
+",A,Pressing,0
+7/1/26 1:02 AM,1208101039,TA TTS-150KM  ( TK ),0,0,"g
+",A,Pressing,0
+7/1/26 1:02 AM,1208101040,TA STA-200KA  ( GP ),0,0,"g
+",A,Pressing,0
+7/1/26 1:02 AM,1208101042,TA STA-255KA  ( GR )            ,0,0,"g
+",A,Pressing,0
+7/1/26 1:02 AM,1208101043,TA S-25MB  ( DR ),0,0,"g
+",A,Pressing,0
+7/1/26 1:02 AM,1208101046,TA S-10 HV  (DG),0,0,"g
+",A,Pressing,0
+7/1/26 1:02 AM,1208101045,TA S-708  (DC),0,0,"g
+",A,Pressing,0
+7/1/26 1:02 AM,1208102003,TA-Wire    0.19 ,0,3710,"g
+",A,Pressing,0
+7/1/26 1:02 AM,KDW0074D,TA-Wire   0.19KD,0,0,lb,A,Pressing,0
+7/1/26 1:02 AM,1208102015,TA-Wire    0.22,0,0,"g
+",A,Pressing,0
+7/1/26 1:02 AM,1208102020,TA-Wire    0.22S,0,0,"g
+",A,Pressing,0
+7/1/26 1:02 AM,1208102005,TA-Wire    0.29,0,10470,"g
+",A,Pressing,1540
+7/1/26 1:02 AM,1208102018,TA-Wire    0.34D,19620,41240,"g
+",A,Pressing,4220
+7/1/26 1:02 AM,1208102017,TA-Wire    0.40,0,0,"g
+",A,Pressing,0
+7/1/26 1:02 AM,1208102016,TA-Wire    0.47,0,1840,"g
+",A,Pressing,0
+7/1/26 1:02 AM,120810001,ACRYBASE - IB30(D),0,16.775,Liter,A,Pressing,4.5
+7/1/26 1:02 AM,1000000001,Toluene,0,33.5,Liter,A,Pressing,3
+7/1/26 1:02 AM,10000000005,Sodium Chloride (?????),0,275,"kg
+",A,Pressing,0
+7/1/26 1:02 AM,1405100009,MR-200,0,30,"kg
+",A,Pressing,0
+7/1/26 1:02 AM,1208101047 ,TA S-10HV (RG),0,0,"g
+",A,Pressing,0
+7/1/26 1:02 AM,YDW0074D,TA-Wire   0.19YD,0,6900,"g
+",A,Pressing,0
+7/1/26 1:02 AM,YDW133DR,TA-Wire   0.34(Recycle),0,22120,"g
+",A,Pressing,0
+7/1/26 1:02 AM,1208101050,TA S-808,0,5000,"g
+",A,Pressing,0
+7/2/26 3:16 AM,1208101013,TA S-15MB  ( DK ),0,2000,g,A,Pressing,0
+7/2/26 3:16 AM,1208101016,TA TTS-23KM  (TM ),0,35000,"g
+",A,Pressing,0
+7/2/26 3:16 AM,1208101044,TA S-15 HV  ( DH ),0,0,"g
+",A,Pressing,0
+7/2/26 3:16 AM,1208101035,TA TTS-40KMH  ( TT ),0,0,"g
+",A,Pressing,0
+7/2/26 3:16 AM,1208101009,TA TTS-50KMD  ( TD ),0,0,"g
+",A,Pressing,0
+7/2/26 3:16 AM,1208101018,TA TTS-80KM  (TZ ),0,55000,"g
+",A,Pressing,0
+7/2/26 3:16 AM,1208101036,TA TTS-100KM  ( TJ ),0,0,"g
+",A,Pressing,0
+7/2/26 3:16 AM,1208101023,TA STA-150KA  ( GK ),0,0,"g
+",A,Pressing,0
+7/2/26 3:16 AM,1208101039,TA TTS-150KM  ( TK ),0,0,"g
+",A,Pressing,0
+7/2/26 3:16 AM,1208101040,TA STA-200KA  ( GP ),0,0,"g
+",A,Pressing,0
+7/2/26 3:16 AM,1208101042,TA STA-255KA  ( GR )            ,0,0,"g
+",A,Pressing,0
+7/2/26 3:16 AM,1208101043,TA S-25MB  ( DR ),0,0,"g
+",A,Pressing,0
+7/2/26 3:16 AM,1208101046,TA S-10 HV  (DG),0,0,"g
+",A,Pressing,0
+7/2/26 3:16 AM,1208101045,TA S-708  (DC),0,0,"g
+",A,Pressing,0
+7/2/26 3:16 AM,1208102003,TA-Wire    0.19 ,0,2380,"g
+",A,Pressing,1330
+7/2/26 3:16 AM,KDW0074D,TA-Wire   0.19KD,0,0,lb,A,Pressing,0
+7/2/26 3:16 AM,1208102015,TA-Wire    0.22,0,0,"g
+",A,Pressing,0
+7/2/26 3:16 AM,1208102020,TA-Wire    0.22S,0,0,"g
+",A,Pressing,0
+7/2/26 3:16 AM,1208102005,TA-Wire    0.29,0,10470,"g
+",A,Pressing,0
+7/2/26 3:16 AM,1208102018,TA-Wire    0.34D,0,35700,"g
+",A,Pressing,5540
+7/2/26 3:16 AM,1208102017,TA-Wire    0.40,0,0,"g
+",A,Pressing,0
+7/2/26 3:16 AM,1208102016,TA-Wire    0.47,0,1840,"g
+",A,Pressing,0
+7/2/26 3:16 AM,120810001,ACRYBASE - IB30(D),16,32.775,Liter,A,Pressing,0
+7/2/26 3:16 AM,1000000001,Toluene,0,33.5,Liter,A,Pressing,0
+7/2/26 3:16 AM,10000000005,Sodium Chloride (?????),0,275,"kg
+",A,Pressing,0
+7/2/26 3:16 AM,1405100009,MR-200,0,30,"kg
+",A,Pressing,0
+7/2/26 3:16 AM,1208101047 ,TA S-10HV (RG),0,0,"g
+",A,Pressing,0
+7/2/26 3:16 AM,YDW0074D,TA-Wire   0.19YD,0,5470,"g
+",A,Pressing,1430
+7/2/26 3:16 AM,YDW133DR,TA-Wire   0.34(Recycle),0,22120,"g
+",A,Pressing,0
+7/2/26 3:16 AM,1208101050,TA S-808,0,5000,"g
+",A,Pressing,0
+7/3/26 12:18 AM,1208101013,TA S-15MB  ( DK ),0,2000,g,C,Pressing,0
+7/3/26 12:18 AM,1208101016,TA TTS-23KM  (TM ),60000,35000,"g
+",C,Pressing,60000
+7/3/26 12:18 AM,1208101044,TA S-15 HV  ( DH ),0,0,"g
+",C,Pressing,0
+7/3/26 12:18 AM,1208101035,TA TTS-40KMH  ( TT ),0,0,"g
+",C,Pressing,0
+7/3/26 12:18 AM,1208101009,TA TTS-50KMD  ( TD ),0,0,"g
+",C,Pressing,0
+7/3/26 12:18 AM,1208101018,TA TTS-80KM  (TZ ),0,55000,"g
+",C,Pressing,0
+7/3/26 12:18 AM,1208101036,TA TTS-100KM  ( TJ ),0,0,"g
+",C,Pressing,0
+7/3/26 12:18 AM,1208101023,TA STA-150KA  ( GK ),0,0,"g
+",C,Pressing,0
+7/3/26 12:18 AM,1208101039,TA TTS-150KM  ( TK ),0,0,"g
+",C,Pressing,0
+7/3/26 12:18 AM,1208101040,TA STA-200KA  ( GP ),0,0,"g
+",C,Pressing,0
+7/3/26 12:18 AM,1208101042,TA STA-255KA  ( GR )            ,0,0,"g
+",C,Pressing,0
+7/3/26 12:18 AM,1208101043,TA S-25MB  ( DR ),0,0,"g
+",C,Pressing,0
+7/3/26 12:18 AM,1208101046,TA S-10 HV  (DG),0,0,"g
+",C,Pressing,0
+7/3/26 12:18 AM,1208101045,TA S-708  (DC),0,0,"g
+",C,Pressing,0
+7/3/26 12:18 AM,1208102003,TA-Wire    0.19 ,0,2380,"g
+",C,Pressing,0
+7/3/26 12:18 AM,KDW0074D,TA-Wire   0.19KD,0,0,lb,C,Pressing,0
+7/3/26 12:18 AM,1208102015,TA-Wire    0.22,0,0,"g
+",C,Pressing,0
+7/3/26 12:18 AM,1208102020,TA-Wire    0.22S,0,0,"g
+",C,Pressing,0
+7/3/26 12:18 AM,1208102005,TA-Wire    0.29,0,10470,"g
+",C,Pressing,0
+7/3/26 12:18 AM,1208102018,TA-Wire    0.34D,19650,50920,"g
+",C,Pressing,4430
+7/3/26 12:18 AM,1208102017,TA-Wire    0.40,0,0,"g
+",C,Pressing,0
+7/3/26 12:18 AM,1208102016,TA-Wire    0.47,0,1840,"g
+",C,Pressing,0
+7/3/26 12:18 AM,120810001,ACRYBASE - IB30(D),0,26.775,Liter,C,Pressing,6
+7/3/26 12:18 AM,1000000001,Toluene,0,30.5,Liter,C,Pressing,3
+7/3/26 12:18 AM,10000000005,Sodium Chloride (?????),0,275,"kg
+",C,Pressing,0
+7/3/26 12:18 AM,1405100009,MR-200,0,30,"kg
+",C,Pressing,0
+7/3/26 12:18 AM,1208101047 ,TA S-10HV (RG),0,0,"g
+",C,Pressing,0
+7/3/26 12:18 AM,YDW0074D,TA-Wire   0.19YD,2770,5900,"g
+",C,Pressing,2340
+7/3/26 12:18 AM,YDW133DR,TA-Wire   0.34(Recycle),0,22120,"g
+",C,Pressing,0
+7/3/26 12:18 AM,1208101050,TA S-808,0,5000,"g
+",C,Pressing,0
+7/4/26 12:23 AM,1208101013,TA S-15MB  ( DK ),0,2000,g,C,Pressing,0
+7/4/26 12:23 AM,1208101016,TA TTS-23KM  (TM ),0,35000,"g
+",C,Pressing,0
+7/4/26 12:23 AM,1208101044,TA S-15 HV  ( DH ),0,0,"g
+",C,Pressing,0
+7/4/26 12:23 AM,1208101035,TA TTS-40KMH  ( TT ),0,0,"g
+",C,Pressing,0
+7/4/26 12:23 AM,1208101009,TA TTS-50KMD  ( TD ),0,0,"g
+",C,Pressing,0
+7/4/26 12:23 AM,1208101018,TA TTS-80KM  (TZ ),0,55000,"g
+",C,Pressing,0
+7/4/26 12:23 AM,1208101036,TA TTS-100KM  ( TJ ),0,0,"g
+",C,Pressing,0
+7/4/26 12:23 AM,1208101023,TA STA-150KA  ( GK ),0,0,"g
+",C,Pressing,0
+7/4/26 12:23 AM,1208101039,TA TTS-150KM  ( TK ),0,0,"g
+",C,Pressing,0
+7/4/26 12:23 AM,1208101040,TA STA-200KA  ( GP ),0,0,"g
+",C,Pressing,0
+7/4/26 12:23 AM,1208101042,TA STA-255KA  ( GR )            ,0,0,"g
+",C,Pressing,0
+7/4/26 12:23 AM,1208101043,TA S-25MB  ( DR ),0,0,"g
+",C,Pressing,0
+7/4/26 12:23 AM,1208101046,TA S-10 HV  (DG),0,0,"g
+",C,Pressing,0
+7/4/26 12:23 AM,1208101045,TA S-708  (DC),0,0,"g
+",C,Pressing,0
+7/4/26 12:23 AM,1208102003,TA-Wire    0.19 ,0,2380,"g
+",C,Pressing,0
+7/4/26 12:23 AM,KDW0074D,TA-Wire   0.19KD,0,0,lb,C,Pressing,0
+7/4/26 12:23 AM,1208102015,TA-Wire    0.22,0,0,"g
+",C,Pressing,0
+7/4/26 12:23 AM,1208102020,TA-Wire    0.22S,0,0,"g
+",C,Pressing,0
+7/4/26 12:23 AM,1208102005,TA-Wire    0.29,0,10470,"g
+",C,Pressing,0
+7/4/26 12:23 AM,1208102018,TA-Wire    0.34D,0,41270,"g
+",C,Pressing,9650
+7/4/26 12:23 AM,1208102017,TA-Wire    0.40,0,0,"g
+",C,Pressing,0
+7/4/26 12:23 AM,1208102016,TA-Wire    0.47,0,1840,"g
+",C,Pressing,0
+7/4/26 12:23 AM,120810001,ACRYBASE - IB30(D),0,26.775,Liter,C,Pressing,0
+7/4/26 12:23 AM,1000000001,Toluene,0,30.5,Liter,C,Pressing,0
+7/4/26 12:23 AM,10000000005,Sodium Chloride (?????),0,275,"kg
+",C,Pressing,0
+7/4/26 12:23 AM,1405100009,MR-200,0,30,"kg
+",C,Pressing,0
+7/4/26 12:23 AM,1208101047 ,TA S-10HV (RG),0,0,"g
+",C,Pressing,0
+7/4/26 12:23 AM,YDW0074D,TA-Wire   0.19YD,0,5030,"g
+",C,Pressing,870
+7/4/26 12:23 AM,YDW133DR,TA-Wire   0.34(Recycle),0,22120,"g
+",C,Pressing,0
+7/4/26 12:23 AM,1208101050,TA S-808,0,5000,"g
+",C,Pressing,0
+7/5/26 4:47 AM,1208101013,TA S-15MB  ( DK ),0,2000,g,C,Pressing,0
+7/5/26 4:47 AM,1208101016,TA TTS-23KM  (TM ),0,5000,"g
+",C,Pressing,30000
+7/5/26 4:47 AM,1208101018,TA TTS-80KM  (TZ ),0,55000,"g
+",C,Pressing,0
+7/5/26 4:47 AM,1208102003,TA-Wire    0.19 ,0,2380,"g
+",C,Pressing,0
+7/5/26 4:47 AM,1208102005,TA-Wire    0.29,0,9520,"g
+",C,Pressing,950
+7/5/26 4:47 AM,1208102018,TA-Wire    0.34D,0,36720,"g
+",C,Pressing,4550
+7/5/26 4:47 AM,1208102016,TA-Wire    0.47,0,1840,"g
+",C,Pressing,0
+7/5/26 4:47 AM,120810001,ACRYBASE - IB30(D),0,23.775,Liter,C,Pressing,3
+7/5/26 4:47 AM,1000000001,Toluene,0,28.5,Liter,C,Pressing,2
+7/5/26 4:47 AM,10000000005,Sodium Chloride (?????),0,275,"kg
+",C,Pressing,0
+7/5/26 4:47 AM,1405100009,MR-200,0,30,"kg
+",C,Pressing,0
+7/5/26 4:47 AM,YDW0074D,TA-Wire   0.19YD,0,1650,"g
+",C,Pressing,3380
+7/5/26 4:47 AM,YDW133DR,TA-Wire   0.34(Recycle),0,22120,"g
+",C,Pressing,0
+7/5/26 4:47 AM,1208101050,TA S-808,0,5000,"g
+",C,Pressing,0
+7/6/26 12:23 AM,1208101013,TA S-15MB  ( DK ),0,2000,g,C,Pressing,0
+7/6/26 12:23 AM,1208101016,TA TTS-23KM  (TM ),0,5000,"g
+",C,Pressing,0
+7/6/26 12:23 AM,1208101044,TA S-15 HV  ( DH ),25000,25000,"g
+",C,Pressing,0
+7/6/26 12:23 AM,1208101035,TA TTS-40KMH  ( TT ),0,0,"g
+",C,Pressing,0
+7/6/26 12:23 AM,1208101009,TA TTS-50KMD  ( TD ),0,0,"g
+",C,Pressing,0
+7/6/26 12:23 AM,1208101018,TA TTS-80KM  (TZ ),0,55000,"g
+",C,Pressing,0
+7/6/26 12:23 AM,1208101036,TA TTS-100KM  ( TJ ),0,0,"g
+",C,Pressing,0
+7/6/26 12:23 AM,1208101023,TA STA-150KA  ( GK ),0,0,"g
+",C,Pressing,0
+7/6/26 12:23 AM,1208101039,TA TTS-150KM  ( TK ),0,0,"g
+",C,Pressing,0
+7/6/26 12:23 AM,1208101040,TA STA-200KA  ( GP ),0,0,"g
+",C,Pressing,0
+7/6/26 12:23 AM,1208101042,TA STA-255KA  ( GR )            ,0,0,"g
+",C,Pressing,0
+7/6/26 12:23 AM,1208101043,TA S-25MB  ( DR ),0,0,"g
+",C,Pressing,0
+7/6/26 12:23 AM,1208101046,TA S-10 HV  (DG),0,0,"g
+",C,Pressing,0
+7/6/26 12:23 AM,1208101045,TA S-708  (DC),0,0,"g
+",C,Pressing,0
+7/6/26 12:23 AM,1208102003,TA-Wire    0.19 ,0,2380,"g
+",C,Pressing,0
+7/6/26 12:23 AM,KDW0074D,TA-Wire   0.19KD,0,0,lb,C,Pressing,0
+7/6/26 12:23 AM,1208102015,TA-Wire    0.22,0,0,"g
+",C,Pressing,0
+7/6/26 12:23 AM,1208102020,TA-Wire    0.22S,0,0,"g
+",C,Pressing,0
+7/6/26 12:23 AM,1208102005,TA-Wire    0.29,0,9520,"g
+",C,Pressing,0
+7/6/26 12:23 AM,1208102018,TA-Wire    0.34D,0,33130,"g
+",C,Pressing,3590
+7/6/26 12:23 AM,1208102017,TA-Wire    0.40,0,0,"g
+",C,Pressing,0
+7/6/26 12:23 AM,1208102016,TA-Wire    0.47,0,1840,"g
+",C,Pressing,0
+7/6/26 12:23 AM,120810001,ACRYBASE - IB30(D),0,23.775,Liter,C,Pressing,0
+7/6/26 12:23 AM,1000000001,Toluene,0,28.5,Liter,C,Pressing,0
+7/6/26 12:23 AM,10000000005,Sodium Chloride (?????),0,275,"kg
+",C,Pressing,0
+7/6/26 12:23 AM,1405100009,MR-200,20,20,"kg
+",C,Pressing,30
+7/6/26 12:23 AM,1208101047 ,TA S-10HV (RG),0,0,"g
+",C,Pressing,0
+7/6/26 12:23 AM,YDW0074D,TA-Wire   0.19YD,0,770,"g
+",C,Pressing,880
+7/6/26 12:23 AM,YDW133DR,TA-Wire   0.34(Recycle),0,22120,"g
+",C,Pressing,0
+7/6/26 12:23 AM,1208101050,TA S-808,0,5000,"g
+",C,Pressing,0
+7/7/26 12:17 AM,1208101013,TA S-15MB  ( DK ),0,2000,g,B,Pressing,0
+7/7/26 12:17 AM,1208101016,TA TTS-23KM  (TM ),40000,45000,"g
+",B,Pressing,0
+7/7/26 12:17 AM,1208101044,TA S-15 HV  ( DH ),0,25000,"g
+",B,Pressing,0
+7/7/26 12:17 AM,1208101035,TA TTS-40KMH  ( TT ),0,0,"g
+",B,Pressing,0
+7/7/26 12:17 AM,1208101009,TA TTS-50KMD  ( TD ),0,0,"g
+",B,Pressing,0
+7/7/26 12:17 AM,1208101018,TA TTS-80KM  (TZ ),0,55000,"g
+",B,Pressing,0
+7/7/26 12:17 AM,1208101036,TA TTS-100KM  ( TJ ),0,0,"g
+",B,Pressing,0
+7/7/26 12:17 AM,1208101023,TA STA-150KA  ( GK ),0,0,"g
+",B,Pressing,0
+7/7/26 12:17 AM,1208101039,TA TTS-150KM  ( TK ),0,0,"g
+",B,Pressing,0
+7/7/26 12:17 AM,1208101040,TA STA-200KA  ( GP ),0,0,"g
+",B,Pressing,0
+7/7/26 12:17 AM,1208101042,TA STA-255KA  ( GR )            ,0,0,"g
+",B,Pressing,0
+7/7/26 12:17 AM,1208101043,TA S-25MB  ( DR ),0,0,"g
+",B,Pressing,0
+7/7/26 12:17 AM,1208101046,TA S-10 HV  (DG),0,0,"g
+",B,Pressing,0
+7/7/26 12:17 AM,1208101045,TA S-708  (DC),0,0,"g
+",B,Pressing,0
+7/7/26 12:17 AM,1208102003,TA-Wire    0.19 ,5380,7760,"g
+",B,Pressing,0
+7/7/26 12:17 AM,KDW0074D,TA-Wire   0.19KD,0,0,lb,B,Pressing,0
+7/7/26 12:17 AM,1208102015,TA-Wire    0.22,0,0,"g
+",B,Pressing,0
+7/7/26 12:17 AM,1208102020,TA-Wire    0.22S,0,0,"g
+",B,Pressing,0
+7/7/26 12:17 AM,1208102005,TA-Wire    0.29,0,9520,"g
+",B,Pressing,0
+7/7/26 12:17 AM,1208102018,TA-Wire    0.34D,19310,44820,"g
+",B,Pressing,7620
+7/7/26 12:17 AM,1208102017,TA-Wire    0.40,0,0,"g
+",B,Pressing,0
+7/7/26 12:17 AM,1208102016,TA-Wire    0.47,0,1840,"g
+",B,Pressing,0
+7/7/26 12:17 AM,120810001,ACRYBASE - IB30(D),0,23.775,Liter,B,Pressing,0
+7/7/26 12:17 AM,1000000001,Toluene,0,28.5,Liter,B,Pressing,0
+7/7/26 12:17 AM,10000000005,Sodium Chloride (?????),0,275,"kg
+",B,Pressing,0
+7/7/26 12:17 AM,1405100009,MR-200,0,20,"kg
+",B,Pressing,0
+7/7/26 12:17 AM,1208101047 ,TA S-10HV (RG),0,0,"g
+",B,Pressing,0
+7/7/26 12:17 AM,YDW0074D,TA-Wire   0.19YD,2880,2230,"g
+",B,Pressing,1420
+7/7/26 12:17 AM,YDW133DR,TA-Wire   0.34(Recycle),0,22120,"g
+",B,Pressing,0
+7/7/26 12:17 AM,1208101050,TA S-808,0,5000,"g
+",B,Pressing,0
+7/8/26 12:10 AM,1208101013,TA S-15MB  ( DK ),0,2000,g,B,Pressing,0
+7/8/26 12:10 AM,1208101016,TA TTS-23KM  (TM ),0,5000,"g
+",B,Pressing,40000
+7/8/26 12:10 AM,1208101044,TA S-15 HV  ( DH ),10000,15000,"g
+",B,Pressing,20000
+7/8/26 12:10 AM,1208101035,TA TTS-40KMH  ( TT ),0,0,"g
+",B,Pressing,0
+7/8/26 12:10 AM,1208101009,TA TTS-50KMD  ( TD ),0,0,"g
+",B,Pressing,0
+7/8/26 12:10 AM,1208101018,TA TTS-80KM  (TZ ),0,55000,"g
+",B,Pressing,0
+7/8/26 12:10 AM,1208101036,TA TTS-100KM  ( TJ ),0,0,"g
+",B,Pressing,0
+7/8/26 12:10 AM,1208101023,TA STA-150KA  ( GK ),0,0,"g
+",B,Pressing,0
+7/8/26 12:10 AM,1208101039,TA TTS-150KM  ( TK ),0,0,"g
+",B,Pressing,0
+7/8/26 12:10 AM,1208101040,TA STA-200KA  ( GP ),0,0,"g
+",B,Pressing,0
+7/8/26 12:10 AM,1208101042,TA STA-255KA  ( GR )            ,0,0,"g
+",B,Pressing,0
+7/8/26 12:10 AM,1208101043,TA S-25MB  ( DR ),0,0,"g
+",B,Pressing,0
+7/8/26 12:10 AM,1208101046,TA S-10 HV  (DG),0,0,"g
+",B,Pressing,0
+7/8/26 12:10 AM,1208101045,TA S-708  (DC),0,0,"g
+",B,Pressing,0
+7/8/26 12:10 AM,1208102003,TA-Wire    0.19 ,0,7760,"g
+",B,Pressing,0
+7/8/26 12:10 AM,KDW0074D,TA-Wire   0.19KD,0,0,lb,B,Pressing,0
+7/8/26 12:10 AM,1208102015,TA-Wire    0.22,0,0,"g
+",B,Pressing,0
+7/8/26 12:10 AM,1208102020,TA-Wire    0.22S,0,0,"g
+",B,Pressing,0
+7/8/26 12:10 AM,1208102005,TA-Wire    0.29,0,7540,"g
+",B,Pressing,1980
+7/8/26 12:10 AM,1208102018,TA-Wire    0.34D,0,39960,"g
+",B,Pressing,4860
+7/8/26 12:10 AM,1208102017,TA-Wire    0.40,0,0,"g
+",B,Pressing,0
+7/8/26 12:10 AM,1208102016,TA-Wire    0.47,0,1840,"g
+",B,Pressing,0
+7/8/26 12:10 AM,120810001,ACRYBASE - IB30(D),0,15.775,Liter,B,Pressing,8
+7/8/26 12:10 AM,1000000001,Toluene,0,25.5,Liter,B,Pressing,3
+7/8/26 12:10 AM,10000000005,Sodium Chloride (?????),0,275,"kg
+",B,Pressing,0
+7/8/26 12:10 AM,1405100009,MR-200,0,20,"kg
+",B,Pressing,0
+7/8/26 12:10 AM,1208101047 ,TA S-10HV (RG),0,0,"g
+",B,Pressing,0
+7/8/26 12:10 AM,YDW0074D,TA-Wire   0.19YD,0,1400,"g
+",B,Pressing,830
+7/8/26 12:10 AM,YDW133DR,TA-Wire   0.34(Recycle),0,22120,"g
+",B,Pressing,0
+7/8/26 12:10 AM,1208101050,TA S-808,0,5000,"g
+",B,Pressing,0
+7/9/26 1:01 AM,1208101013,TA S-15MB  ( DK ),0,2000,g,B,Pressing,0
+7/9/26 1:01 AM,1208101016,TA TTS-23KM  (TM ),0,5000,"g
+",B,Pressing,0
+7/9/26 1:01 AM,1208101044,TA S-15 HV  ( DH ),0,15000,"g
+",B,Pressing,0
+7/9/26 1:01 AM,1208101035,TA TTS-40KMH  ( TT ),0,0,"g
+",B,Pressing,0
+7/9/26 1:01 AM,1208101009,TA TTS-50KMD  ( TD ),0,0,"g
+",B,Pressing,0
+7/9/26 1:01 AM,1208101018,TA TTS-80KM  (TZ ),0,55000,"g
+",B,Pressing,0
+7/9/26 1:01 AM,1208101036,TA TTS-100KM  ( TJ ),0,0,"g
+",B,Pressing,0
+7/9/26 1:01 AM,1208101023,TA STA-150KA  ( GK ),0,0,"g
+",B,Pressing,0
+7/9/26 1:01 AM,1208101039,TA TTS-150KM  ( TK ),0,0,"g
+",B,Pressing,0
+7/9/26 1:01 AM,1208101040,TA STA-200KA  ( GP ),0,0,"g
+",B,Pressing,0
+7/9/26 1:01 AM,1208101042,TA STA-255KA  ( GR )            ,0,0,"g
+",B,Pressing,0
+7/9/26 1:01 AM,1208101043,TA S-25MB  ( DR ),0,0,"g
+",B,Pressing,0
+7/9/26 1:01 AM,1208101046,TA S-10 HV  (DG),0,0,"g
+",B,Pressing,0
+7/9/26 1:01 AM,1208101045,TA S-708  (DC),0,0,"g
+",B,Pressing,0
+7/9/26 1:01 AM,1208102003,TA-Wire    0.19 ,0,7760,"g
+",B,Pressing,0
+7/9/26 1:01 AM,KDW0074D,TA-Wire   0.19KD,0,0,lb,B,Pressing,0
+7/9/26 1:01 AM,1208102015,TA-Wire    0.22,0,0,"g
+",B,Pressing,0
+7/9/26 1:01 AM,1208102020,TA-Wire    0.22S,0,0,"g
+",B,Pressing,0
+7/9/26 1:01 AM,1208102005,TA-Wire    0.29,0,7540,"g
+",B,Pressing,0
+7/9/26 1:01 AM,1208102018,TA-Wire    0.34D,0,34240,"g
+",B,Pressing,5720
+7/9/26 1:01 AM,1208102017,TA-Wire    0.40,0,0,"g
+",B,Pressing,0
+7/9/26 1:01 AM,1208102016,TA-Wire    0.47,0,1840,"g
+",B,Pressing,0
+7/9/26 1:01 AM,120810001,ACRYBASE - IB30(D),16,31.775,Liter,B,Pressing,0
+7/9/26 1:01 AM,1000000001,Toluene,0,25.5,Liter,B,Pressing,0
+7/9/26 1:01 AM,10000000005,Sodium Chloride (?????),0,275,"kg
+",B,Pressing,0
+7/9/26 1:02 AM,1405100009,MR-200,0,20,"kg
+",B,Pressing,0
+7/9/26 1:02 AM,1208101047 ,TA S-10HV (RG),0,0,"g
+",B,Pressing,0
+7/9/26 1:02 AM,YDW0074D,TA-Wire   0.19YD,5850,7250,"g
+",B,Pressing,0
+7/9/26 1:02 AM,YDW133DR,TA-Wire   0.34(Recycle),0,22120,"g
+",B,Pressing,0
+7/9/26 1:02 AM,1208101050,TA S-808,0,5000,"g
+",B,Pressing,0
+7/10/26 12:54 AM,1208101013,TA S-15MB  ( DK ),0,2000,g,B,Pressing,0
+7/10/26 12:54 AM,1208101016,TA TTS-23KM  (TM ),60000,65000,"g
+",B,Pressing,0
+7/10/26 12:54 AM,1208101044,TA S-15 HV  ( DH ),0,15000,"g
+",B,Pressing,0
+7/10/26 12:54 AM,1208101035,TA TTS-40KMH  ( TT ),0,0,"g
+",B,Pressing,0
+7/10/26 12:54 AM,1208101009,TA TTS-50KMD  ( TD ),0,0,"g
+",B,Pressing,0
+7/10/26 12:54 AM,1208101018,TA TTS-80KM  (TZ ),0,55000,"g
+",B,Pressing,0
+7/10/26 12:54 AM,1208101036,TA TTS-100KM  ( TJ ),0,0,"g
+",B,Pressing,0
+7/10/26 12:54 AM,1208101023,TA STA-150KA  ( GK ),0,0,"g
+",B,Pressing,0
+7/10/26 12:54 AM,1208101039,TA TTS-150KM  ( TK ),0,0,"g
+",B,Pressing,0
+7/10/26 12:54 AM,1208101040,TA STA-200KA  ( GP ),0,0,"g
+",B,Pressing,0
+7/10/26 12:54 AM,1208101042,TA STA-255KA  ( GR )            ,0,0,"g
+",B,Pressing,0
+7/10/26 12:54 AM,1208101043,TA S-25MB  ( DR ),0,0,"g
+",B,Pressing,0
+7/10/26 12:54 AM,1208101046,TA S-10 HV  (DG),0,0,"g
+",B,Pressing,0
+7/10/26 12:54 AM,1208101045,TA S-708  (DC),0,0,"g
+",B,Pressing,0
+7/10/26 12:54 AM,1208102003,TA-Wire    0.19 ,0,7760,"g
+",B,Pressing,0
+7/10/26 12:54 AM,KDW0074D,TA-Wire   0.19KD,0,0,lb,B,Pressing,0
+7/10/26 12:54 AM,1208102015,TA-Wire    0.22,0,0,"g
+",B,Pressing,0
+7/10/26 12:54 AM,1208102020,TA-Wire    0.22S,0,0,"g
+",B,Pressing,0
+7/10/26 12:54 AM,1208102005,TA-Wire    0.29,0,7540,"g
+",B,Pressing,0
+7/10/26 12:54 AM,1208102018,TA-Wire    0.34D,29020,55690,"g
+",B,Pressing,7570
+7/10/26 12:54 AM,1208102017,TA-Wire    0.40,0,0,"g
+",B,Pressing,0
+7/10/26 12:54 AM,1208102016,TA-Wire    0.47,0,1840,"g
+",B,Pressing,0
+7/10/26 12:54 AM,120810001,ACRYBASE - IB30(D),0,31.775,Liter,B,Pressing,0
+7/10/26 12:54 AM,1000000001,Toluene,0,25.5,Liter,B,Pressing,0
+7/10/26 12:54 AM,10000000005,Sodium Chloride (?????),0,275,"kg
+",B,Pressing,0
+7/10/26 12:54 AM,1405100009,MR-200,0,20,"kg
+",B,Pressing,0
+7/10/26 12:54 AM,1208101047 ,TA S-10HV (RG),0,0,"g
+",B,Pressing,0
+7/10/26 12:54 AM,YDW0074D,TA-Wire   0.19YD,0,7250,"g
+",B,Pressing,0
+7/10/26 12:54 AM,YDW133DR,TA-Wire   0.34(Recycle),0,22120,"g
+",B,Pressing,0
+7/10/26 12:54 AM,1208101050,TA S-808,0,5000,"g
+",B,Pressing,0
+7/11/26 2:22 AM,1208101013,TA S-15MB  ( DK ),0,2000,g,A,Pressing,0
+7/11/26 2:22 AM,1208101016,TA TTS-23KM  (TM ),0,40000,"g
+",A,Pressing,25000
+7/11/26 2:22 AM,1208101044,TA S-15 HV  ( DH ),0,0,"g
+",A,Pressing,15000
+7/11/26 2:22 AM,1208101035,TA TTS-40KMH  ( TT ),0,0,"g
+",A,Pressing,0
+7/11/26 2:22 AM,1208101009,TA TTS-50KMD  ( TD ),0,0,"g
+",A,Pressing,0
+7/11/26 2:22 AM,1208101018,TA TTS-80KM  (TZ ),0,35000,"g
+",A,Pressing,20000
+7/11/26 2:22 AM,1208101036,TA TTS-100KM  ( TJ ),0,0,"g
+",A,Pressing,0
+7/11/26 2:22 AM,1208101023,TA STA-150KA  ( GK ),0,0,"g
+",A,Pressing,0
+7/11/26 2:22 AM,1208101039,TA TTS-150KM  ( TK ),0,0,"g
+",A,Pressing,0
+7/11/26 2:22 AM,1208101040,TA STA-200KA  ( GP ),0,0,"g
+",A,Pressing,0
+7/11/26 2:22 AM,1208101042,TA STA-255KA  ( GR )            ,0,0,"g
+",A,Pressing,0
+7/11/26 2:22 AM,1208101043,TA S-25MB  ( DR ),0,0,"g
+",A,Pressing,0
+7/11/26 2:22 AM,1208101046,TA S-10 HV  (DG),0,0,"g
+",A,Pressing,0
+7/11/26 2:22 AM,1208101045,TA S-708  (DC),0,0,"g
+",A,Pressing,0
+7/11/26 2:22 AM,1208102003,TA-Wire    0.19 ,0,5380,"g
+",A,Pressing,2380
+7/11/26 2:22 AM,KDW0074D,TA-Wire   0.19KD,0,0,lb,A,Pressing,0
+7/11/26 2:22 AM,1208102015,TA-Wire    0.22,0,0,"g
+",A,Pressing,0
+7/11/26 2:22 AM,1208102020,TA-Wire    0.22S,0,0,"g
+",A,Pressing,0
+7/11/26 2:22 AM,1208102005,TA-Wire    0.29,0,7540,"g
+",A,Pressing,0
+7/11/26 2:22 AM,1208102018,TA-Wire    0.34D,0,50980,"g
+",A,Pressing,4710
+7/11/26 2:22 AM,1208102017,TA-Wire    0.40,0,0,"g
+",A,Pressing,0
+7/11/26 2:22 AM,1208102016,TA-Wire    0.47,0,1840,"g
+",A,Pressing,0
+7/11/26 2:22 AM,120810001,ACRYBASE - IB30(D),0,22.275,Liter,A,Pressing,9.5
+7/11/26 2:22 AM,1000000001,Toluene,0,22.5,Liter,A,Pressing,3
+7/11/26 2:22 AM,10000000005,Sodium Chloride (?????),0,275,"kg
+",A,Pressing,0
+7/11/26 2:22 AM,1405100009,MR-200,0,20,"kg
+",A,Pressing,0
+7/11/26 2:22 AM,1208101047 ,TA S-10HV (RG),0,0,"g
+",A,Pressing,0
+7/11/26 2:22 AM,YDW0074D,TA-Wire   0.19YD,0,6490,"g
+",A,Pressing,760
+7/11/26 2:22 AM,YDW133DR,TA-Wire   0.34(Recycle),0,19880,"g
+",A,Pressing,2240
+7/11/26 2:22 AM,1208101050,TA S-808,0,5000,"g
+",A,Pressing,0
+7/12/26 5:03 AM,1208101013,TA S-15MB  ( DK ),0,2000,g,A,Pressing,0
+7/12/26 5:03 AM,1208101016,TA TTS-23KM  (TM ),0,40000,"g
+",A,Pressing,0
+7/12/26 5:03 AM,1208101044,TA S-15 HV  ( DH ),0,0,"g
+",A,Pressing,0
+7/12/26 5:03 AM,1208101035,TA TTS-40KMH  ( TT ),0,0,"g
+",A,Pressing,0
+7/12/26 5:03 AM,1208101009,TA TTS-50KMD  ( TD ),0,0,"g
+",A,Pressing,0
+7/12/26 5:03 AM,1208101018,TA TTS-80KM  (TZ ),0,35000,"g
+",A,Pressing,0
+7/12/26 5:03 AM,1208101036,TA TTS-100KM  ( TJ ),0,0,"g
+",A,Pressing,0
+7/12/26 5:03 AM,1208101023,TA STA-150KA  ( GK ),0,0,"g
+",A,Pressing,0
+7/12/26 5:03 AM,1208101039,TA TTS-150KM  ( TK ),0,0,"g
+",A,Pressing,0
+7/12/26 5:03 AM,1208101040,TA STA-200KA  ( GP ),0,0,"g
+",A,Pressing,0
+7/12/26 5:03 AM,1208101042,TA STA-255KA  ( GR )            ,0,0,"g
+",A,Pressing,0
+7/12/26 5:03 AM,1208101043,TA S-25MB  ( DR ),0,0,"g
+",A,Pressing,0
+7/12/26 5:03 AM,1208101046,TA S-10 HV  (DG),0,0,"g
+",A,Pressing,0
+7/12/26 5:03 AM,1208101045,TA S-708  (DC),0,0,"g
+",A,Pressing,0
+7/12/26 5:03 AM,1208102003,TA-Wire    0.19 ,0,4260,"g
+",A,Pressing,1120
+7/12/26 5:03 AM,KDW0074D,TA-Wire   0.19KD,0,0,lb,A,Pressing,0
+7/12/26 5:03 AM,1208102015,TA-Wire    0.22,0,0,"g
+",A,Pressing,0
+7/12/26 5:03 AM,1208102020,TA-Wire    0.22S,0,0,"g
+",A,Pressing,0
+7/12/26 5:03 AM,1208102005,TA-Wire    0.29,0,7540,"g
+",A,Pressing,0
+7/12/26 5:03 AM,1208102018,TA-Wire    0.34D,0,46470,"g
+",A,Pressing,4510
+7/12/26 5:03 AM,1208102017,TA-Wire    0.40,0,0,"g
+",A,Pressing,0
+7/12/26 5:03 AM,1208102016,TA-Wire    0.47,0,1840,"g
+",A,Pressing,0
+7/12/26 5:03 AM,120810001,ACRYBASE - IB30(D),0,22.275,Liter,A,Pressing,0
+7/12/26 5:03 AM,1000000001,Toluene,0,22.5,Liter,A,Pressing,0
+7/12/26 5:03 AM,10000000005,Sodium Chloride (?????),0,275,"kg
+",A,Pressing,0
+7/12/26 5:03 AM,1405100009,MR-200,0,20,"kg
+",A,Pressing,0
+7/12/26 5:03 AM,1208101047 ,TA S-10HV (RG),0,0,"g
+",A,Pressing,0
+7/12/26 5:03 AM,YDW0074D,TA-Wire   0.19YD,0,4550,"g
+",A,Pressing,1940
+7/12/26 5:03 AM,YDW133DR,TA-Wire   0.34(Recycle),0,18830,"g
+",A,Pressing,1050
+7/12/26 5:04 AM,1208101050,TA S-808,0,5000,"g
+",A,Pressing,0
+7/13/26 2:00 AM,1208101013,TA S-15MB  ( DK ),15000,12000,g,A,Pressing,5000
+7/13/26 2:00 AM,1208101016,TA TTS-23KM  (TM ),0,0,"g
+",A,Pressing,40000
+7/13/26 2:00 AM,1208101044,TA S-15 HV  ( DH ),15000,15000,"g
+",A,Pressing,0
+7/13/26 2:00 AM,1208101035,TA TTS-40KMH  ( TT ),0,0,"g
+",A,Pressing,0
+7/13/26 2:00 AM,1208101009,TA TTS-50KMD  ( TD ),0,0,"g
+",A,Pressing,0
+7/13/26 2:00 AM,1208101018,TA TTS-80KM  (TZ ),0,25000,"g
+",A,Pressing,10000
+7/13/26 2:01 AM,1208101036,TA TTS-100KM  ( TJ ),0,0,"g
+",A,Pressing,0
+7/13/26 2:01 AM,1208101023,TA STA-150KA  ( GK ),0,0,"g
+",A,Pressing,0
+7/13/26 2:01 AM,1208101039,TA TTS-150KM  ( TK ),0,0,"g
+",A,Pressing,0
+7/13/26 2:01 AM,1208101040,TA STA-200KA  ( GP ),0,0,"g
+",A,Pressing,0
+7/13/26 2:01 AM,1208101042,TA STA-255KA  ( GR )            ,0,0,"g
+",A,Pressing,0
+7/13/26 2:01 AM,1208101043,TA S-25MB  ( DR ),0,0,"g
+",A,Pressing,0
+7/13/26 2:01 AM,1208101046,TA S-10 HV  (DG),0,0,"g
+",A,Pressing,0
+7/13/26 2:01 AM,1208101045,TA S-708  (DC),0,0,"g
+",A,Pressing,0
+7/13/26 2:01 AM,1208102003,TA-Wire    0.19 ,0,3170,"g
+",A,Pressing,1090
+7/13/26 2:01 AM,KDW0074D,TA-Wire   0.19KD,0,0,lb,A,Pressing,0
+7/13/26 2:01 AM,1208102015,TA-Wire    0.22,0,0,"g
+",A,Pressing,0
+7/13/26 2:01 AM,1208102020,TA-Wire    0.22S,0,0,"g
+",A,Pressing,0
+7/13/26 2:01 AM,1208102005,TA-Wire    0.29,0,7540,"g
+",A,Pressing,0
+7/13/26 2:01 AM,1208102018,TA-Wire    0.34D,0,38360,"g
+",A,Pressing,8110
+7/13/26 2:01 AM,1208102017,TA-Wire    0.40,0,0,"g
+",A,Pressing,0
+7/13/26 2:01 AM,1208102016,TA-Wire    0.47,0,1840,"g
+",A,Pressing,0
+7/13/26 2:01 AM,120810001,ACRYBASE - IB30(D),0,14.575,Liter,A,Pressing,7.7
+7/13/26 2:01 AM,1000000001,Toluene,0,20.5,Liter,A,Pressing,2
+7/13/26 2:01 AM,10000000005,Sodium Chloride (?????),0,275,"kg
+",A,Pressing,0
+7/13/26 2:01 AM,1405100009,MR-200,0,20,"kg
+",A,Pressing,0
+7/13/26 2:01 AM,1208101047 ,TA S-10HV (RG),0,0,"g
+",A,Pressing,0
+7/13/26 2:01 AM,YDW0074D,TA-Wire   0.19YD,0,2320,"g
+",A,Pressing,2230
+7/13/26 2:01 AM,YDW133DR,TA-Wire   0.34(Recycle),0,18830,"g
+",A,Pressing,0
+7/13/26 2:01 AM,1208101050,TA S-808,0,0,"g
+",A,Pressing,5000
+7/14/26 1:05 AM,1208101013,TA S-15MB  ( DK ),0,12000,g,A,Pressing,0
+7/14/26 1:05 AM,1208101016,TA TTS-23KM  (TM ),20000,20000,"g
+",A,Pressing,0
+7/14/26 1:05 AM,1208101044,TA S-15 HV  ( DH ),0,15000,"g
+",A,Pressing,0
+7/14/26 1:05 AM,1208101035,TA TTS-40KMH  ( TT ),0,0,"g
+",A,Pressing,0
+7/14/26 1:05 AM,1208101009,TA TTS-50KMD  ( TD ),0,0,"g
+",A,Pressing,0
+7/14/26 1:05 AM,1208101018,TA TTS-80KM  (TZ ),0,25000,"g
+",A,Pressing,0
+7/14/26 1:05 AM,1208101036,TA TTS-100KM  ( TJ ),0,0,"g
+",A,Pressing,0
+7/14/26 1:05 AM,1208101023,TA STA-150KA  ( GK ),0,0,"g
+",A,Pressing,0
+7/14/26 1:05 AM,1208101039,TA TTS-150KM  ( TK ),0,0,"g
+",A,Pressing,0
+7/14/26 1:05 AM,1208101040,TA STA-200KA  ( GP ),0,0,"g
+",A,Pressing,0
+7/14/26 1:05 AM,1208101042,TA STA-255KA  ( GR )            ,0,0,"g
+",A,Pressing,0
+7/14/26 1:05 AM,1208101043,TA S-25MB  ( DR ),0,0,"g
+",A,Pressing,0
+7/14/26 1:05 AM,1208101046,TA S-10 HV  (DG),0,0,"g
+",A,Pressing,0
+7/14/26 1:05 AM,1208101045,TA S-708  (DC),0,0,"g
+",A,Pressing,0
+7/14/26 1:05 AM,1208102003,TA-Wire    0.19 ,0,3170,"g
+",A,Pressing,0
+7/14/26 1:05 AM,KDW0074D,TA-Wire   0.19KD,0,0,lb,A,Pressing,0
+7/14/26 1:05 AM,1208102015,TA-Wire    0.22,0,0,"g
+",A,Pressing,0
+7/14/26 1:05 AM,1208102020,TA-Wire    0.22S,0,0,"g
+",A,Pressing,0
+7/14/26 1:05 AM,1208102005,TA-Wire    0.29,0,6400,"g
+",A,Pressing,1140
+7/14/26 1:05 AM,1208102018,TA-Wire    0.34D,0,33960,"g
+",A,Pressing,4400
+7/14/26 1:05 AM,1208102017,TA-Wire    0.40,0,0,"g
+",A,Pressing,0
+7/14/26 1:05 AM,1208102016,TA-Wire    0.47,0,1840,"g
+",A,Pressing,0
+7/14/26 1:05 AM,120810001,ACRYBASE - IB30(D),0,14.575,Liter,A,Pressing,0
+7/14/26 1:05 AM,1000000001,Toluene,0,20.5,Liter,A,Pressing,0
+7/14/26 1:05 AM,10000000005,Sodium Chloride (?????),0,275,"kg
+",A,Pressing,0
+7/14/26 1:05 AM,1405100009,MR-200,0,20,"kg
+",A,Pressing,0
+7/14/26 1:05 AM,1208101047 ,TA S-10HV (RG),0,0,"g
+",A,Pressing,0
+7/14/26 1:05 AM,YDW0074D,TA-Wire   0.19YD,0,0,"g
+",A,Pressing,2320
+7/14/26 1:05 AM,YDW133DR,TA-Wire   0.34(Recycle),0,14710,"g
+",A,Pressing,4120
+7/14/26 1:05 AM,1208101050,TA S-808,0,0,"g
+",A,Pressing,0
+7/15/26 1:08 AM,1208101013,TA S-15MB  ( DK ),0,12000,g,C,Pressing,0
+7/15/26 1:08 AM,1208101016,TA TTS-23KM  (TM ),20000,40000,"g
+",C,Pressing,0
+7/15/26 1:08 AM,1208101044,TA S-15 HV  ( DH ),0,15000,"g
+",C,Pressing,0
+7/15/26 1:08 AM,1208101035,TA TTS-40KMH  ( TT ),0,0,"g
+",C,Pressing,0
+7/15/26 1:08 AM,1208101009,TA TTS-50KMD  ( TD ),0,0,"g
+",C,Pressing,0
+7/15/26 1:08 AM,1208101018,TA TTS-80KM  (TZ ),0,25000,"g
+",C,Pressing,0
+7/15/26 1:08 AM,1208101036,TA TTS-100KM  ( TJ ),0,0,"g
+",C,Pressing,0
+7/15/26 1:08 AM,1208101023,TA STA-150KA  ( GK ),0,0,"g
+",C,Pressing,0
+7/15/26 1:08 AM,1208101039,TA TTS-150KM  ( TK ),0,0,"g
+",C,Pressing,0
+7/15/26 1:08 AM,1208101040,TA STA-200KA  ( GP ),0,0,"g
+",C,Pressing,0
+7/15/26 1:08 AM,1208101042,TA STA-255KA  ( GR )            ,0,0,"g
+",C,Pressing,0
+7/15/26 1:08 AM,1208101043,TA S-25MB  ( DR ),0,0,"g
+",C,Pressing,0
+7/15/26 1:08 AM,1208101046,TA S-10 HV  (DG),0,0,"g
+",C,Pressing,0
+7/15/26 1:08 AM,1208101045,TA S-708  (DC),0,0,"g
+",C,Pressing,0
+7/15/26 1:08 AM,1208102003,TA-Wire    0.19 ,0,3170,"g
+",C,Pressing,0
+7/15/26 1:08 AM,KDW0074D,TA-Wire   0.19KD,0,0,lb,C,Pressing,0
+7/15/26 1:09 AM,1208102015,TA-Wire    0.22,0,0,"g
+",C,Pressing,0
+7/15/26 1:09 AM,1208102020,TA-Wire    0.22S,0,0,"g
+",C,Pressing,0
+7/15/26 1:09 AM,1208102005,TA-Wire    0.29,0,6400,"g
+",C,Pressing,0
+7/15/26 1:09 AM,1208102018,TA-Wire    0.34D,28270,62230,"g
+",C,Pressing,0
+7/15/26 1:09 AM,1208102017,TA-Wire    0.40,0,0,"g
+",C,Pressing,0
+7/15/26 1:09 AM,1208102016,TA-Wire    0.47,0,1840,"g
+",C,Pressing,0
+7/15/26 1:09 AM,120810001,ACRYBASE - IB30(D),0,14.575,Liter,C,Pressing,0
+7/15/26 1:09 AM,1000000001,Toluene,0,20.5,Liter,C,Pressing,0
+7/15/26 1:09 AM,10000000005,Sodium Chloride (?????),0,275,"kg
+",C,Pressing,0
+7/15/26 1:09 AM,1405100009,MR-200,0,20,"kg
+",C,Pressing,0
+7/15/26 1:09 AM,1208101047 ,TA S-10HV (RG),0,0,"g
+",C,Pressing,0
+7/15/26 1:09 AM,YDW0074D,TA-Wire   0.19YD,2960,2170,"g
+",C,Pressing,790
+7/15/26 1:09 AM,YDW133DR,TA-Wire   0.34(Recycle),0,14710,"g
+",C,Pressing,0
+7/15/26 1:09 AM,1208101050,TA S-808,0,0,"g
+",C,Pressing,0
+7/16/26 12:49 AM,1208101013,TA S-15MB  ( DK ),0,12000,g,C,Pressing,0
+7/16/26 12:49 AM,1208101016,TA TTS-23KM  (TM ),0,40000,"g
+",C,Pressing,0
+7/16/26 12:49 AM,1208101044,TA S-15 HV  ( DH ),0,15000,"g
+",C,Pressing,0
+7/16/26 12:49 AM,1208101035,TA TTS-40KMH  ( TT ),0,0,"g
+",C,Pressing,0
+7/16/26 12:49 AM,1208101009,TA TTS-50KMD  ( TD ),0,0,"g
+",C,Pressing,0
+7/16/26 12:49 AM,1208101018,TA TTS-80KM  (TZ ),0,25000,"g
+",C,Pressing,0
+7/16/26 12:49 AM,1208101036,TA TTS-100KM  ( TJ ),0,0,"g
+",C,Pressing,0
+7/16/26 12:49 AM,1208101023,TA STA-150KA  ( GK ),0,0,"g
+",C,Pressing,0
+7/16/26 12:49 AM,1208101039,TA TTS-150KM  ( TK ),0,0,"g
+",C,Pressing,0
+7/16/26 12:50 AM,1208101040,TA STA-200KA  ( GP ),0,0,"g
+",C,Pressing,0
+7/16/26 12:50 AM,1208101042,TA STA-255KA  ( GR )            ,0,0,"g
+",C,Pressing,0
+7/16/26 12:50 AM,1208101043,TA S-25MB  ( DR ),0,0,"g
+",C,Pressing,0
+7/16/26 12:50 AM,1208101046,TA S-10 HV  (DG),0,0,"g
+",C,Pressing,0
+7/16/26 12:50 AM,1208101045,TA S-708  (DC),0,0,"g
+",C,Pressing,0
+7/16/26 12:50 AM,1208102003,TA-Wire    0.19 ,3920,5050,"g
+",C,Pressing,2040
+7/16/26 12:50 AM,KDW0074D,TA-Wire   0.19KD,0,0,lb,C,Pressing,0
+7/16/26 12:50 AM,1208102015,TA-Wire    0.22,0,0,"g
+",C,Pressing,0
+7/16/26 12:50 AM,1208102020,TA-Wire    0.22S,0,0,"g
+",C,Pressing,0
+7/16/26 12:50 AM,1208102005,TA-Wire    0.29,0,6400,"g
+",C,Pressing,0
+7/16/26 12:50 AM,1208102018,TA-Wire    0.34D,0,60300,"g
+",C,Pressing,1930
+7/16/26 12:50 AM,1208102017,TA-Wire    0.40,0,0,"g
+",C,Pressing,0
+7/16/26 12:50 AM,1208102016,TA-Wire    0.47,0,1840,"g
+",C,Pressing,0
+7/16/26 12:50 AM,120810001,ACRYBASE - IB30(D),16,30.575,Liter,C,Pressing,0
+7/16/26 12:50 AM,1000000001,Toluene,0,20.5,Liter,C,Pressing,0
+7/16/26 12:50 AM,10000000005,Sodium Chloride (?????),0,275,"kg
+",C,Pressing,0
+7/16/26 12:50 AM,1405100009,MR-200,0,20,"kg
+",C,Pressing,0
+7/16/26 12:50 AM,1208101047 ,TA S-10HV (RG),0,0,"g
+",C,Pressing,0
+7/16/26 12:50 AM,YDW0074D,TA-Wire   0.19YD,6310,7620,"g
+",C,Pressing,860
+7/16/26 12:50 AM,YDW133DR,TA-Wire   0.34(Recycle),0,11960,"g
+",C,Pressing,2750
+7/16/26 12:50 AM,1208101050,TA S-808,0,0,"g
+",C,Pressing,0
+7/17/26 12:46 AM,1208101013,TA S-15MB  ( DK ),0,7000,g,C,Pressing,5000
+7/17/26 12:46 AM,1208101016,TA TTS-23KM  (TM ),60000,60000,"g
+",C,Pressing,40000
+7/17/26 12:46 AM,1208101044,TA S-15 HV  ( DH ),0,0,"g
+",C,Pressing,15000
+7/17/26 12:47 AM,1208101035,TA TTS-40KMH  ( TT ),0,0,"g
+",C,Pressing,0
+7/17/26 12:47 AM,1208101009,TA TTS-50KMD  ( TD ),0,0,"g
+",C,Pressing,0
+7/17/26 12:47 AM,1208101018,TA TTS-80KM  (TZ ),0,25000,"g
+",C,Pressing,0
+7/17/26 12:47 AM,1208101036,TA TTS-100KM  ( TJ ),0,0,"g
+",C,Pressing,0
+7/17/26 12:47 AM,1208101023,TA STA-150KA  ( GK ),0,0,"g
+",C,Pressing,0
+7/17/26 12:47 AM,1208101039,TA TTS-150KM  ( TK ),0,0,"g
+",C,Pressing,0
+7/17/26 12:47 AM,1208101040,TA STA-200KA  ( GP ),0,0,"g
+",C,Pressing,0
+7/17/26 12:47 AM,1208101042,TA STA-255KA  ( GR )            ,0,0,"g
+",C,Pressing,0
+7/17/26 12:47 AM,1208101043,TA S-25MB  ( DR ),0,0,"g
+",C,Pressing,0
+7/17/26 12:47 AM,1208101046,TA S-10 HV  (DG),0,0,"g
+",C,Pressing,0
+7/17/26 12:47 AM,1208101045,TA S-708  (DC),0,0,"g
+",C,Pressing,0
+7/17/26 12:47 AM,1208102003,TA-Wire    0.19 ,0,5050,"g
+",C,Pressing,0
+7/17/26 12:47 AM,KDW0074D,TA-Wire   0.19KD,0,0,lb,C,Pressing,0
+7/17/26 12:47 AM,1208102015,TA-Wire    0.22,0,0,"g
+",C,Pressing,0
+7/17/26 12:47 AM,1208102020,TA-Wire    0.22S,0,0,"g
+",C,Pressing,0
+7/17/26 12:47 AM,1208102005,TA-Wire    0.29,0,5100,"g
+",C,Pressing,1300
+7/17/26 12:47 AM,1208102018,TA-Wire    0.34D,9400,61190,"g
+",C,Pressing,8510
+7/17/26 12:47 AM,1208102017,TA-Wire    0.40,0,0,"g
+",C,Pressing,0
+7/17/26 12:47 AM,1208102016,TA-Wire    0.47,0,1840,"g
+",C,Pressing,0
+7/17/26 12:47 AM,120810001,ACRYBASE - IB30(D),0,22.575,Liter,C,Pressing,8
+7/17/26 12:47 AM,1000000001,Toluene,0,17.5,Liter,C,Pressing,3
+7/17/26 12:47 AM,10000000005,Sodium Chloride (?????),0,275,"kg
+",C,Pressing,0
+7/17/26 12:47 AM,1405100009,MR-200,0,20,"kg
+",C,Pressing,0
+7/17/26 12:47 AM,1208101047 ,TA S-10HV (RG),0,0,"g
+",C,Pressing,0
+7/17/26 12:47 AM,YDW0074D,TA-Wire   0.19YD,0,6990,"g
+",C,Pressing,630
+7/17/26 12:47 AM,YDW133DR,TA-Wire   0.34(Recycle),0,10200,"g
+",C,Pressing,1760
+7/17/26 12:47 AM,1208101050,TA S-808,0,0,"g
+",C,Pressing,0
+7/18/26 12:29 AM,1208101013,TA S-15MB  ( DK ),0,7000,g,C,Pressing,0
+7/18/26 12:29 AM,1208101016,TA TTS-23KM  (TM ),0,60000,"g
+",C,Pressing,0
+7/18/26 12:29 AM,1208101044,TA S-15 HV  ( DH ),0,0,"g
+",C,Pressing,0
+7/18/26 12:29 AM,1208101035,TA TTS-40KMH  ( TT ),0,0,"g
+",C,Pressing,0
+7/18/26 12:29 AM,1208101009,TA TTS-50KMD  ( TD ),0,0,"g
+",C,Pressing,0
+7/18/26 12:29 AM,1208101018,TA TTS-80KM  (TZ ),0,25000,"g
+",C,Pressing,0
+7/18/26 12:29 AM,1208101036,TA TTS-100KM  ( TJ ),0,0,"g
+",C,Pressing,0
+7/18/26 12:29 AM,1208101023,TA STA-150KA  ( GK ),0,0,"g
+",C,Pressing,0
+7/18/26 12:29 AM,1208101039,TA TTS-150KM  ( TK ),0,0,"g
+",C,Pressing,0
+7/18/26 12:29 AM,1208101040,TA STA-200KA  ( GP ),0,0,"g
+",C,Pressing,0
+7/18/26 12:29 AM,1208101042,TA STA-255KA  ( GR )            ,0,0,"g
+",C,Pressing,0
+7/18/26 12:29 AM,1208101043,TA S-25MB  ( DR ),0,0,"g
+",C,Pressing,0
+7/18/26 12:29 AM,1208101046,TA S-10 HV  (DG),0,0,"g
+",C,Pressing,0
+7/18/26 12:29 AM,1208101045,TA S-708  (DC),0,0,"g
+",C,Pressing,0
+7/18/26 12:29 AM,1208102003,TA-Wire    0.19 ,0,4250,"g
+",C,Pressing,800
+7/18/26 12:29 AM,KDW0074D,TA-Wire   0.19KD,0,0,lb,C,Pressing,0
+7/18/26 12:29 AM,1208102015,TA-Wire    0.22,0,0,"g
+",C,Pressing,0
+7/18/26 12:29 AM,1208102020,TA-Wire    0.22S,0,0,"g
+",C,Pressing,0
+7/18/26 12:29 AM,1208102005,TA-Wire    0.29,0,5100,"g
+",C,Pressing,0
+7/18/26 12:29 AM,1208102018,TA-Wire    0.34D,0,58860,"g
+",C,Pressing,2330
+7/18/26 12:29 AM,1208102017,TA-Wire    0.40,0,0,"g
+",C,Pressing,0
+7/18/26 12:29 AM,1208102016,TA-Wire    0.47,0,1840,"g
+",C,Pressing,0
+7/18/26 12:29 AM,120810001,ACRYBASE - IB30(D),0,22.575,Liter,C,Pressing,0
+7/18/26 12:29 AM,1000000001,Toluene,0,17.5,Liter,C,Pressing,0
+7/18/26 12:29 AM,10000000005,Sodium Chloride (?????),0,275,"kg
+",C,Pressing,0
+7/18/26 12:29 AM,1405100009,MR-200,0,20,"kg
+",C,Pressing,0
+7/18/26 12:29 AM,1208101047 ,TA S-10HV (RG),0,0,"g
+",C,Pressing,0
+7/18/26 12:29 AM,YDW0074D,TA-Wire   0.19YD,0,5900,"g
+",C,Pressing,1090
+7/18/26 12:29 AM,YDW133DR,TA-Wire   0.34(Recycle),0,8280,"g
+",C,Pressing,1920
+7/18/26 12:29 AM,1208101050,TA S-808,0,0,"g
+",C,Pressing,0
+7/19/26 4:33 AM,1208101013,TA S-15MB  ( DK ),0,2000,g,B,Pressing,5000
+7/19/26 4:33 AM,1208101016,TA TTS-23KM  (TM ),0,30000,"g
+",B,Pressing,30000
+7/19/26 4:33 AM,1208101044,TA S-15 HV  ( DH ),0,0,"g
+",B,Pressing,0
+7/19/26 4:33 AM,1208101035,TA TTS-40KMH  ( TT ),0,0,"g
+",B,Pressing,0
+7/19/26 4:33 AM,1208101009,TA TTS-50KMD  ( TD ),0,0,"g
+",B,Pressing,0
+7/19/26 4:33 AM,1208101018,TA TTS-80KM  (TZ ),0,5000,"g
+",B,Pressing,20000
+7/19/26 4:33 AM,1208101036,TA TTS-100KM  ( TJ ),0,0,"g
+",B,Pressing,0
+7/19/26 4:33 AM,1208101023,TA STA-150KA  ( GK ),0,0,"g
+",B,Pressing,0
+7/19/26 4:33 AM,1208101039,TA TTS-150KM  ( TK ),0,0,"g
+",B,Pressing,0
+7/19/26 4:33 AM,1208101040,TA STA-200KA  ( GP ),0,0,"g
+",B,Pressing,0
+7/19/26 4:33 AM,1208101042,TA STA-255KA  ( GR )            ,0,0,"g
+",B,Pressing,0
+7/19/26 4:33 AM,1208101043,TA S-25MB  ( DR ),0,0,"g
+",B,Pressing,0
+7/19/26 4:33 AM,1208101046,TA S-10 HV  (DG),0,0,"g
+",B,Pressing,0
+7/19/26 4:33 AM,1208101045,TA S-708  (DC),0,0,"g
+",B,Pressing,0
+7/19/26 4:33 AM,1208102003,TA-Wire    0.19 ,0,3290,"g
+",B,Pressing,960
+7/19/26 4:33 AM,KDW0074D,TA-Wire   0.19KD,0,0,lb,B,Pressing,0
+7/19/26 4:33 AM,1208102015,TA-Wire    0.22,0,0,"g
+",B,Pressing,0
+7/19/26 4:33 AM,1208102020,TA-Wire    0.22S,0,0,"g
+",B,Pressing,0
+7/19/26 4:33 AM,1208102005,TA-Wire    0.29,0,5100,"g
+",B,Pressing,0
+7/19/26 4:33 AM,1208102018,TA-Wire    0.34D,0,58860,"g
+",B,Pressing,0
+7/19/26 4:33 AM,1208102017,TA-Wire    0.40,0,0,"g
+",B,Pressing,0
+7/19/26 4:33 AM,1208102016,TA-Wire    0.47,0,1840,"g
+",B,Pressing,0
+7/19/26 4:33 AM,120810001,ACRYBASE - IB30(D),0,14.575,Liter,B,Pressing,8
+7/19/26 4:33 AM,1000000001,Toluene,30,45.5,Liter,B,Pressing,2
+7/19/26 4:33 AM,10000000005,Sodium Chloride (?????),0,275,"kg
+",B,Pressing,0
+7/19/26 4:33 AM,1405100009,MR-200,0,20,"kg
+",B,Pressing,0
+7/19/26 4:33 AM,1208101047 ,TA S-10HV (RG),0,0,"kg
+",B,Pressing,0
+7/19/26 4:33 AM,YDW0074D,TA-Wire   0.19YD,0,5900,"g
+",B,Pressing,0
+7/19/26 4:33 AM,YDW133DR,TA-Wire   0.34(Recycle),0,7230,"g
+",B,Pressing,1050
+7/19/26 4:33 AM,1208101050,TA S-808,0,0,"g
+",B,Pressing,0
+7/20/26 12:16 AM,1208101013,TA S-15MB  ( DK ),0,2000,g,B,Pressing,0
+7/20/26 12:16 AM,1208101016,TA TTS-23KM  (TM ),0,30000,"g
+",B,Pressing,0
+7/20/26 12:16 AM,1208101044,TA S-15 HV  ( DH ),0,0,"g
+",B,Pressing,0
+7/20/26 12:16 AM,1208101035,TA TTS-40KMH  ( TT ),0,0,"g
+",B,Pressing,0
+7/20/26 12:16 AM,1208101009,TA TTS-50KMD  ( TD ),0,0,"g
+",B,Pressing,0
+7/20/26 12:16 AM,1208101018,TA TTS-80KM  (TZ ),0,5000,"g
+",B,Pressing,0
+7/20/26 12:16 AM,1208101036,TA TTS-100KM  ( TJ ),0,0,"g
+",B,Pressing,0
+7/20/26 12:16 AM,1208101023,TA STA-150KA  ( GK ),0,0,"g
+",B,Pressing,0
+7/20/26 12:16 AM,1208101039,TA TTS-150KM  ( TK ),0,0,"g
+",B,Pressing,0
+7/20/26 12:16 AM,1208101040,TA STA-200KA  ( GP ),0,0,"g
+",B,Pressing,0
+7/20/26 12:16 AM,1208101042,TA STA-255KA  ( GR )            ,0,0,"g
+",B,Pressing,0
+7/20/26 12:16 AM,1208101043,TA S-25MB  ( DR ),0,0,"g
+",B,Pressing,0
+7/20/26 12:16 AM,1208101046,TA S-10 HV  (DG),0,0,"g
+",B,Pressing,0
+7/20/26 12:16 AM,1208101045,TA S-708  (DC),0,0,"g
+",B,Pressing,0
+7/20/26 12:16 AM,1208102003,TA-Wire    0.19 ,0,2150,"g
+",B,Pressing,1140
+7/20/26 12:16 AM,KDW0074D,TA-Wire   0.19KD,0,0,lb,B,Pressing,0
+7/20/26 12:16 AM,1208102015,TA-Wire    0.22,0,0,"g
+",B,Pressing,0
+7/20/26 12:16 AM,1208102020,TA-Wire    0.22S,0,0,"g
+",B,Pressing,0
+7/20/26 12:16 AM,1208102005,TA-Wire    0.29,0,5100,"g
+",B,Pressing,0
+7/20/26 12:16 AM,1208102018,TA-Wire    0.34D,0,55090,"g
+",B,Pressing,3770
+7/20/26 12:16 AM,1208102017,TA-Wire    0.40,0,0,"g
+",B,Pressing,0
+7/20/26 12:16 AM,1208102016,TA-Wire    0.47,0,1840,"g
+",B,Pressing,0
+7/20/26 12:16 AM,120810001,ACRYBASE - IB30(D),0,14.575,Liter,B,Pressing,0
+7/20/26 12:16 AM,1000000001,Toluene,0,45.5,Liter,B,Pressing,0
+7/20/26 12:16 AM,10000000005,Sodium Chloride (?????),0,275,"kg
+",B,Pressing,0
+7/20/26 12:16 AM,1405100009,MR-200,0,20,"kg
+",B,Pressing,0
+7/20/26 12:16 AM,1208101047 ,TA S-10HV (RG),0,0,"kg
+",B,Pressing,0
+7/20/26 12:16 AM,YDW0074D,TA-Wire   0.19YD,0,5900,"g
+",B,Pressing,0
+7/20/26 12:16 AM,YDW133DR,TA-Wire   0.34(Recycle),0,5750,"g
+",B,Pressing,1480
+7/20/26 12:16 AM,1208101050,TA S-808,0,0,"g
+",B,Pressing,0
+7/21/26 12:18 AM,1208101013,TA S-15MB  ( DK ),0,2000,g,B,Pressing,0
+7/21/26 12:18 AM,1208101016,TA TTS-23KM  (TM ),0,30000,"g
+",B,Pressing,0
+7/21/26 12:18 AM,1208101044,TA S-15 HV  ( DH ),0,0,"g
+",B,Pressing,0
+7/21/26 12:18 AM,1208101035,TA TTS-40KMH  ( TT ),0,0,"g
+",B,Pressing,0
+7/21/26 12:18 AM,1208101009,TA TTS-50KMD  ( TD ),0,0,"g
+",B,Pressing,0
+7/21/26 12:18 AM,1208101018,TA TTS-80KM  (TZ ),0,5000,"g
+",B,Pressing,0
+7/21/26 12:18 AM,1208101036,TA TTS-100KM  ( TJ ),0,0,"g
+",B,Pressing,0
+7/21/26 12:18 AM,1208101023,TA STA-150KA  ( GK ),0,0,"g
+",B,Pressing,0
+7/21/26 12:18 AM,1208101039,TA TTS-150KM  ( TK ),0,0,"g
+",B,Pressing,0
+7/21/26 12:18 AM,1208101040,TA STA-200KA  ( GP ),0,0,"g
+",B,Pressing,0
+7/21/26 12:18 AM,1208101042,TA STA-255KA  ( GR )            ,0,0,"g
+",B,Pressing,0
+7/21/26 12:18 AM,1208101043,TA S-25MB  ( DR ),0,0,"g
+",B,Pressing,0
+7/21/26 12:18 AM,1208101046,TA S-10 HV  (DG),0,0,"g
+",B,Pressing,0
+7/21/26 12:18 AM,1208101045,TA S-708  (DC),0,0,"g
+",B,Pressing,0
+7/21/26 12:18 AM,1208102003,TA-Wire    0.19 ,0,2150,"g
+",B,Pressing,0
+7/21/26 12:18 AM,KDW0074D,TA-Wire   0.19KD,0,0,lb,B,Pressing,0
+7/21/26 12:18 AM,1208102015,TA-Wire    0.22,0,0,"g
+",B,Pressing,0
+7/21/26 12:18 AM,1208102020,TA-Wire    0.22S,0,0,"g
+",B,Pressing,0
+7/21/26 12:18 AM,1208102005,TA-Wire    0.29,0,5100,"g
+",B,Pressing,0
+7/21/26 12:18 AM,1208102018,TA-Wire    0.34D,0,51150,"g
+",B,Pressing,3940
+7/21/26 12:18 AM,1208102017,TA-Wire    0.40,0,0,"g
+",B,Pressing,0
+7/21/26 12:18 AM,1208102016,TA-Wire    0.47,0,1840,"g
+",B,Pressing,0
+7/21/26 12:18 AM,120810001,ACRYBASE - IB30(D),0,14.575,Liter,B,Pressing,0
+7/21/26 12:18 AM,1000000001,Toluene,0,45.5,Liter,B,Pressing,0
+7/21/26 12:18 AM,10000000005,Sodium Chloride (?????),0,275,"kg
+",B,Pressing,0
+7/21/26 12:18 AM,1405100009,MR-200,0,20,"kg
+",B,Pressing,0
+7/21/26 12:18 AM,1208101047 ,TA S-10HV (RG),0,0,"kg
+",B,Pressing,0
+7/21/26 12:18 AM,YDW0074D,TA-Wire   0.19YD,0,5130,"g
+",B,Pressing,770
+7/21/26 12:18 AM,YDW133DR,TA-Wire   0.34(Recycle),0,1950,"g
+",B,Pressing,3800
+7/21/26 12:18 AM,1208101050,TA S-808,0,0,"g
+",B,Pressing,0
