@@ -1,4 +1,21 @@
 <%- include('partials/head', { title: 'Transactions - Material Management' }) %>
+<%
+function sortLink(col, label) {
+  const params = new URLSearchParams({
+    material_id: filters.material_id || '0',
+    employee_id: filters.employee_id,
+    workshop: filters.workshop,
+    shift: filters.shift,
+    date_from: filters.date_from,
+    date_to: filters.date_to,
+    sort: col,
+  });
+  const nextDir = (sort === col && dir === 'asc') ? 'desc' : 'asc';
+  params.set('dir', nextDir);
+  const arrow = sort === col ? (dir === 'asc' ? ' ▲' : ' ▼') : '';
+  return `<a href="/transactions?${params.toString()}" class="sort-link">${label}${arrow}</a>`;
+}
+%>
 <div class="actions-row">
   <h1>Transactions</h1>
   <div>
@@ -48,19 +65,33 @@
     <label>To Date</label>
     <input type="date" name="date_to" value="<%= filters.date_to %>">
   </div>
+  <input type="hidden" name="sort" value="<%= sort %>">
+  <input type="hidden" name="dir" value="<%= dir %>">
   <div class="field" style="margin-bottom:0; align-self:flex-end;">
     <button class="btn secondary" type="submit">Filter</button>
   </div>
 </form>
 
+<% if (defaultRangeApplied) { %>
+<p class="hint">Showing the last 3 days. Use the date filters above to see more.</p>
+<% } %>
+
 <div class="table-wrap">
-  <table>
+  <table class="compact-table transactions-table">
     <thead>
       <tr>
-        <% if (isAdmin) { %><th>ID</th><% } %>
-        <th>Date</th>
-        <% if (isAdmin) { %><th>Entry Date</th><% } %>
-        <th>Material</th><th>Workshop</th><th>Unit</th><th>Current Stock</th><th>Issue</th><th>Issue NCN</th><th>Return NCN</th><th>Employee ID</th><th>Shift</th>
+        <% if (isAdmin) { %><th><%- sortLink('id', 'ID') %></th><% } %>
+        <th><%- sortLink('date', 'Date') %></th>
+        <% if (isAdmin) { %><th><%- sortLink('entry_date', 'Entry Date') %></th><% } %>
+        <th><%- sortLink('material', 'Material') %></th>
+        <th><%- sortLink('workshop', 'Workshop') %></th>
+        <th><%- sortLink('unit', 'Unit') %></th>
+        <th><%- sortLink('stock', 'Current Stock') %></th>
+        <th><%- sortLink('issue', 'Issue') %></th>
+        <th><%- sortLink('issue_ncn', 'Issue NCN') %></th>
+        <th><%- sortLink('return_ncn', 'Return NCN') %></th>
+        <th><%- sortLink('employee_id', 'Employee ID') %></th>
+        <th><%- sortLink('shift', 'Shift') %></th>
         <% if (isAdmin) { %><th>Voided Reason</th><% } %>
         <th></th>
       </tr>

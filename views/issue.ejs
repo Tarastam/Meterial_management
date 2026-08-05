@@ -3,34 +3,40 @@
 
 <% if (error) { %><div class="alert error"><%= error %></div><% } %>
 <% if (success) { %><div class="alert success">Issue entries recorded successfully.</div><% } %>
-<% if (warnings) { %>
+<% if (negativeUsage) { %>
 <div class="alert error">
-  <strong>Saved — but usage came out negative for these materials. Double-check the Current Stock / Issue values, or have an admin correct the previous day's readings:</strong>
+  <strong>Not saved — usage would come out negative for these materials. Correct the Current Stock / Issue values before submitting:</strong>
   <ul>
-    <% warnings.forEach(w => { %>
+    <% negativeUsage.forEach(w => { %>
     <li><%= w.code %> - <%= w.name %>: usage <%= fmtNum(w.usage) %></li>
     <% }) %>
   </ul>
 </div>
 <% } %>
 
-<form class="filters" method="get" action="/issue">
-  <div class="field" style="margin-bottom:0;">
-    <label>Workshop</label>
-    <select name="workshop" onchange="this.form.submit()">
-      <option value="">All Workshops</option>
-      <% workshops.forEach(w => { %>
-      <option value="<%= w %>" <%= w === selectedWorkshop ? 'selected' : '' %>><%= w %></option>
-      <% }) %>
-    </select>
+<div class="filters">
+  <form method="get" action="/issue" style="display:contents;">
+    <div class="field" style="margin-bottom:0;">
+      <label>Workshop</label>
+      <select name="workshop" onchange="this.form.submit()">
+        <option value="">All Workshops</option>
+        <% workshops.forEach(w => { %>
+        <option value="<%= w %>" <%= w === selectedWorkshop ? 'selected' : '' %>><%= w %></option>
+        <% }) %>
+      </select>
+    </div>
+    <% if (isAdmin) { %>
+    <div class="field" style="margin-bottom:0;">
+      <label>Date</label>
+      <input type="date" name="date" value="<%= entryDate %>" onchange="this.form.submit()">
+    </div>
+    <% } %>
+  </form>
+  <div class="field" style="margin-bottom:0; max-width:420px;">
+    <label>Search</label>
+    <input type="text" id="materialSearch" placeholder="Filter by code or name" oninput="filterIssueRows(this.value)">
   </div>
-  <% if (isAdmin) { %>
-  <div class="field" style="margin-bottom:0;">
-    <label>Date</label>
-    <input type="date" name="date" value="<%= entryDate %>" onchange="this.form.submit()">
-  </div>
-  <% } %>
-</form>
+</div>
 <% if (isAdmin && entryDate !== today) { %>
 <div class="alert error">Backdating entries to <%= entryDate %> (admin mode).</div>
 <% } %>
@@ -52,7 +58,7 @@
       <tbody>
         <% materials.forEach(m => { %>
         <% const v = values[m.id] || {}; %>
-        <tr>
+        <tr data-search="<%= (m.prod_material_code + ' ' + m.material_code + ' ' + m.name).toLowerCase() %>">
           <td><%= m.prod_material_code %></td>
           <td class="col-erp"><%= m.material_code %></td>
           <td class="col-name"><%= m.name %></td>
@@ -85,13 +91,13 @@
     <button class="btn" type="submit">Submit</button>
   </div>
 </form>
-<% } %>
-<% if (warnings) { %>
 <script>
-  alert(<%- JSON.stringify(
-    'Saved — but usage came out negative for:\n\n' +
-    warnings.map(w => `${w.code} - ${w.name}: usage ${fmtNum(w.usage)}`).join('\n')
-  ) %>);
+function filterIssueRows(query) {
+  const q = query.trim().toLowerCase();
+  document.querySelectorAll('.issue-table tbody tr').forEach(row => {
+    row.style.display = !q || row.dataset.search.includes(q) ? '' : 'none';
+  });
+}
 </script>
 <% } %>
 <%- include('partials/foot') %>

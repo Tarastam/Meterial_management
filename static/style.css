@@ -239,7 +239,10 @@ input:focus, select:focus, textarea:focus {
 .sort-link { color: inherit; text-decoration: none; }
 .sort-link:hover { color: var(--blue); }
 
-.issue-table input[type="number"] { min-width: 0; width: 100%; }
+.issue-table th, .issue-table td, .compact-table th, .compact-table td { padding: 0.35rem 0.5rem; font-size: 0.85rem; }
+.transactions-table th, .transactions-table td { text-align: center; }
+.transactions-table th { font-size: 0.68rem; }
+.issue-table input[type="number"] { min-width: 0; width: 100%; padding: 0.3rem 0.4rem; font-size: 0.85rem; text-align: right; }
 .col-input { width: 140px; text-align: center; }
 .issue-footer {
   display: flex;
@@ -258,7 +261,7 @@ input:focus, select:focus, textarea:focus {
 }
 .issue-footer .field { margin-bottom: 0; max-width: 260px; }
 
-.col-erp { width: 70px; white-space: nowrap; }
+.col-erp { width: 70px; white-space: nowrap; text-align: center; }
 
 .col-name { width: 320px; max-width: 420px; white-space: normal; word-break: break-word; }
 

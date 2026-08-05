@@ -1,5 +1,8 @@
+const fs = require('node:fs');
+const crypto = require('node:crypto');
 const path = require('node:path');
 const express = require('express');
+const multer = require('multer');
 const db = require('./src/db');
 const { KNOWN_UNITS, KNOWN_WORKSHOPS } = require('./src/constants');
 
@@ -8,6 +11,29 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.urlencoded({ extended: false }));
 app.use('/static', express.static(path.join(__dirname, 'static')));
+
+// ---------- ticket attachment uploads ----------
+
+const TICKET_UPLOAD_DIR = path.join(__dirname, 'uploads', 'tickets');
+fs.mkdirSync(TICKET_UPLOAD_DIR, { recursive: true });
+
+const TICKET_ATTACHMENT_EXTS = ['.png', '.jpg', '.jpeg', '.gif', '.pdf', '.doc', '.docx', '.xls', '.xlsx'];
+
+const ticketUpload = multer({
+  storage: multer.diskStorage({
+    destination: TICKET_UPLOAD_DIR,
+    filename: (req, file, cb) => {
+      cb(null, `${crypto.randomUUID()}${path.extname(file.originalname).slice(0, 10)}`);
+    },
+  }),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (!TICKET_ATTACHMENT_EXTS.includes(path.extname(file.originalname).toLowerCase())) {
+      return cb(new Error('UNSUPPORTED_FILE_TYPE'));
+    }
+    cb(null, true);
+  },
+});
 
 // ---------- admin auth ----------
 
@@ -694,7 +720,7 @@ async function renderIssueForm(req, res, status, extra) {
     isAdmin: req.isAdmin,
     error: null,
     success: null,
-    warnings: null,
+    negativeUsage: null,
     values: {},
     employeeId: '',
     shift: '',
@@ -779,12 +805,8 @@ app.post('/issue', async (req, res) => {
     return renderIssueForm(req, res, 400, { error, values, employeeId, shift, workshop, entryDate });
   }
 
-  // Flag any material whose usage would come out negative, but do NOT block the save.
-  // Employees need to record first-day starting values before the previous day exists,
-  // which legitimately produces a negative projected usage; an admin later corrects the
-  // prior day's readings so nothing stays negative. The submission is always saved and the
-  // warning is surfaced. Computed against pre-insert data plus this submission's own values,
-  // since the row hasn't been written yet.
+  // Block any submission where a material's usage would come out negative. Computed against
+  // pre-insert data plus this submission's own values, since the row hasn't been written yet.
   const stockYesterdayMap = await getStockAsOfMap(addDays(entryDate, -1));
   const stockTodayMapBefore = await getStockAsOfMap(entryDate);
   const issueSumMapBefore = await getIssueSumMap(entryDate, entryDate);
@@ -799,6 +821,12 @@ app.post('/issue', async (req, res) => {
     }
   }
 
+  if (negativeUsage.length) {
+    return renderIssueForm(req, res, 400, {
+      values, employeeId, shift, workshop, entryDate, negativeUsage,
+    });
+  }
+
   for (const row of rowsToInsert) {
     await db.run(
       `INSERT INTO issue_entries (material_id, entry_date, current_stock, issue_qty, issue_ncn, return_ncn, employee_id, shift)
@@ -807,9 +835,7 @@ app.post('/issue', async (req, res) => {
     );
   }
 
-  await renderIssueForm(req, res, 200, {
-    success: true, workshop, entryDate, warnings: negativeUsage.length ? negativeUsage : null,
-  });
+  await renderIssueForm(req, res, 200, { success: true, workshop, entryDate });
 });
 
 // ---------- consumption calculator ----------
@@ -903,16 +929,41 @@ function buildTransactionFilter(query) {
   return { clause, params };
 }
 
+const TRANSACTION_SORT_COLUMNS = {
+  id: 'e.id',
+  date: 'e.created_at',
+  entry_date: 'e.entry_date',
+  material: 'm.prod_material_code',
+  workshop: 'm.workshop',
+  unit: 'm.unit',
+  stock: 'e.current_stock',
+  issue: 'e.issue_qty',
+  issue_ncn: 'e.issue_ncn',
+  return_ncn: 'e.return_ncn',
+  employee_id: 'e.employee_id',
+  shift: 'e.shift',
+};
+
 app.get('/transactions', async (req, res) => {
   const { material_id = '0', employee_id = '', workshop = '', shift = '', date_from = '', date_to = '' } = req.query;
-  const { clause, params } = buildTransactionFilter(req.query);
+  // Default to the last 3 days when no date filter is set; use filters below to widen the range.
+  const hasDateFilter = DATE_RE.test(date_from) || DATE_RE.test(date_to);
+  const effectiveQuery = hasDateFilter ? req.query : { ...req.query, date_from: addDays(todayStr(), -2) };
+  const { clause, params } = buildTransactionFilter(effectiveQuery);
+
+  const sort = TRANSACTION_SORT_COLUMNS[req.query.sort] ? req.query.sort : 'date';
+  const dir = req.query.dir === 'asc' ? 'asc' : 'desc';
+  const sortCol = TRANSACTION_SORT_COLUMNS[sort];
+  const dirSql = dir === 'asc' ? 'ASC' : 'DESC';
+  // e.id breaks ties, but SQL Server rejects it appearing twice when it is already the sort column.
+  const tieBreak = sortCol === 'e.id' ? '' : `, e.id ${dirSql}`;
 
   const sql = `SELECT TOP 500 e.*, m.prod_material_code, m.name AS material_name, m.unit AS material_unit,
                     m.workshop AS material_workshop
              FROM issue_entries e
              JOIN materials m ON m.id = e.material_id
              WHERE 1=1${clause}
-             ORDER BY e.created_at DESC, e.id DESC`;
+             ORDER BY ${sortCol} ${dirSql}${tieBreak}`;
 
   const transactions = await db.all(sql, params);
   const materials = await db.all('SELECT * FROM materials ORDER BY prod_material_code');
@@ -924,6 +975,9 @@ app.get('/transactions', async (req, res) => {
     workshops,
     shifts: SHIFTS,
     filters: { material_id: Number(material_id), employee_id, workshop, shift, date_from, date_to },
+    defaultRangeApplied: !hasDateFilter,
+    sort,
+    dir,
     fmtDate,
     fmtDateOnly,
   });
@@ -1038,33 +1092,56 @@ app.get('/tickets/new', (req, res) => {
   });
 });
 
-app.post('/tickets/new', async (req, res) => {
+app.post('/tickets/new', (req, res, next) => {
+  ticketUpload.single('attachment')(req, res, (err) => {
+    if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).render('ticket_new', {
+        workshops: KNOWN_WORKSHOPS,
+        shifts: SHIFTS,
+        error: 'Attachment must be 10MB or smaller.',
+        success: null,
+        values: { emp_no: req.body.emp_no, shift: req.body.shift, workshop: req.body.workshop, detail: req.body.detail },
+      });
+    }
+    if (err && err.message === 'UNSUPPORTED_FILE_TYPE') {
+      return res.status(400).render('ticket_new', {
+        workshops: KNOWN_WORKSHOPS,
+        shifts: SHIFTS,
+        error: `Unsupported attachment type. Allowed: ${TICKET_ATTACHMENT_EXTS.join(', ')}`,
+        success: null,
+        values: { emp_no: req.body.emp_no, shift: req.body.shift, workshop: req.body.workshop, detail: req.body.detail },
+      });
+    }
+    if (err) return next(err);
+    next();
+  });
+}, async (req, res) => {
   const empNo = (req.body.emp_no || '').trim();
-  const fullName = (req.body.full_name || '').trim();
   const shift = req.body.shift || '';
   const workshop = req.body.workshop || '';
   const detail = (req.body.detail || '').trim();
+  const attachment = req.file;
 
   let error = null;
   if (!/^\d+$/.test(empNo)) error = 'Emp No. must be a number.';
-  else if (!fullName) error = 'First Name-Last Name is required.';
   else if (!SHIFTS.includes(shift)) error = 'Please select a valid shift (A, B, or C).';
   else if (!KNOWN_WORKSHOPS.includes(workshop)) error = 'Please select a valid workshop.';
   else if (!detail) error = 'Detail is required.';
 
   if (error) {
+    if (attachment) fs.unlink(attachment.path, () => {});
     return res.status(400).render('ticket_new', {
       workshops: KNOWN_WORKSHOPS,
       shifts: SHIFTS,
       error,
       success: null,
-      values: { emp_no: empNo, full_name: fullName, shift, workshop, detail },
+      values: { emp_no: empNo, shift, workshop, detail },
     });
   }
 
   await db.run(
-    `INSERT INTO tickets (emp_no, full_name, shift, workshop, detail) VALUES (?, ?, ?, ?, ?)`,
-    [empNo, fullName, shift, workshop, detail]
+    `INSERT INTO tickets (emp_no, shift, workshop, detail, attachment_path, attachment_name) VALUES (?, ?, ?, ?, ?, ?)`,
+    [empNo, shift, workshop, detail, attachment ? attachment.filename : null, attachment ? attachment.originalname : null]
   );
 
   res.redirect('/tickets/new?success=1');
@@ -1083,6 +1160,13 @@ app.get('/tickets', requireAdmin, async (req, res) => {
   const openCount = (await db.get("SELECT COUNT(*) c FROM tickets WHERE status = 'OPEN'")).c;
 
   res.render('tickets', { tickets, status, openCount, fmtDate });
+});
+
+app.get('/tickets/:id/attachment', requireAdmin, async (req, res) => {
+  const ticket = await db.get('SELECT attachment_path, attachment_name FROM tickets WHERE id = ?', [req.params.id]);
+  if (!ticket || !ticket.attachment_path) return res.status(404).send('No attachment found.');
+  const filePath = path.join(TICKET_UPLOAD_DIR, path.basename(ticket.attachment_path));
+  res.download(filePath, ticket.attachment_name || path.basename(filePath));
 });
 
 app.post('/tickets/:id/resolve', requireAdmin, async (req, res) => {

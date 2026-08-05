@@ -22,8 +22,8 @@
   <table>
     <thead>
       <tr>
-        <th>Date</th><th>Emp No.</th><th>Name</th><th>Shift</th><th>Workshop</th>
-        <th>Detail</th><th>Status</th><th></th>
+        <th>Date</th><th>Emp No.</th><th>Shift</th><th>Workshop</th>
+        <th>Detail</th><th>Attachment</th><th>Status</th><th></th>
       </tr>
     </thead>
     <tbody>
@@ -31,10 +31,14 @@
       <tr>
         <td><%= fmtDate(t.created_at) %></td>
         <td><%= t.emp_no %></td>
-        <td><%= t.full_name %></td>
         <td><%= t.shift %></td>
         <td><%= t.workshop %></td>
         <td><%= t.detail %></td>
+        <td>
+          <% if (t.attachment_path) { %>
+          <a href="/tickets/<%= t.id %>/attachment"><%= t.attachment_name %></a>
+          <% } %>
+        </td>
         <td>
           <% if (t.status === 'OPEN') { %>
           <span class="badge open">OPEN</span>
