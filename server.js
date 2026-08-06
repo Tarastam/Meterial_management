@@ -1317,10 +1317,6 @@ async function main() {
   if (missingSettings.length > 0) {
     throw new Error(`Missing required environment settings: ${missingSettings.join(', ')}`);
   }
-  if (!LOOPBACK_HOSTS.has(HOST) && process.env.COOKIE_SECURE !== 'true') {
-    throw new Error('COOKIE_SECURE=true is required when HOST is exposed beyond localhost.');
-  }
-
   await db.ensureSchema();
   app.listen(PORT, HOST, () => {
     console.log(`Material Management running on port ${PORT}`);
