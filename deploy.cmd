@@ -36,4 +36,10 @@ echo Starting server (Ctrl+C to stop)...
 echo.
 node server.js
 
+if errorlevel 1 (
+  echo.
+  echo Server stopped with an error. Review the message above.
+  pause
+)
+
 endlocal

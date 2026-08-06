@@ -9,8 +9,8 @@ const config = {
   password: process.env.DB_PASSWORD,
   options: {
     instanceName: process.env.DB_INSTANCE || undefined,
-    trustServerCertificate: process.env.DB_TRUST_SERVER_CERT !== 'false',
-    encrypt: true,
+    trustServerCertificate: process.env.DB_TRUST_SERVER_CERT === 'true',
+    encrypt: process.env.DB_ENCRYPT !== 'false',
   },
 };
 
@@ -106,6 +106,22 @@ async function ensureSchema() {
         voided_reason NVARCHAR(MAX) NOT NULL DEFAULT ''
       );
       CREATE INDEX idx_issue_entries_material_date ON issue_entries(material_id, entry_date);
+    END
+  `);
+
+  // Supports active stock history and usage calculations without repeatedly sorting
+  // the entire issue log by material and date.
+  await exec(`
+    IF NOT EXISTS (
+      SELECT 1 FROM sys.indexes
+      WHERE object_id = OBJECT_ID(N'issue_entries')
+        AND name = N'IX_issue_entries_active_material_date_id'
+    )
+    BEGIN
+      CREATE INDEX IX_issue_entries_active_material_date_id
+      ON issue_entries (material_id, entry_date, id)
+      INCLUDE (current_stock, issue_qty, issue_ncn, return_ncn)
+      WHERE voided = 0
     END
   `);
 

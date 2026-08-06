@@ -134,6 +134,13 @@ async function main() {
   if (unmatchedCodes.size) console.log(`  Unmatched codes: ${[...unmatchedCodes].join(', ')}`);
   console.log(`Skipped (bad row - invalid shift/remain): ${skippedBadRow}`);
 
+  if (!DRY_RUN && skippedUnmatched === 0 && skippedBadRow === 0) {
+    fs.rmSync(CSV_PATH);
+    console.log(`Removed imported source file: ${CSV_PATH}`);
+  } else if (!DRY_RUN) {
+    console.log('Source CSV was kept because some rows could not be imported cleanly.');
+  }
+
   process.exit(0);
 }
 

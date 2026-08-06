@@ -37,9 +37,9 @@ const ticketUpload = multer({
 
 // ---------- admin auth ----------
 
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 const ADMIN_COOKIE = 'admin_session';
-const ADMIN_TOKEN = 'authenticated';
+const ADMIN_TOKEN = crypto.randomBytes(32).toString('hex');
 
 function parseCookies(req) {
   const header = req.headers.cookie;
@@ -76,7 +76,12 @@ app.post('/admin/login', (req, res) => {
   if (password !== ADMIN_PASSWORD) {
     return res.status(400).render('admin_login', { error: 'Incorrect password.', next });
   }
-  res.cookie(ADMIN_COOKIE, ADMIN_TOKEN, { httpOnly: true, sameSite: 'lax', maxAge: 12 * 60 * 60 * 1000 });
+  res.cookie(ADMIN_COOKIE, ADMIN_TOKEN, {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.COOKIE_SECURE === 'true',
+    maxAge: 12 * 60 * 60 * 1000,
+  });
   res.redirect(next);
 });
 
@@ -1292,6 +1297,8 @@ app.get('/export/cost.csv', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 8000;
+const HOST = process.env.HOST || '0.0.0.0';
+const LOOPBACK_HOSTS = new Set(['127.0.0.1', '::1', 'localhost']);
 
 function lanAddresses() {
   const nets = require('node:os').networkInterfaces();
@@ -1305,12 +1312,23 @@ function lanAddresses() {
 }
 
 async function main() {
+  const requiredSettings = ['DB_SERVER', 'DB_NAME', 'DB_USER', 'DB_PASSWORD', 'ADMIN_PASSWORD'];
+  const missingSettings = requiredSettings.filter((name) => !process.env[name]);
+  if (missingSettings.length > 0) {
+    throw new Error(`Missing required environment settings: ${missingSettings.join(', ')}`);
+  }
+  if (!LOOPBACK_HOSTS.has(HOST) && process.env.COOKIE_SECURE !== 'true') {
+    throw new Error('COOKIE_SECURE=true is required when HOST is exposed beyond localhost.');
+  }
+
   await db.ensureSchema();
-  app.listen(PORT, '0.0.0.0', () => {
+  app.listen(PORT, HOST, () => {
     console.log(`Material Management running on port ${PORT}`);
     console.log(`  Local:   http://localhost:${PORT}`);
-    for (const ip of lanAddresses()) {
-      console.log(`  Network: http://${ip}:${PORT}`);
+    if (!LOOPBACK_HOSTS.has(HOST)) {
+      for (const ip of lanAddresses()) {
+        console.log(`  Network: http://${ip}:${PORT}`);
+      }
     }
   });
 }

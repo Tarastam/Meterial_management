@@ -8,7 +8,11 @@
     "deploy": "deploy.cmd",
     "import": "node scripts/import-material-list.js",
     "update-cost": "node scripts/update-material-cost.js",
-    "test-db": "node scripts/test-db-connection.js"
+    "test-db": "node scripts/test-db-connection.js",
+    "remove-2607-history": "node scripts/remove-2607-history.js",
+    "remove-2607-history-exact": "node scripts/remove-2607-history-exact.js",
+    "portable": "node scripts/build-portable.js",
+    "test": "node --test test/*.test.js"
   },
   "keywords": [],
   "author": "",
