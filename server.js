@@ -333,10 +333,17 @@ function sumDaily(daily) {
   );
 }
 
+// SQL Server's SYSDATETIME() returns the DB server's local (Thai, UTC+7) wall-clock time,
+// but datetime2 has no offset, so the driver tags those raw digits as UTC. Shift back by the
+// fixed +7 offset (using UTC getters, independent of the Node process's own timezone) to display
+// the true GMT time, e.g. Thai 11:00 AM stored as "11:00" renders here as "04:00".
+const THAI_UTC_OFFSET_HOURS = 7;
+
 function fmtDate(date) {
   if (!date) return '';
+  const utcDate = new Date(date.getTime() - THAI_UTC_OFFSET_HOURS * 60 * 60 * 1000);
   const pad = (n) => String(n).padStart(2, '0');
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  return `${utcDate.getUTCFullYear()}-${pad(utcDate.getUTCMonth() + 1)}-${pad(utcDate.getUTCDate())} ${pad(utcDate.getUTCHours())}:${pad(utcDate.getUTCMinutes())}`;
 }
 
 function fmtNum(n, decimals = 2) {
@@ -899,9 +906,14 @@ app.get('/consumption', async (req, res) => {
 // transactions page and its CSV export so both apply exactly the same filtering.
 // Uses table aliases e (issue_entries) and m (materials).
 function buildTransactionFilter(query) {
-  const { material_id = '0', employee_id = '', workshop = '', shift = '', date_from = '', date_to = '' } = query;
+  const { q = '', material_id = '0', employee_id = '', workshop = '', shift = '', date_from = '', date_to = '' } = query;
   let clause = '';
   const params = [];
+  if (q) {
+    clause += ' AND (m.name LIKE ? OR m.prod_material_code LIKE ? OR m.material_code LIKE ?)';
+    const like = `%${q}%`;
+    params.push(like, like, like);
+  }
   if (material_id && material_id !== '0') {
     clause += ' AND e.material_id = ?';
     params.push(material_id);
@@ -938,6 +950,7 @@ const TRANSACTION_SORT_COLUMNS = {
   unit: 'm.unit',
   stock: 'e.current_stock',
   issue: 'e.issue_qty',
+  usage: 'usage',
   issue_ncn: 'e.issue_ncn',
   return_ncn: 'e.return_ncn',
   employee_id: 'e.employee_id',
@@ -945,7 +958,7 @@ const TRANSACTION_SORT_COLUMNS = {
 };
 
 app.get('/transactions', async (req, res) => {
-  const { material_id = '0', employee_id = '', workshop = '', shift = '', date_from = '', date_to = '' } = req.query;
+  const { q = '', material_id = '0', employee_id = '', workshop = '', shift = '', date_from = '', date_to = '' } = req.query;
   // Default to the last 3 days when no date filter is set; use filters below to widen the range.
   const hasDateFilter = DATE_RE.test(date_from) || DATE_RE.test(date_to);
   const effectiveQuery = hasDateFilter ? req.query : { ...req.query, date_from: addDays(todayStr(), -2) };
@@ -958,10 +971,23 @@ app.get('/transactions', async (req, res) => {
   // e.id breaks ties, but SQL Server rejects it appearing twice when it is already the sort column.
   const tieBreak = sortCol === 'e.id' ? '' : `, e.id ${dirSql}`;
 
-  const sql = `SELECT TOP 500 e.*, m.prod_material_code, m.name AS material_name, m.unit AS material_unit,
-                    m.workshop AS material_workshop
+  // Per-entry usage = previous stock reading + this entry's issue - this entry's stock, mirroring
+  // the derivation used by the CSV export. The stock_readings CTE spans the full history
+  // (unfiltered) so prev_stock stays correct even when a date range is selected.
+  const sql = `WITH stock_readings AS (
+       SELECT id, current_stock,
+              LAG(current_stock) OVER (PARTITION BY material_id ORDER BY entry_date, id) AS prev_stock
+       FROM issue_entries
+       WHERE voided = 0 AND current_stock IS NOT NULL
+     )
+     SELECT TOP 500 e.*, m.prod_material_code, m.name AS material_name, m.unit AS material_unit,
+                    m.workshop AS material_workshop,
+                    CASE WHEN e.voided = 0 AND e.current_stock IS NOT NULL
+                         THEN COALESCE(sr.prev_stock, e.current_stock) + COALESCE(e.issue_qty, 0) - e.current_stock
+                         ELSE NULL END AS usage
              FROM issue_entries e
              JOIN materials m ON m.id = e.material_id
+             LEFT JOIN stock_readings sr ON sr.id = e.id
              WHERE 1=1${clause}
              ORDER BY ${sortCol} ${dirSql}${tieBreak}`;
 
@@ -974,7 +1000,7 @@ app.get('/transactions', async (req, res) => {
     materials,
     workshops,
     shifts: SHIFTS,
-    filters: { material_id: Number(material_id), employee_id, workshop, shift, date_from, date_to },
+    filters: { q, material_id: Number(material_id), employee_id, workshop, shift, date_from, date_to },
     defaultRangeApplied: !hasDateFilter,
     sort,
     dir,
