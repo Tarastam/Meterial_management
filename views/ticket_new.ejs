@@ -4,14 +4,10 @@
 <% if (error) { %><div class="alert error"><%= error %></div><% } %>
 <% if (success) { %><div class="alert success">Ticket submitted. An admin will review your request.</div><% } %>
 
-<form class="card form-card" method="post" action="/tickets/new">
+<form class="card form-card" method="post" action="/tickets/new" enctype="multipart/form-data">
   <div class="field">
     <label>Emp No. *</label>
     <input type="number" name="emp_no" required value="<%= values.emp_no || '' %>">
-  </div>
-  <div class="field">
-    <label>First Name-Last Name *</label>
-    <input type="text" name="full_name" required value="<%= values.full_name || '' %>">
   </div>
   <div class="field">
     <label>Shift *</label>
@@ -34,6 +30,10 @@
   <div class="field">
     <label>Detail *</label>
     <textarea name="detail" rows="5" placeholder="Describe what needs to be corrected and why" required><%= values.detail || '' %></textarea>
+  </div>
+  <div class="field">
+    <label>Attachment</label>
+    <input type="file" name="attachment" accept=".png,.jpg,.jpeg,.gif,.pdf,.doc,.docx,.xls,.xlsx">
   </div>
   <button class="btn" type="submit">Submit Ticket</button>
 </form>

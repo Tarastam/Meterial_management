@@ -126,6 +126,27 @@ async function ensureSchema() {
       )
     END
   `);
+
+  await exec(`
+    IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('tickets') AND name = 'full_name' AND is_nullable = 0)
+    BEGIN
+      ALTER TABLE tickets ALTER COLUMN full_name NVARCHAR(255) NULL
+    END
+  `);
+
+  await exec(`
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('tickets') AND name = 'attachment_path')
+    BEGIN
+      ALTER TABLE tickets ADD attachment_path NVARCHAR(500) NULL
+    END
+  `);
+
+  await exec(`
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('tickets') AND name = 'attachment_name')
+    BEGIN
+      ALTER TABLE tickets ADD attachment_name NVARCHAR(255) NULL
+    END
+  `);
 }
 
 module.exports = { all, get, run, exec, ensureSchema, getPool };

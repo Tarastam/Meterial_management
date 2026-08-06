@@ -22,8 +22,8 @@
   <table>
     <thead>
       <tr>
-        <th>Date</th><th>Emp No.</th><th>Name</th><th>Shift</th><th>Workshop</th>
-        <th>Detail</th><th>Status</th><th></th>
+        <th>Date</th><th>Emp No.</th><th>Shift</th><th>Workshop</th>
+        <th>Detail</th><th>Attachment</th><th>Status</th><th></th>
       </tr>
     </thead>
     <tbody>
@@ -31,10 +31,16 @@
       <tr>
         <td><%= fmtDate(t.created_at) %></td>
         <td><%= t.emp_no %></td>
-        <td><%= t.full_name %></td>
         <td><%= t.shift %></td>
         <td><%= t.workshop %></td>
-        <td><%= t.detail %></td>
+        <td class="detail-cell">
+          <span class="detail-text"><%= t.detail %></span>
+        </td>
+        <td>
+          <% if (t.attachment_path) { %>
+          <a href="/tickets/<%= t.id %>/attachment"><%= t.attachment_name %></a>
+          <% } %>
+        </td>
         <td>
           <% if (t.status === 'OPEN') { %>
           <span class="badge open">OPEN</span>
@@ -42,7 +48,19 @@
           <span class="badge resolved" title="<%= t.resolved_note %>">RESOLVED</span>
           <% } %>
         </td>
-        <td>
+        <td class="actions-cell">
+          <button type="button" class="btn small secondary" onclick="showTicketDetail(event, this)"
+            data-id="<%= t.id %>"
+            data-date="<%= fmtDate(t.created_at) %>"
+            data-emp-no="<%= t.emp_no %>"
+            data-shift="<%= t.shift %>"
+            data-workshop="<%= t.workshop %>"
+            data-detail="<%= t.detail %>"
+            data-status="<%= t.status %>"
+            data-resolved-note="<%= t.resolved_note || '' %>"
+            data-attachment-name="<%= t.attachment_name || '' %>"
+            data-attachment-url="<%= t.attachment_path ? ('/tickets/' + t.id + '/attachment') : '' %>"
+          >Detail</button>
           <% if (t.status === 'OPEN') { %>
           <form class="inline" method="post" action="/tickets/<%= t.id %>/resolve" onsubmit="return handleResolve(event, this);">
             <button class="btn small secondary" type="submit">Resolve</button>
@@ -58,6 +76,52 @@
 <div class="card empty-state">No tickets found.</div>
 <% } %>
 
+<div class="modal-overlay" id="ticketDetailOverlay" onclick="if (event.target === this) closeTicketDetail();">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <h2>Ticket <span id="ticketDetailId"></span></h2>
+        <div class="modal-subtitle" id="ticketDetailDate"></div>
+      </div>
+      <span class="badge" id="ticketDetailStatus"></span>
+      <button type="button" class="modal-close" onclick="closeTicketDetail()" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-meta-grid">
+        <div class="modal-meta-item">
+          <span class="modal-meta-label">Emp No.</span>
+          <span class="modal-meta-value" id="ticketDetailEmpNo"></span>
+        </div>
+        <div class="modal-meta-item">
+          <span class="modal-meta-label">Shift</span>
+          <span class="modal-meta-value" id="ticketDetailShift"></span>
+        </div>
+        <div class="modal-meta-item">
+          <span class="modal-meta-label">Workshop</span>
+          <span class="modal-meta-value" id="ticketDetailWorkshop"></span>
+        </div>
+      </div>
+      <div class="modal-section">
+        <span class="modal-meta-label">Detail</span>
+        <div class="modal-detail-box" id="ticketDetailDetail"></div>
+      </div>
+      <div class="modal-section" id="ticketDetailAttachmentField" style="display:none;">
+        <span class="modal-meta-label">Attachment</span>
+        <a class="modal-attachment-chip" id="ticketDetailAttachmentLink" href="#" target="_blank">
+          <span id="ticketDetailAttachmentName"></span>
+        </a>
+      </div>
+      <div class="modal-section" id="ticketDetailResolvedField" style="display:none;">
+        <span class="modal-meta-label">Resolution Note</span>
+        <div class="modal-detail-box" id="ticketDetailResolvedNote"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn secondary" onclick="closeTicketDetail()">Close</button>
+    </div>
+  </div>
+</div>
+
 <script>
 function handleResolve(event, form) {
   const note = prompt('Resolution note (optional):');
@@ -68,6 +132,44 @@ function handleResolve(event, form) {
   input.value = note;
   form.appendChild(input);
   return true;
+}
+
+function showTicketDetail(event, link) {
+  document.getElementById('ticketDetailId').textContent = '#' + link.dataset.id;
+  document.getElementById('ticketDetailDate').textContent = link.dataset.date;
+  document.getElementById('ticketDetailEmpNo').textContent = link.dataset.empNo;
+  document.getElementById('ticketDetailShift').textContent = link.dataset.shift;
+  document.getElementById('ticketDetailWorkshop').textContent = link.dataset.workshop;
+  document.getElementById('ticketDetailDetail').textContent = link.dataset.detail;
+
+  const statusEl = document.getElementById('ticketDetailStatus');
+  const isOpen = link.dataset.status === 'OPEN';
+  statusEl.textContent = link.dataset.status;
+  statusEl.className = 'badge ' + (isOpen ? 'open' : 'resolved');
+
+  const attachmentField = document.getElementById('ticketDetailAttachmentField');
+  const attachmentLink = document.getElementById('ticketDetailAttachmentLink');
+  if (link.dataset.attachmentUrl) {
+    attachmentField.style.display = '';
+    attachmentLink.href = link.dataset.attachmentUrl;
+    document.getElementById('ticketDetailAttachmentName').textContent = link.dataset.attachmentName;
+  } else {
+    attachmentField.style.display = 'none';
+  }
+
+  const resolvedField = document.getElementById('ticketDetailResolvedField');
+  if (!isOpen && link.dataset.resolvedNote) {
+    resolvedField.style.display = '';
+    document.getElementById('ticketDetailResolvedNote').textContent = link.dataset.resolvedNote;
+  } else {
+    resolvedField.style.display = 'none';
+  }
+
+  document.getElementById('ticketDetailOverlay').classList.add('show');
+}
+
+function closeTicketDetail() {
+  document.getElementById('ticketDetailOverlay').classList.remove('show');
 }
 </script>
 <%- include('partials/foot') %>

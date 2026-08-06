@@ -1,32 +1,49 @@
 <%- include('partials/head', { title: 'Transactions - Material Management' }) %>
+<%
+function sortLink(col, label) {
+  const params = new URLSearchParams({
+    q: filters.q,
+    material_id: filters.material_id || '0',
+    workshop: filters.workshop,
+    shift: filters.shift,
+    date_from: filters.date_from,
+    date_to: filters.date_to,
+    sort: col,
+  });
+  const nextDir = (sort === col && dir === 'asc') ? 'desc' : 'asc';
+  params.set('dir', nextDir);
+  const arrow = sort === col ? (dir === 'asc' ? ' ▲' : ' ▼') : '';
+  return `<a href="/transactions?${params.toString()}" class="sort-link">${label}${arrow}</a>`;
+}
+%>
 <div class="actions-row">
   <h1>Transactions</h1>
   <div>
     <a class="btn secondary" href="/tickets/new">Request Change</a>
-    <a class="btn secondary" href="/export/transactions.csv?<%= new URLSearchParams({ material_id: filters.material_id || '0', employee_id: filters.employee_id, workshop: filters.workshop, shift: filters.shift, date_from: filters.date_from, date_to: filters.date_to }).toString() %>">Export CSV</a>
+    <a class="btn secondary" href="/export/transactions.csv?<%= new URLSearchParams({ q: filters.q, material_id: filters.material_id || '0', workshop: filters.workshop, shift: filters.shift, date_from: filters.date_from, date_to: filters.date_to }).toString() %>">Export CSV</a>
   </div>
 </div>
 
 <form class="filters" method="get" action="/transactions">
   <div class="field" style="margin-bottom:0;">
-    <label>Material</label>
-    <select name="material_id">
-      <option value="0">All Materials</option>
-      <% materials.forEach(m => { %>
-      <option value="<%= m.id %>" <%= filters.material_id === m.id ? 'selected' : '' %>><%= m.prod_material_code %> - <%= m.name %></option>
+    <label>Search</label>
+    <input type="text" name="q" value="<%= filters.q %>" placeholder="Code or name">
+  </div>
+  <div class="field" style="margin-bottom:0;">
+    <label>Workshop</label>
+    <select name="workshop" id="workshopSelect">
+      <option value="">All Workshops</option>
+      <% workshops.forEach(w => { %>
+      <option value="<%= w %>" <%= filters.workshop === w ? 'selected' : '' %>><%= w %></option>
       <% }) %>
     </select>
   </div>
   <div class="field" style="margin-bottom:0;">
-    <label>Employee ID</label>
-    <input type="text" name="employee_id" value="<%= filters.employee_id %>" placeholder="7-digit ID">
-  </div>
-  <div class="field" style="margin-bottom:0;">
-    <label>Workshop</label>
-    <select name="workshop">
-      <option value="">All Workshops</option>
-      <% workshops.forEach(w => { %>
-      <option value="<%= w %>" <%= filters.workshop === w ? 'selected' : '' %>><%= w %></option>
+    <label>Material</label>
+    <select name="material_id" id="materialSelect">
+      <option value="0">All Materials</option>
+      <% materials.forEach(m => { %>
+      <option value="<%= m.id %>" data-workshop="<%= m.workshop %>" <%= filters.material_id === m.id ? 'selected' : '' %>><%= m.prod_material_code %> - <%= m.name %></option>
       <% }) %>
     </select>
   </div>
@@ -48,19 +65,33 @@
     <label>To Date</label>
     <input type="date" name="date_to" value="<%= filters.date_to %>">
   </div>
+  <input type="hidden" name="sort" value="<%= sort %>">
+  <input type="hidden" name="dir" value="<%= dir %>">
   <div class="field" style="margin-bottom:0; align-self:flex-end;">
     <button class="btn secondary" type="submit">Filter</button>
   </div>
 </form>
 
+<% if (defaultRangeApplied) { %>
+<p class="hint">Showing the last 3 days. Use the date filters above to see more.</p>
+<% } %>
+
 <div class="table-wrap">
-  <table>
+  <table class="compact-table transactions-table">
     <thead>
       <tr>
-        <% if (isAdmin) { %><th>ID</th><% } %>
-        <th>Date</th>
-        <% if (isAdmin) { %><th>Entry Date</th><% } %>
-        <th>Material</th><th>Workshop</th><th>Unit</th><th>Current Stock</th><th>Issue</th><th>Issue NCN</th><th>Return NCN</th><th>Employee ID</th><th>Shift</th>
+        <th class="col-date"><%- sortLink('entry_date', 'Entry Date') %></th>
+        <% if (isAdmin) { %><th><%- sortLink('id', 'ID') %></th><% } %>
+        <th class="col-left"><%- sortLink('material', 'Material') %></th>
+        <th><%- sortLink('workshop', 'Workshop') %></th>
+        <th><%- sortLink('unit', 'Unit') %></th>
+        <th><%- sortLink('stock', 'Current Stock') %></th>
+        <th><%- sortLink('issue', 'Issue') %></th>
+        <th><%- sortLink('usage', 'Usage') %></th>
+        <th><%- sortLink('issue_ncn', 'Issue NCN') %></th>
+        <th><%- sortLink('return_ncn', 'Return NCN') %></th>
+        <th><%- sortLink('shift', 'Shift') %></th>
+        <% if (isAdmin) { %><th><%- sortLink('date', 'Created At') %></th><% } %>
         <% if (isAdmin) { %><th>Voided Reason</th><% } %>
         <th></th>
       </tr>
@@ -68,18 +99,18 @@
     <tbody>
       <% transactions.forEach(t => { %>
       <tr>
+        <td class="col-date"><%= fmtDateOnly(t.entry_date) %></td>
         <% if (isAdmin) { %><td><%= t.id %></td><% } %>
-        <td><%= fmtDate(t.created_at) %></td>
-        <% if (isAdmin) { %><td><%= fmtDateOnly(t.entry_date) %></td><% } %>
-        <td><%= t.prod_material_code %> - <%= t.material_name %></td>
+        <td class="col-left"><%= t.prod_material_code %> - <%= t.material_name %></td>
         <td><%= t.material_workshop %></td>
         <td><%= t.material_unit %></td>
         <td><%= t.current_stock != null ? fmtNum(t.current_stock) : '' %></td>
         <td><%= t.issue_qty != null ? fmtNum(t.issue_qty) : '' %></td>
+        <td><%= t.usage != null ? fmtNum(t.usage) : '' %></td>
         <td><%= t.issue_ncn != null ? fmtNum(t.issue_ncn) : '' %></td>
         <td><%= t.return_ncn != null ? fmtNum(t.return_ncn) : '' %></td>
-        <td><%= t.employee_id %></td>
         <td><%= t.shift %></td>
+        <% if (isAdmin) { %><td><%= fmtDate(t.created_at) %></td><% } %>
         <% if (isAdmin) { %><td><%= t.voided ? t.voided_reason : '' %></td><% } %>
         <td>
           <% if (t.voided) { %>
@@ -103,6 +134,28 @@
 <% } %>
 
 <script>
+(function () {
+  const workshopSelect = document.getElementById('workshopSelect');
+  const materialSelect = document.getElementById('materialSelect');
+  if (!workshopSelect || !materialSelect) return;
+  const options = Array.from(materialSelect.options).filter((o) => o.value !== '0');
+
+  function applyWorkshopFilter() {
+    const workshop = workshopSelect.value;
+    const selected = materialSelect.value;
+    let selectedStillVisible = selected === '0';
+    options.forEach((o) => {
+      const visible = !workshop || o.dataset.workshop === workshop;
+      o.hidden = !visible;
+      if (visible && o.value === selected) selectedStillVisible = true;
+    });
+    if (!selectedStillVisible) materialSelect.value = '0';
+  }
+
+  workshopSelect.addEventListener('change', applyWorkshopFilter);
+  applyWorkshopFilter();
+})();
+
 function handleVoid(event, form) {
   const reason = prompt('Reason for voiding this transaction (this correction will be visible in history):');
   if (reason === null) { event.preventDefault(); return false; }
