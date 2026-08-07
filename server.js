@@ -93,6 +93,13 @@ function todayStr() {
   return new Date(d.getTime() - tzOffsetMs).toISOString().slice(0, 10);
 }
 
+// Day used for new issue_entries records. Cuts over at 07:00 Thai time (UTC+7) instead of
+// midnight, to match the factory MES's day boundary (UTC midnight). Since Thai time has no DST,
+// that boundary is just the plain UTC calendar date of "now" - no offset math needed.
+function entryDayStr() {
+  return new Date().toISOString().slice(0, 10);
+}
+
 function addDays(dateStr, days) {
   const [y, m, d] = dateStr.split('-').map(Number);
   const dt = new Date(Date.UTC(y, m - 1, d));
@@ -712,7 +719,7 @@ async function getIssueMaterials(workshop) {
 
 async function renderIssueForm(req, res, status, extra) {
   const workshop = extra.workshop || '';
-  const entryDate = extra.entryDate || todayStr();
+  const entryDate = extra.entryDate || entryDayStr();
   const materials = await getIssueMaterials(workshop);
   const stockMap = await getStockAsOfMap(entryDate);
   const workshops = (await db.all('SELECT DISTINCT workshop FROM materials ORDER BY workshop')).map((r) => r.workshop);
@@ -723,7 +730,7 @@ async function renderIssueForm(req, res, status, extra) {
     workshops,
     selectedWorkshop: workshop,
     entryDate,
-    today: todayStr(),
+    today: entryDayStr(),
     isAdmin: req.isAdmin,
     error: null,
     success: null,
@@ -736,7 +743,7 @@ async function renderIssueForm(req, res, status, extra) {
 }
 
 app.get('/issue', async (req, res) => {
-  const entryDate = req.isAdmin && DATE_RE.test(req.query.date) ? req.query.date : todayStr();
+  const entryDate = req.isAdmin && DATE_RE.test(req.query.date) ? req.query.date : entryDayStr();
   await renderIssueForm(req, res, 200, { success: req.query.success, workshop: req.query.workshop || '', entryDate });
 });
 
@@ -745,7 +752,7 @@ app.post('/issue', async (req, res) => {
   const materials = await getIssueMaterials(workshop);
   const employeeId = (req.body.employee_id || '').trim();
   const shift = req.body.shift || '';
-  const entryDate = req.isAdmin && DATE_RE.test(req.body.entry_date) ? req.body.entry_date : todayStr();
+  const entryDate = req.isAdmin && DATE_RE.test(req.body.entry_date) ? req.body.entry_date : entryDayStr();
 
   let error = null;
   if (!EMPLOYEE_ID_RE.test(employeeId)) {
@@ -1173,22 +1180,40 @@ app.post('/tickets/new', (req, res, next) => {
   res.redirect('/tickets/new?success=1');
 });
 
-app.get('/tickets', requireAdmin, async (req, res) => {
+app.get('/tickets', async (req, res) => {
   const status = req.query.status === 'RESOLVED' ? 'RESOLVED' : req.query.status === 'OPEN' ? 'OPEN' : '';
+  const dateFrom = DATE_RE.test(req.query.date_from) ? req.query.date_from : '';
+  const dateTo = DATE_RE.test(req.query.date_to) ? req.query.date_to : '';
   let sql = 'SELECT * FROM tickets WHERE 1=1';
   const params = [];
   if (status) {
     sql += ' AND status = ?';
     params.push(status);
   }
+  if (dateFrom) {
+    sql += ' AND CAST(created_at AS DATE) >= ?';
+    params.push(dateFrom);
+  }
+  if (dateTo) {
+    sql += ' AND CAST(created_at AS DATE) <= ?';
+    params.push(dateTo);
+  }
   sql += ' ORDER BY created_at DESC, id DESC';
   const tickets = await db.all(sql, params);
   const openCount = (await db.get("SELECT COUNT(*) c FROM tickets WHERE status = 'OPEN'")).c;
 
-  res.render('tickets', { tickets, status, openCount, fmtDate });
+  const workshopShiftCounts = {
+    workshops: KNOWN_WORKSHOPS,
+    series: SHIFTS.map((s) => ({
+      shift: s,
+      counts: KNOWN_WORKSHOPS.map((w) => tickets.filter((t) => t.workshop === w && t.shift === s).length),
+    })),
+  };
+
+  res.render('tickets', { tickets, status, dateFrom, dateTo, openCount, fmtDate, workshopShiftCounts });
 });
 
-app.get('/tickets/:id/attachment', requireAdmin, async (req, res) => {
+app.get('/tickets/:id/attachment', async (req, res) => {
   const ticket = await db.get('SELECT attachment_path, attachment_name FROM tickets WHERE id = ?', [req.params.id]);
   if (!ticket || !ticket.attachment_path) return res.status(404).send('No attachment found.');
   const filePath = path.join(TICKET_UPLOAD_DIR, path.basename(ticket.attachment_path));
@@ -1201,6 +1226,15 @@ app.post('/tickets/:id/resolve', requireAdmin, async (req, res) => {
     `UPDATE tickets SET status = 'RESOLVED', resolved_at = SYSDATETIME(), resolved_note = ? WHERE id = ?`,
     [note, req.params.id]
   );
+  res.redirect('/tickets');
+});
+
+app.post('/tickets/:id/delete', requireAdmin, async (req, res) => {
+  const ticket = await db.get('SELECT attachment_path FROM tickets WHERE id = ?', [req.params.id]);
+  await db.run('DELETE FROM tickets WHERE id = ?', [req.params.id]);
+  if (ticket && ticket.attachment_path) {
+    fs.unlink(path.join(TICKET_UPLOAD_DIR, path.basename(ticket.attachment_path)), () => {});
+  }
   res.redirect('/tickets');
 });
 

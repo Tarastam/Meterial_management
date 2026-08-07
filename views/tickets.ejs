@@ -7,6 +7,11 @@
   </div>
 </div>
 
+<div class="card">
+  <h3>Tickets by Workshop</h3>
+  <canvas id="ticketsByWorkshopChart" height="110" role="img" aria-label="Number of tickets per workshop, stacked by shift"></canvas>
+</div>
+
 <form class="filters" method="get" action="/tickets">
   <div class="field" style="margin-bottom:0;">
     <label>Status</label>
@@ -15,6 +20,17 @@
       <option value="OPEN" <%= status === 'OPEN' ? 'selected' : '' %>>Open</option>
       <option value="RESOLVED" <%= status === 'RESOLVED' ? 'selected' : '' %>>Resolved</option>
     </select>
+  </div>
+  <div class="field" style="margin-bottom:0;">
+    <label>From Date</label>
+    <input type="date" name="date_from" value="<%= dateFrom %>">
+  </div>
+  <div class="field" style="margin-bottom:0;">
+    <label>To Date</label>
+    <input type="date" name="date_to" value="<%= dateTo %>">
+  </div>
+  <div class="field" style="margin-bottom:0; align-self:flex-end;">
+    <button class="btn secondary" type="submit">Apply</button>
   </div>
 </form>
 
@@ -61,9 +77,14 @@
             data-attachment-name="<%= t.attachment_name || '' %>"
             data-attachment-url="<%= t.attachment_path ? ('/tickets/' + t.id + '/attachment') : '' %>"
           >Detail</button>
-          <% if (t.status === 'OPEN') { %>
+          <% if (isAdmin && t.status === 'OPEN') { %>
           <form class="inline" method="post" action="/tickets/<%= t.id %>/resolve" onsubmit="return handleResolve(event, this);">
             <button class="btn small secondary" type="submit">Resolve</button>
+          </form>
+          <% } %>
+          <% if (isAdmin) { %>
+          <form class="inline" method="post" action="/tickets/<%= t.id %>/delete" onsubmit="return confirm('Delete this ticket permanently? This cannot be undone.');">
+            <button class="btn small danger" type="submit">Delete</button>
           </form>
           <% } %>
         </td>
@@ -171,5 +192,31 @@ function showTicketDetail(event, link) {
 function closeTicketDetail() {
   document.getElementById('ticketDetailOverlay').classList.remove('show');
 }
+</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+  const workshopShiftCounts = <%- JSON.stringify(workshopShiftCounts) %>;
+  const shiftPalette = ['#2563eb', '#16a34a', '#d97706'];
+
+  const workshopCanvas = document.getElementById('ticketsByWorkshopChart');
+  if (workshopCanvas) {
+    new Chart(workshopCanvas, {
+      type: 'bar',
+      data: {
+        labels: workshopShiftCounts.workshops,
+        datasets: workshopShiftCounts.series.map((s, i) => ({
+          label: 'Shift ' + s.shift,
+          data: s.counts,
+          backgroundColor: shiftPalette[i % shiftPalette.length],
+          borderRadius: 2,
+        })),
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: true, position: 'bottom' } },
+        scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true, ticks: { precision: 0 } } },
+      },
+    });
+  }
 </script>
 <%- include('partials/foot') %>
