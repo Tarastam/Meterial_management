@@ -13,12 +13,28 @@
   <nav>
     <span class="brand">Material Management</span>
     <a href="/">Dashboard</a>
-    <a href="/materials">Summary</a>
-    <a href="/issue">Record Data</a>
-    <a href="/consumption">Consumption</a>
-    <a href="/transactions">Transactions</a>
-    <a href="/tickets/new">Request Change</a>
-    <a href="/tickets">Ticket Log</a>
+    <div class="nav-dropdown">
+      <button type="button" class="nav-dropdown-toggle">Stock Control</button>
+      <div class="nav-dropdown-menu">
+        <a href="/issue">Record Data</a>
+        <a href="/materials">Summary</a>
+        <div class="nav-submenu">
+          <span class="nav-submenu-toggle">Transaction</span>
+          <div class="nav-submenu-menu">
+            <a href="/transactions">Transaction Log</a>
+            <a href="/transactions/undo">Undo/Change</a>
+          </div>
+        </div>
+        <a href="/consumption">Consumption</a>
+      </div>
+    </div>
+    <div class="nav-dropdown">
+      <button type="button" class="nav-dropdown-toggle">Request Change</button>
+      <div class="nav-dropdown-menu">
+        <a href="/tickets/new">Create Ticket</a>
+        <a href="/tickets">Ticket Log</a>
+      </div>
+    </div>
     <div class="nav-right">
       <% if (isAdmin) { %>
       <form class="inline nav-logout" method="post" action="/admin/logout">
@@ -30,4 +46,18 @@
       <% } %>
     </div>
   </nav>
+  <script>
+    document.querySelectorAll('.nav-dropdown-toggle').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var dropdown = btn.closest('.nav-dropdown');
+        var wasOpen = dropdown.classList.contains('open');
+        document.querySelectorAll('.nav-dropdown.open').forEach(function (d) { d.classList.remove('open'); });
+        if (!wasOpen) dropdown.classList.add('open');
+      });
+    });
+    document.addEventListener('click', function () {
+      document.querySelectorAll('.nav-dropdown.open').forEach(function (d) { d.classList.remove('open'); });
+    });
+  </script>
   <main>

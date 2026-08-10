@@ -19,6 +19,12 @@ fs.mkdirSync(TICKET_UPLOAD_DIR, { recursive: true });
 
 const TICKET_ATTACHMENT_EXTS = ['.png', '.jpg', '.jpeg', '.gif', '.pdf', '.doc', '.docx', '.xls', '.xlsx'];
 
+// Browsers send multipart filenames as UTF-8, but multer/busboy decodes them as
+// latin1, mangling non-ASCII names (e.g. Thai). Re-interpret the bytes to recover them.
+function fixUploadedFilename(name) {
+  return Buffer.from(name, 'latin1').toString('utf8');
+}
+
 const ticketUpload = multer({
   storage: multer.diskStorage({
     destination: TICKET_UPLOAD_DIR,
@@ -600,7 +606,7 @@ async function getNextMaterialCode() {
 
 app.get('/materials/new', requireAdmin, async (req, res) => {
   res.render('material_form', {
-    material: { prod_material_code: await getNextMaterialCode() },
+    material: { prod_material_code: await getNextMaterialCode(), decimal_places: 3 },
     units: KNOWN_UNITS,
     workshops: KNOWN_WORKSHOPS,
     error: null,
@@ -609,8 +615,10 @@ app.get('/materials/new', requireAdmin, async (req, res) => {
 });
 
 app.post('/materials/new', requireAdmin, async (req, res) => {
-  const { material_code = '', name, unit, workshop, min_stock } = req.body;
+  const { material_code = '', name, unit, workshop, min_stock, decimal_places } = req.body;
   const minStock = parseFloat(min_stock) || 0;
+  const parsedDecimalPlaces = parseInt(decimal_places, 10);
+  const decimalPlaces = Number.isNaN(parsedDecimalPlaces) ? 3 : Math.min(6, Math.max(0, parsedDecimalPlaces));
 
   let error = null;
   if (minStock < 0) {
@@ -619,7 +627,7 @@ app.post('/materials/new', requireAdmin, async (req, res) => {
 
   if (error) {
     return res.status(400).render('material_form', {
-      material: { prod_material_code: await getNextMaterialCode(), material_code, name, unit, workshop, min_stock: minStock },
+      material: { prod_material_code: await getNextMaterialCode(), material_code, name, unit, workshop, min_stock: minStock, decimal_places: decimalPlaces },
       units: KNOWN_UNITS,
       workshops: KNOWN_WORKSHOPS,
       error,
@@ -632,9 +640,9 @@ app.post('/materials/new', requireAdmin, async (req, res) => {
     const prodMaterialCode = await getNextMaterialCode();
     try {
       await db.run(
-        `INSERT INTO materials (prod_material_code, material_code, name, unit, workshop, min_stock)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [prodMaterialCode, material_code.trim(), name.trim(), unit.trim(), workshop.trim(), minStock]
+        `INSERT INTO materials (prod_material_code, material_code, name, unit, workshop, min_stock, decimal_places)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [prodMaterialCode, material_code.trim(), name.trim(), unit.trim(), workshop.trim(), minStock, decimalPlaces]
       );
       return res.redirect('/materials');
     } catch (err) {
@@ -656,9 +664,11 @@ app.get('/materials/:id/edit', requireAdmin, async (req, res) => {
 
 app.post('/materials/:id/edit', requireAdmin, async (req, res) => {
   const materialId = req.params.id;
-  const { material_code = '', name, unit, workshop, min_stock } = req.body;
+  const { material_code = '', name, unit, workshop, min_stock, decimal_places } = req.body;
   const prodMaterialCode = (req.body.prod_material_code || '').trim();
   const minStock = parseFloat(min_stock) || 0;
+  const parsedDecimalPlaces = parseInt(decimal_places, 10);
+  const decimalPlaces = Number.isNaN(parsedDecimalPlaces) ? 3 : Math.min(6, Math.max(0, parsedDecimalPlaces));
 
   let error = null;
   if (!prodMaterialCode) {
@@ -682,6 +692,7 @@ app.post('/materials/:id/edit', requireAdmin, async (req, res) => {
         unit,
         workshop,
         min_stock: minStock,
+        decimal_places: decimalPlaces,
       },
       units: KNOWN_UNITS,
       workshops: KNOWN_WORKSHOPS,
@@ -691,9 +702,9 @@ app.post('/materials/:id/edit', requireAdmin, async (req, res) => {
   }
 
   await db.run(
-    `UPDATE materials SET prod_material_code = ?, material_code = ?, name = ?, unit = ?, workshop = ?, min_stock = ?
+    `UPDATE materials SET prod_material_code = ?, material_code = ?, name = ?, unit = ?, workshop = ?, min_stock = ?, decimal_places = ?
      WHERE id = ?`,
-    [prodMaterialCode, material_code.trim(), name.trim(), unit.trim(), workshop.trim(), minStock, materialId]
+    [prodMaterialCode, material_code.trim(), name.trim(), unit.trim(), workshop.trim(), minStock, decimalPlaces, materialId]
   );
 
   res.redirect('/materials');
@@ -1016,6 +1027,161 @@ app.get('/transactions', async (req, res) => {
   });
 });
 
+// ---------- transactions undo/change (self-service backdated entry) ----------
+
+// Non-admin backdating is allowed for "today" or the single prior day only (the factory runs
+// every day, so no weekend-skipping is needed here, unlike a business-day calendar).
+async function renderUndoForm(req, res, status, extra) {
+  const mode = extra.mode === 'CHANGE' ? 'CHANGE' : (req.query.mode === 'CHANGE' ? 'CHANGE' : 'CREATE');
+  const dateChoice = extra.dateChoice || (req.query.date_choice === 'yesterday' ? 'yesterday' : 'today');
+  const workshop = extra.workshop !== undefined ? extra.workshop : (req.query.workshop || '');
+  const todayBiz = entryDayStr();
+  const allowedDate = addDays(todayBiz, -1);
+  const entryDate = dateChoice === 'yesterday' ? allowedDate : todayBiz;
+  const materialIdRaw = extra.materialId !== undefined ? extra.materialId : req.query.material_id;
+  const materialId = materialIdRaw ? parseInt(materialIdRaw, 10) : null;
+
+  const workshopMaterials = workshop ? await getIssueMaterials(workshop) : [];
+  const idFilter = materialIdsFilter('material_id', workshopMaterials.map((m) => m.id));
+  const existingRows = workshopMaterials.length
+    ? await db.all(`SELECT * FROM issue_entries WHERE entry_date = ? AND voided = 0${idFilter.sql}`, [entryDate, ...idFilter.params])
+    : [];
+  const existingByMaterial = {};
+  existingRows.forEach((r) => { existingByMaterial[r.material_id] = r; });
+
+  const selectableMaterials = workshopMaterials.filter((m) => (mode === 'CHANGE' ? existingByMaterial[m.id] : !existingByMaterial[m.id]));
+  const selectedEntry = materialId && mode === 'CHANGE' ? existingByMaterial[materialId] || null : null;
+  const selectedMaterial = materialId ? workshopMaterials.find((m) => m.id === materialId) || null : null;
+  const stockMap = await getStockAsOfMap(entryDate);
+  const workshops = (await db.all('SELECT DISTINCT workshop FROM materials ORDER BY workshop')).map((r) => r.workshop);
+
+  res.status(status).render('transactions_undo', {
+    mode,
+    dateChoice,
+    entryDate,
+    todayBiz,
+    allowedDate,
+    workshop,
+    workshops,
+    materials: selectableMaterials,
+    materialId,
+    selectedMaterial,
+    selectedEntry,
+    stockMap,
+    shifts: SHIFTS,
+    error: null,
+    success: null,
+    negativeUsage: null,
+    values: {},
+    employeeId: '',
+    shift: '',
+    ...extra,
+  });
+}
+
+app.get('/transactions/undo', async (req, res) => {
+  await renderUndoForm(req, res, 200, { success: req.query.success });
+});
+
+app.post('/transactions/undo', async (req, res) => {
+  const mode = req.body.mode === 'CHANGE' ? 'CHANGE' : 'CREATE';
+  const dateChoice = req.body.date_choice === 'yesterday' ? 'yesterday' : 'today';
+  const workshop = req.body.workshop || '';
+  const todayBiz = entryDayStr();
+  const allowedDate = addDays(todayBiz, -1);
+  const entryDate = dateChoice === 'yesterday' ? allowedDate : todayBiz;
+  const materialId = parseInt(req.body.material_id, 10);
+  const employeeId = (req.body.employee_id || '').trim();
+  const shift = req.body.shift || '';
+
+  const material = Number.isInteger(materialId) ? await db.get('SELECT * FROM materials WHERE id = ?', [materialId]) : null;
+
+  let error = null;
+  if (!KNOWN_WORKSHOPS.includes(workshop)) error = 'Please select a valid workshop.';
+  else if (!material || material.workshop !== workshop) error = 'Please select a valid material.';
+  else if (!EMPLOYEE_ID_RE.test(employeeId)) error = 'Employee ID must be exactly 7 digits.';
+  else if (!SHIFTS.includes(shift)) error = 'Please select a valid shift (A, B, or C).';
+
+  const raw = {};
+  for (const field of NUMERIC_FIELDS) raw[field] = (req.body[field] || '').trim();
+  const parsed = {};
+  if (!error) {
+    for (const field of NUMERIC_FIELDS) {
+      if (raw[field] === '') { parsed[field] = null; continue; }
+      const num = parseFloat(raw[field]);
+      if (Number.isNaN(num)) { error = 'Entered values must be numbers.'; break; }
+      if (num < 0) { error = 'Entered values cannot be negative.'; break; }
+      parsed[field] = num;
+    }
+  }
+
+  const existing = material
+    ? await db.get('SELECT * FROM issue_entries WHERE material_id = ? AND entry_date = ? AND voided = 0', [materialId, entryDate])
+    : null;
+
+  if (!error) {
+    if (mode === 'CREATE' && existing) {
+      error = `An entry already exists for ${material.prod_material_code} on ${entryDate}. Use Change instead.`;
+    } else if (mode === 'CHANGE' && !existing) {
+      error = `No existing entry found for ${material.prod_material_code} on ${entryDate}. Use Create instead.`;
+    }
+  }
+
+  if (error) {
+    return renderUndoForm(req, res, 400, {
+      mode, dateChoice, workshop, materialId: req.body.material_id, error,
+      values: { [materialId]: raw }, employeeId, shift,
+    });
+  }
+
+  // Same negative-usage projection as POST /issue, but for Change mode the old row's own
+  // issue_qty/current_stock must be backed out first since it hasn't been voided yet.
+  const priorIssueQty = existing ? (existing.issue_qty || 0) : 0;
+  const stockYesterdayMap = await getStockAsOfMap(addDays(entryDate, -1));
+  const stockTodayMapBefore = await getStockAsOfMap(entryDate);
+  const issueSumMapBefore = await getIssueSumMap(entryDate, entryDate);
+  const projectedIssueSum = (issueSumMapBefore[materialId] || 0) - priorIssueQty + (parsed.issue_qty || 0);
+  const projectedStockToday = parsed.current_stock != null ? parsed.current_stock : (stockTodayMapBefore[materialId] || 0);
+  const usage = (stockYesterdayMap[materialId] || 0) + projectedIssueSum - projectedStockToday;
+
+  if (usage < 0) {
+    return renderUndoForm(req, res, 400, {
+      mode, dateChoice, workshop, materialId: req.body.material_id,
+      negativeUsage: [{ code: material.prod_material_code, name: material.name, usage }],
+      values: { [materialId]: raw }, employeeId, shift,
+    });
+  }
+
+  if (mode === 'CHANGE') {
+    await db.run(
+      'UPDATE issue_entries SET voided = 1, voided_reason = ? WHERE id = ?',
+      [`Superseded by Undo/Change (emp ${employeeId})`, existing.id]
+    );
+  }
+  await db.run(
+    `INSERT INTO issue_entries (material_id, entry_date, current_stock, issue_qty, issue_ncn, return_ncn, employee_id, shift) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [materialId, entryDate, parsed.current_stock, parsed.issue_qty, parsed.issue_ncn, parsed.return_ncn, employeeId, shift]
+  );
+
+  const fv = (v) => (v == null ? '—' : v);
+  const detail = mode === 'CHANGE'
+    ? `${material.prod_material_code} (${material.name}) on ${entryDate}: `
+      + `stock ${fv(existing.current_stock)}→${fv(parsed.current_stock)}, `
+      + `issue ${fv(existing.issue_qty)}→${fv(parsed.issue_qty)}, `
+      + `issue NCN ${fv(existing.issue_ncn)}→${fv(parsed.issue_ncn)}, `
+      + `return NCN ${fv(existing.return_ncn)}→${fv(parsed.return_ncn)}`
+    : `${material.prod_material_code} (${material.name}) on ${entryDate}: `
+      + `stock=${fv(parsed.current_stock)}, issue=${fv(parsed.issue_qty)}, `
+      + `issue NCN=${fv(parsed.issue_ncn)}, return NCN=${fv(parsed.return_ncn)}`;
+
+  await db.run(
+    `INSERT INTO tickets (emp_no, shift, workshop, detail, type) VALUES (?, ?, ?, ?, ?)`,
+    [employeeId, shift, workshop, detail, mode]
+  );
+
+  res.redirect(`/transactions/undo?success=1&workshop=${encodeURIComponent(workshop)}`);
+});
+
 app.post('/transactions/:id/void', requireAdmin, async (req, res) => {
   const entry = await db.get('SELECT * FROM issue_entries WHERE id = ?', [req.params.id]);
   if (entry && !entry.voided) {
@@ -1174,14 +1340,17 @@ app.post('/tickets/new', (req, res, next) => {
 
   await db.run(
     `INSERT INTO tickets (emp_no, shift, workshop, detail, attachment_path, attachment_name) VALUES (?, ?, ?, ?, ?, ?)`,
-    [empNo, shift, workshop, detail, attachment ? attachment.filename : null, attachment ? attachment.originalname : null]
+    [empNo, shift, workshop, detail, attachment ? attachment.filename : null, attachment ? fixUploadedFilename(attachment.originalname) : null]
   );
 
   res.redirect('/tickets/new?success=1');
 });
 
+const TICKET_TYPES = ['MANUAL', 'CHANGE', 'CREATE'];
+
 app.get('/tickets', async (req, res) => {
   const status = req.query.status === 'RESOLVED' ? 'RESOLVED' : req.query.status === 'OPEN' ? 'OPEN' : '';
+  const type = TICKET_TYPES.includes(req.query.type) ? req.query.type : '';
   const dateFrom = DATE_RE.test(req.query.date_from) ? req.query.date_from : '';
   const dateTo = DATE_RE.test(req.query.date_to) ? req.query.date_to : '';
   let sql = 'SELECT * FROM tickets WHERE 1=1';
@@ -1189,6 +1358,10 @@ app.get('/tickets', async (req, res) => {
   if (status) {
     sql += ' AND status = ?';
     params.push(status);
+  }
+  if (type) {
+    sql += ' AND type = ?';
+    params.push(type);
   }
   if (dateFrom) {
     sql += ' AND CAST(created_at AS DATE) >= ?';
@@ -1210,7 +1383,7 @@ app.get('/tickets', async (req, res) => {
     })),
   };
 
-  res.render('tickets', { tickets, status, dateFrom, dateTo, openCount, fmtDate, workshopShiftCounts });
+  res.render('tickets', { tickets, status, type, dateFrom, dateTo, openCount, fmtDate, workshopShiftCounts });
 });
 
 app.get('/tickets/:id/attachment', async (req, res) => {

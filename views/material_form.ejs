@@ -42,6 +42,10 @@
     <label>Minimum Stock (for low-stock alerts)</label>
     <input type="number" step="any" min="0" name="min_stock" value="<%= material ? material.min_stock : 0 %>">
   </div>
+  <div class="field">
+    <label>Decimal Places to Display</label>
+    <input type="number" step="1" min="0" max="6" name="decimal_places" value="<%= material && material.decimal_places != null ? material.decimal_places : 3 %>">
+  </div>
   <button class="btn" type="submit"><%= editingId ? 'Save Changes' : 'Add Material' %></button>
   <a class="btn secondary" href="/materials">Cancel</a>
 </form>
