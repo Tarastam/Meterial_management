@@ -64,17 +64,17 @@ function sortLink(col, label) {
       </tr>
     </thead>
     <tbody>
-      <% rows.forEach(row => { const m = row.material; %>
+      <% rows.forEach(row => { const m = row.material; const dp = m.decimal_places != null ? m.decimal_places : 3; %>
       <tr>
         <td><%= m.prod_material_code %></td>
         <td class="col-erp"><%= m.material_code %></td>
         <td class="col-name"><%= m.name %></td>
         <td class="col-center"><%= m.unit %></td>
         <td class="col-center"><%= m.workshop %></td>
-        <td class="col-num"><%= fmtNum(row.issue) %></td>
-        <td class="col-num"><%= fmtNum(row.usage) %></td>
-        <td class="col-num"><%= fmtNum(row.stock) %></td>
-        <td class="col-num"><%= fmtNum(row.hold) %></td>
+        <td class="col-num"><%= fmtNum(row.issue, dp) %></td>
+        <td class="col-num"><%= fmtNum(row.usage, dp) %></td>
+        <td class="col-num"><%= fmtNum(row.stock, dp) %></td>
+        <td class="col-num"><%= fmtNum(row.hold, dp) %></td>
         <td>
           <% if (isAdmin) { %>
           <a class="btn small secondary" href="/materials/<%= m.id %>/edit">Edit</a>

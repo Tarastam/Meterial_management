@@ -2,9 +2,12 @@ data/*.db
 node_modules/
 .env
 .claude/settings.local.json
+.claude/skills/
 uploads/
 
 # Generated runtime and distribution artifacts
 .claude-flow/
 dist/
 logs/
+*.log
+TransferDatabase.xlsx

@@ -89,6 +89,13 @@ async function ensureSchema() {
   `);
 
   await exec(`
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('materials') AND name = 'decimal_places')
+    BEGIN
+      ALTER TABLE materials ADD decimal_places INT NOT NULL DEFAULT 3
+    END
+  `);
+
+  await exec(`
     IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'issue_entries')
     BEGIN
       CREATE TABLE issue_entries (
@@ -161,6 +168,13 @@ async function ensureSchema() {
     IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('tickets') AND name = 'attachment_name')
     BEGIN
       ALTER TABLE tickets ADD attachment_name NVARCHAR(255) NULL
+    END
+  `);
+
+  await exec(`
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('tickets') AND name = 'type')
+    BEGIN
+      ALTER TABLE tickets ADD type NVARCHAR(20) NOT NULL DEFAULT 'MANUAL' CHECK(type IN ('MANUAL','CHANGE','CREATE'))
     END
   `);
 }

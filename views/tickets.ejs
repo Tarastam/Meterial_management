@@ -7,6 +7,11 @@
   </div>
 </div>
 
+<div class="card">
+  <h3>Tickets by Workshop</h3>
+  <canvas id="ticketsByWorkshopChart" height="110" role="img" aria-label="Number of tickets per workshop, stacked by shift"></canvas>
+</div>
+
 <form class="filters" method="get" action="/tickets">
   <div class="field" style="margin-bottom:0;">
     <label>Status</label>
@@ -16,13 +21,33 @@
       <option value="RESOLVED" <%= status === 'RESOLVED' ? 'selected' : '' %>>Resolved</option>
     </select>
   </div>
+  <div class="field" style="margin-bottom:0;">
+    <label>Type</label>
+    <select name="type" onchange="this.form.submit()">
+      <option value="">All</option>
+      <option value="MANUAL" <%= type === 'MANUAL' ? 'selected' : '' %>>Manual</option>
+      <option value="CHANGE" <%= type === 'CHANGE' ? 'selected' : '' %>>Change</option>
+      <option value="CREATE" <%= type === 'CREATE' ? 'selected' : '' %>>Create</option>
+    </select>
+  </div>
+  <div class="field" style="margin-bottom:0;">
+    <label>From Date</label>
+    <input type="date" name="date_from" value="<%= dateFrom %>">
+  </div>
+  <div class="field" style="margin-bottom:0;">
+    <label>To Date</label>
+    <input type="date" name="date_to" value="<%= dateTo %>">
+  </div>
+  <div class="field" style="margin-bottom:0; align-self:flex-end;">
+    <button class="btn secondary" type="submit">Apply</button>
+  </div>
 </form>
 
 <div class="table-wrap">
   <table>
     <thead>
       <tr>
-        <th>Date</th><th>Emp No.</th><th>Shift</th><th>Workshop</th>
+        <th>Date</th><th>Type</th><th>Emp No.</th><th>Shift</th><th>Workshop</th>
         <th>Detail</th><th>Attachment</th><th>Status</th><th></th>
       </tr>
     </thead>
@@ -30,6 +55,7 @@
       <% tickets.forEach(t => { %>
       <tr>
         <td><%= fmtDate(t.created_at) %></td>
+        <td><span class="badge type-<%= t.type.toLowerCase() %>"><%= t.type %></span></td>
         <td><%= t.emp_no %></td>
         <td><%= t.shift %></td>
         <td><%= t.workshop %></td>
@@ -51,6 +77,7 @@
         <td class="actions-cell">
           <button type="button" class="btn small secondary" onclick="showTicketDetail(event, this)"
             data-id="<%= t.id %>"
+            data-type="<%= t.type %>"
             data-date="<%= fmtDate(t.created_at) %>"
             data-emp-no="<%= t.emp_no %>"
             data-shift="<%= t.shift %>"
@@ -61,9 +88,14 @@
             data-attachment-name="<%= t.attachment_name || '' %>"
             data-attachment-url="<%= t.attachment_path ? ('/tickets/' + t.id + '/attachment') : '' %>"
           >Detail</button>
-          <% if (t.status === 'OPEN') { %>
+          <% if (isAdmin && t.status === 'OPEN') { %>
           <form class="inline" method="post" action="/tickets/<%= t.id %>/resolve" onsubmit="return handleResolve(event, this);">
             <button class="btn small secondary" type="submit">Resolve</button>
+          </form>
+          <% } %>
+          <% if (isAdmin) { %>
+          <form class="inline" method="post" action="/tickets/<%= t.id %>/delete" onsubmit="return confirm('Delete this ticket permanently? This cannot be undone.');">
+            <button class="btn small danger" type="submit">Delete</button>
           </form>
           <% } %>
         </td>
@@ -88,6 +120,10 @@
     </div>
     <div class="modal-body">
       <div class="modal-meta-grid">
+        <div class="modal-meta-item">
+          <span class="modal-meta-label">Type</span>
+          <span class="modal-meta-value" id="ticketDetailType"></span>
+        </div>
         <div class="modal-meta-item">
           <span class="modal-meta-label">Emp No.</span>
           <span class="modal-meta-value" id="ticketDetailEmpNo"></span>
@@ -136,6 +172,7 @@ function handleResolve(event, form) {
 
 function showTicketDetail(event, link) {
   document.getElementById('ticketDetailId').textContent = '#' + link.dataset.id;
+  document.getElementById('ticketDetailType').textContent = link.dataset.type;
   document.getElementById('ticketDetailDate').textContent = link.dataset.date;
   document.getElementById('ticketDetailEmpNo').textContent = link.dataset.empNo;
   document.getElementById('ticketDetailShift').textContent = link.dataset.shift;
@@ -171,5 +208,31 @@ function showTicketDetail(event, link) {
 function closeTicketDetail() {
   document.getElementById('ticketDetailOverlay').classList.remove('show');
 }
+</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+  const workshopShiftCounts = <%- JSON.stringify(workshopShiftCounts) %>;
+  const shiftPalette = ['#2563eb', '#16a34a', '#d97706'];
+
+  const workshopCanvas = document.getElementById('ticketsByWorkshopChart');
+  if (workshopCanvas) {
+    new Chart(workshopCanvas, {
+      type: 'bar',
+      data: {
+        labels: workshopShiftCounts.workshops,
+        datasets: workshopShiftCounts.series.map((s, i) => ({
+          label: 'Shift ' + s.shift,
+          data: s.counts,
+          backgroundColor: shiftPalette[i % shiftPalette.length],
+          borderRadius: 2,
+        })),
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: true, position: 'bottom' } },
+        scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true, ticks: { precision: 0 } } },
+      },
+    });
+  }
 </script>
 <%- include('partials/foot') %>
