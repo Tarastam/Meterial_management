@@ -27,8 +27,8 @@
   <div class="field" style="margin-bottom:0;">
     <label>Date</label>
     <select name="date_choice" onchange="this.form.submit()">
-      <option value="today" <%= dateChoice === 'today' ? 'selected' : '' %>>Today (<%= todayBiz %>)</option>
       <option value="yesterday" <%= dateChoice === 'yesterday' ? 'selected' : '' %>>Yesterday (<%= allowedDate %>)</option>
+      <option value="day_before" <%= dateChoice === 'day_before' ? 'selected' : '' %>>Day Before Yesterday (<%= dayBeforeDate %>)</option>
     </select>
   </div>
   <div class="field" style="margin-bottom:0;">

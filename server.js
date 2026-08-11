@@ -76,13 +76,15 @@ app.get('/admin/login', (req, res) => {
   res.render('admin_login', { error: null, next: req.query.next || '/transactions' });
 });
 
-app.post('/admin/login', (req, res) => {
+app.post('/admin/login', async (req, res) => {
   const password = req.body.password || '';
   const next = req.body.next || '/transactions';
   if (password !== ADMIN_PASSWORD) {
     return res.status(400).render('admin_login', { error: 'Incorrect password.', next });
   }
   res.cookie(ADMIN_COOKIE, ADMIN_TOKEN, { httpOnly: true, sameSite: 'lax', maxAge: 12 * 60 * 60 * 1000 });
+  const openCount = (await db.get("SELECT COUNT(*) c FROM tickets WHERE status = 'OPEN'")).c;
+  res.cookie('admin_login_popup', String(openCount), { sameSite: 'lax', maxAge: 30 * 1000 });
   res.redirect(next);
 });
 
@@ -197,8 +199,8 @@ function materialIdsFilter(column, materialIds) {
   return { sql: ` AND ${column} IN (${materialIds.map(() => '?').join(',')})`, params: materialIds };
 }
 
-// Per-day totals of issue_qty and derived usage (prevStock + issue - stock), summed across
-// materials matching the workshop/shift/material filters, for every day in [fromDate, toDate].
+// Per-day totals of issue_qty and derived usage (prevStock + issue - stock - issueNcn + returnNcn),
+// summed across materials matching the workshop/shift/material filters, for every day in [fromDate, toDate].
 async function getDailyIssueUsage(fromDate, toDate, workshop, shift, materialIds) {
   let filterSql = '';
   const filterParams = [];
@@ -224,7 +226,7 @@ async function getDailyIssueUsage(fromDate, toDate, workshop, shift, materialIds
 
   const usageRows = await db.all(
     `WITH filtered AS (
-       SELECT e.id, e.material_id, e.entry_date, e.issue_qty, e.current_stock
+       SELECT e.id, e.material_id, e.entry_date, e.issue_qty, e.current_stock, e.issue_ncn, e.return_ncn
        FROM issue_entries e JOIN materials m ON m.id = e.material_id
        WHERE e.voided = 0${filterSql}
      ),
@@ -240,15 +242,21 @@ async function getDailyIssueUsage(fromDate, toDate, workshop, shift, materialIds
        SELECT material_id, entry_date, SUM(issue_qty) AS issue_sum
        FROM filtered WHERE issue_qty IS NOT NULL GROUP BY material_id, entry_date
      ),
+     day_ncn AS (
+       SELECT material_id, entry_date, SUM(issue_ncn) AS issue_ncn_sum, SUM(return_ncn) AS return_ncn_sum
+       FROM filtered GROUP BY material_id, entry_date
+     ),
      with_prev AS (
        SELECT material_id, entry_date, current_stock,
               LAG(current_stock) OVER (PARTITION BY material_id ORDER BY entry_date) AS prev_stock
        FROM day_stock
      )
      SELECT s.entry_date,
-            SUM(COALESCE(s.prev_stock, s.current_stock) + COALESCE(i.issue_sum, 0) - s.current_stock) AS total
+            SUM(COALESCE(s.prev_stock, s.current_stock) + COALESCE(i.issue_sum, 0) - s.current_stock
+                - COALESCE(n.issue_ncn_sum, 0) + COALESCE(n.return_ncn_sum, 0)) AS total
      FROM with_prev s
      LEFT JOIN day_issue i ON i.material_id = s.material_id AND i.entry_date = s.entry_date
+     LEFT JOIN day_ncn n ON n.material_id = s.material_id AND n.entry_date = s.entry_date
      WHERE s.entry_date BETWEEN ? AND ?
      GROUP BY s.entry_date`,
     [...filterParams, fromDate, toDate]
@@ -293,7 +301,7 @@ async function getDailyMaterialSeries(fromDate, toDate, workshop, shift, materia
 
   const usageRows = await db.all(
     `WITH filtered AS (
-       SELECT e.id, e.material_id, e.entry_date, e.issue_qty, e.current_stock
+       SELECT e.id, e.material_id, e.entry_date, e.issue_qty, e.current_stock, e.issue_ncn, e.return_ncn
        FROM issue_entries e JOIN materials m ON m.id = e.material_id
        WHERE e.voided = 0${filterSql}
      ),
@@ -309,15 +317,21 @@ async function getDailyMaterialSeries(fromDate, toDate, workshop, shift, materia
        SELECT material_id, entry_date, SUM(issue_qty) AS issue_sum
        FROM filtered WHERE issue_qty IS NOT NULL GROUP BY material_id, entry_date
      ),
+     day_ncn AS (
+       SELECT material_id, entry_date, SUM(issue_ncn) AS issue_ncn_sum, SUM(return_ncn) AS return_ncn_sum
+       FROM filtered GROUP BY material_id, entry_date
+     ),
      with_prev AS (
        SELECT material_id, entry_date, current_stock,
               LAG(current_stock) OVER (PARTITION BY material_id ORDER BY entry_date) AS prev_stock
        FROM day_stock
      )
      SELECT s.material_id, s.entry_date,
-            COALESCE(s.prev_stock, s.current_stock) + COALESCE(i.issue_sum, 0) - s.current_stock AS total
+            COALESCE(s.prev_stock, s.current_stock) + COALESCE(i.issue_sum, 0) - s.current_stock
+                - COALESCE(n.issue_ncn_sum, 0) + COALESCE(n.return_ncn_sum, 0) AS total
      FROM with_prev s
      LEFT JOIN day_issue i ON i.material_id = s.material_id AND i.entry_date = s.entry_date
+     LEFT JOIN day_ncn n ON n.material_id = s.material_id AND n.entry_date = s.entry_date
      WHERE s.entry_date BETWEEN ? AND ?`,
     [...filterParams, fromDate, toDate]
   );
@@ -344,6 +358,80 @@ function sumDaily(daily) {
     (acc, d) => ({ issue: acc.issue + d.issue, usage: acc.usage + d.usage }),
     { issue: 0, usage: 0 }
   );
+}
+
+// ---------- usage anomaly detection ----------
+// Flags (material, date) usage that deviates sharply from that material's own recent
+// history, using a trailing median + MAD (robust to the zero/spike-heavy usage pattern
+// typical of manufacturing consumption, unlike a plain mean/stdev z-score).
+const ANOMALY_BASELINE_DAYS = 14;
+const ANOMALY_MIN_SAMPLES = 5;
+const ANOMALY_Z_THRESHOLD = 3.5;
+
+function median(nums) {
+  const sorted = [...nums].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
+// Compares todayUsage against baselineUsages (the material's own prior 14 days).
+// Returns null when there isn't enough history to judge, or when usage is within
+// the normal range; otherwise returns the deviation details for display.
+function detectAnomaly(baselineUsages, todayUsage) {
+  if (baselineUsages.length < ANOMALY_MIN_SAMPLES) return null;
+  const med = median(baselineUsages);
+  const mad = median(baselineUsages.map((u) => Math.abs(u - med)));
+
+  if (mad === 0) {
+    // Baseline never moved, so a z-score is undefined; fall back to an absolute-diff
+    // check with a small noise floor so trivial swings around zero aren't flagged.
+    const diff = Math.abs(todayUsage - med);
+    const noiseFloor = Math.max(med * 0.5, 1);
+    if (diff <= noiseFloor) return null;
+    return { baseline: med, z: null, deviationPct: med !== 0 ? (diff / med) * 100 : null, severity: 'moderate' };
+  }
+
+  const z = (0.6745 * (todayUsage - med)) / mad;
+  if (Math.abs(z) <= ANOMALY_Z_THRESHOLD) return null;
+  return {
+    baseline: med,
+    z,
+    deviationPct: med !== 0 ? ((todayUsage - med) / med) * 100 : null,
+    severity: Math.abs(z) > 5 ? 'severe' : 'moderate',
+  };
+}
+
+// Computes anomalies for every (material, date) in [from, to], comparing each day's usage
+// against a 14-day baseline drawn from *before* that date, so the baseline isn't
+// truncated by whatever date range the dashboard filter happens to select.
+async function computeUsageAnomalies(from, to, workshop, shift, materialIds, materials) {
+  const seriesFrom = addDays(from, -ANOMALY_BASELINE_DAYS);
+  const series = await getDailyMaterialSeries(seriesFrom, to, workshop, shift, materialIds);
+  const materialMap = {};
+  materials.forEach((m) => { materialMap[m.id] = m; });
+
+  const rangeDates = buildDateRange(from, to);
+  const anomalies = [];
+
+  series.materialIds.forEach((id) => {
+    const material = materialMap[id];
+    if (!material) return;
+    const usageByDate = series.usageByMaterial[id] || {};
+
+    rangeDates.forEach((date) => {
+      const todayUsage = usageByDate[date] || 0;
+      const windowDates = buildDateRange(addDays(date, -ANOMALY_BASELINE_DAYS), addDays(date, -1));
+      const baselineUsages = windowDates.filter((d) => d in usageByDate).map((d) => usageByDate[d]);
+      const result = detectAnomaly(baselineUsages, todayUsage);
+      if (result) anomalies.push({ material, date, usage: todayUsage, ...result });
+    });
+  });
+
+  return anomalies.sort((a, b) => {
+    const av = a.z === null ? Infinity : Math.abs(a.z);
+    const bv = b.z === null ? Infinity : Math.abs(b.z);
+    return bv - av;
+  });
 }
 
 // SQL Server's SYSDATETIME() returns the DB server's local (Thai, UTC+7) wall-clock time,
@@ -421,11 +509,13 @@ async function computeCostRows(candidateMaterials, workshop, from, to) {
   const stockToMap = await getStockAsOfMap(to);
   const stockPrevMap = await getStockAsOfMap(addDays(from, -1));
   const issueSumRangeMap = await getIssueSumMap(from, to);
+  const ncnSumRangeMap = await getNcnSumMap(from, to);
   return costMaterials
     .map((m) => {
       const stock = stockToMap[m.id] || 0;
       const issue = issueSumRangeMap[m.id] || 0;
-      const usage = (stockPrevMap[m.id] || 0) + issue - stock;
+      const ncn = ncnSumRangeMap[m.id] || { issueNcn: 0, returnNcn: 0 };
+      const usage = (stockPrevMap[m.id] || 0) + issue - stock - ncn.issueNcn + ncn.returnNcn;
       const cost = m.cost || 0;
       return { material: m, usage, cost, value: usage * cost };
     })
@@ -489,6 +579,10 @@ app.get('/', async (req, res) => {
   const prevMonth = prevMonthRange(today);
   const prevMonthTotals = sumDaily(await getDailyIssueUsage(prevMonth.start, prevMonth.end, workshop, shift, materialIds));
 
+  const usageAnomalies = (
+    await computeUsageAnomalies(from, to, workshop, shift, materialIds, materials)
+  ).slice(0, 10);
+
   res.render('dashboard', {
     totalMaterials: materials.length,
     transactionsToday,
@@ -504,6 +598,7 @@ app.get('/', async (req, res) => {
     dailyChartData,
     curMonthTotals,
     prevMonthTotals,
+    usageAnomalies,
   });
 });
 
@@ -544,8 +639,8 @@ async function getMaterialsListRows({ workshop, q, from, to }) {
   return materials.map((m) => {
     const stock = stockMap[m.id] || 0;
     const issue = issueSumMap[m.id] || 0;
-    const usage = (stockYesterdayMap[m.id] || 0) + issue - stock;
     const ncn = ncnSumMap[m.id] || { issueNcn: 0, returnNcn: 0 };
+    const usage = (stockYesterdayMap[m.id] || 0) + issue - stock - ncn.issueNcn + ncn.returnNcn;
     const hold = ncn.issueNcn - ncn.returnNcn;
     return { material: m, stock, usage, issue, hold };
   });
@@ -835,11 +930,16 @@ app.post('/issue', async (req, res) => {
   const stockYesterdayMap = await getStockAsOfMap(addDays(entryDate, -1));
   const stockTodayMapBefore = await getStockAsOfMap(entryDate);
   const issueSumMapBefore = await getIssueSumMap(entryDate, entryDate);
+  const ncnSumMapBefore = await getNcnSumMap(entryDate, entryDate);
   const negativeUsage = [];
   for (const row of rowsToInsert) {
     const projectedIssueSum = (issueSumMapBefore[row.materialId] || 0) + (row.issue_qty || 0);
     const projectedStockToday = row.current_stock != null ? row.current_stock : (stockTodayMapBefore[row.materialId] || 0);
-    const usage = (stockYesterdayMap[row.materialId] || 0) + projectedIssueSum - projectedStockToday;
+    const ncnBefore = ncnSumMapBefore[row.materialId] || { issueNcn: 0, returnNcn: 0 };
+    const projectedIssueNcn = ncnBefore.issueNcn + (row.issue_ncn || 0);
+    const projectedReturnNcn = ncnBefore.returnNcn + (row.return_ncn || 0);
+    const usage = (stockYesterdayMap[row.materialId] || 0) + projectedIssueSum - projectedStockToday
+      - projectedIssueNcn + projectedReturnNcn;
     if (usage < 0) {
       const material = materials.find((m) => m.id === row.materialId);
       negativeUsage.push({ code: material.prod_material_code, name: material.name, usage });
@@ -886,7 +986,8 @@ app.get('/consumption', async (req, res) => {
       const stockYesterday = (await getStockAsOfMap(addDays(from, -1)))[material.id] || 0;
       const stockToday = (await getStockAsOfMap(to))[material.id] || 0;
       const issueSum = (await getIssueSumMap(from, to))[material.id] || 0;
-      const usage = stockYesterday + issueSum - stockToday;
+      const ncn = (await getNcnSumMap(from, to))[material.id] || { issueNcn: 0, returnNcn: 0 };
+      const usage = stockYesterday + issueSum - stockToday - ncn.issueNcn + ncn.returnNcn;
 
       let output = null;
       let consumption = null;
@@ -989,9 +1090,10 @@ app.get('/transactions', async (req, res) => {
   // e.id breaks ties, but SQL Server rejects it appearing twice when it is already the sort column.
   const tieBreak = sortCol === 'e.id' ? '' : `, e.id ${dirSql}`;
 
-  // Per-entry usage = previous stock reading + this entry's issue - this entry's stock, mirroring
-  // the derivation used by the CSV export. The stock_readings CTE spans the full history
-  // (unfiltered) so prev_stock stays correct even when a date range is selected.
+  // Per-entry usage = previous stock reading + this entry's issue - this entry's stock
+  // - this entry's issue NCN + this entry's return NCN, mirroring the derivation used by the
+  // CSV export. The stock_readings CTE spans the full history (unfiltered) so prev_stock stays
+  // correct even when a date range is selected.
   const sql = `WITH stock_readings AS (
        SELECT id, current_stock,
               LAG(current_stock) OVER (PARTITION BY material_id ORDER BY entry_date, id) AS prev_stock
@@ -1002,6 +1104,7 @@ app.get('/transactions', async (req, res) => {
                     m.workshop AS material_workshop,
                     CASE WHEN e.voided = 0 AND e.current_stock IS NOT NULL
                          THEN COALESCE(sr.prev_stock, e.current_stock) + COALESCE(e.issue_qty, 0) - e.current_stock
+                              - COALESCE(e.issue_ncn, 0) + COALESCE(e.return_ncn, 0)
                          ELSE NULL END AS usage
              FROM issue_entries e
              JOIN materials m ON m.id = e.material_id
@@ -1029,15 +1132,17 @@ app.get('/transactions', async (req, res) => {
 
 // ---------- transactions undo/change (self-service backdated entry) ----------
 
-// Non-admin backdating is allowed for "today" or the single prior day only (the factory runs
-// every day, so no weekend-skipping is needed here, unlike a business-day calendar).
+// Non-admin backdating is allowed for the two days before "today" only — yesterday or the day
+// before that (the factory runs every day, so no weekend-skipping is needed here, unlike a
+// business-day calendar). "Today" itself is not selectable; use /issue for same-day entry.
 async function renderUndoForm(req, res, status, extra) {
   const mode = extra.mode === 'CHANGE' ? 'CHANGE' : (req.query.mode === 'CHANGE' ? 'CHANGE' : 'CREATE');
-  const dateChoice = extra.dateChoice || (req.query.date_choice === 'yesterday' ? 'yesterday' : 'today');
+  const dateChoice = extra.dateChoice || (req.query.date_choice === 'day_before' ? 'day_before' : 'yesterday');
   const workshop = extra.workshop !== undefined ? extra.workshop : (req.query.workshop || '');
   const todayBiz = entryDayStr();
   const allowedDate = addDays(todayBiz, -1);
-  const entryDate = dateChoice === 'yesterday' ? allowedDate : todayBiz;
+  const dayBeforeDate = addDays(todayBiz, -2);
+  const entryDate = dateChoice === 'day_before' ? dayBeforeDate : allowedDate;
   const materialIdRaw = extra.materialId !== undefined ? extra.materialId : req.query.material_id;
   const materialId = materialIdRaw ? parseInt(materialIdRaw, 10) : null;
 
@@ -1061,6 +1166,7 @@ async function renderUndoForm(req, res, status, extra) {
     entryDate,
     todayBiz,
     allowedDate,
+    dayBeforeDate,
     workshop,
     workshops,
     materials: selectableMaterials,
@@ -1085,11 +1191,12 @@ app.get('/transactions/undo', async (req, res) => {
 
 app.post('/transactions/undo', async (req, res) => {
   const mode = req.body.mode === 'CHANGE' ? 'CHANGE' : 'CREATE';
-  const dateChoice = req.body.date_choice === 'yesterday' ? 'yesterday' : 'today';
+  const dateChoice = req.body.date_choice === 'day_before' ? 'day_before' : 'yesterday';
   const workshop = req.body.workshop || '';
   const todayBiz = entryDayStr();
   const allowedDate = addDays(todayBiz, -1);
-  const entryDate = dateChoice === 'yesterday' ? allowedDate : todayBiz;
+  const dayBeforeDate = addDays(todayBiz, -2);
+  const entryDate = dateChoice === 'day_before' ? dayBeforeDate : allowedDate;
   const materialId = parseInt(req.body.material_id, 10);
   const employeeId = (req.body.employee_id || '').trim();
   const shift = req.body.shift || '';
@@ -1135,14 +1242,22 @@ app.post('/transactions/undo', async (req, res) => {
   }
 
   // Same negative-usage projection as POST /issue, but for Change mode the old row's own
-  // issue_qty/current_stock must be backed out first since it hasn't been voided yet.
+  // issue_qty/current_stock/issue_ncn/return_ncn must be backed out first since it hasn't been
+  // voided yet.
   const priorIssueQty = existing ? (existing.issue_qty || 0) : 0;
+  const priorIssueNcn = existing ? (existing.issue_ncn || 0) : 0;
+  const priorReturnNcn = existing ? (existing.return_ncn || 0) : 0;
   const stockYesterdayMap = await getStockAsOfMap(addDays(entryDate, -1));
   const stockTodayMapBefore = await getStockAsOfMap(entryDate);
   const issueSumMapBefore = await getIssueSumMap(entryDate, entryDate);
+  const ncnSumMapBefore = await getNcnSumMap(entryDate, entryDate);
   const projectedIssueSum = (issueSumMapBefore[materialId] || 0) - priorIssueQty + (parsed.issue_qty || 0);
   const projectedStockToday = parsed.current_stock != null ? parsed.current_stock : (stockTodayMapBefore[materialId] || 0);
-  const usage = (stockYesterdayMap[materialId] || 0) + projectedIssueSum - projectedStockToday;
+  const ncnBefore = ncnSumMapBefore[materialId] || { issueNcn: 0, returnNcn: 0 };
+  const projectedIssueNcn = ncnBefore.issueNcn - priorIssueNcn + (parsed.issue_ncn || 0);
+  const projectedReturnNcn = ncnBefore.returnNcn - priorReturnNcn + (parsed.return_ncn || 0);
+  const usage = (stockYesterdayMap[materialId] || 0) + projectedIssueSum - projectedStockToday
+    - projectedIssueNcn + projectedReturnNcn;
 
   if (usage < 0) {
     return renderUndoForm(req, res, 400, {
@@ -1444,11 +1559,12 @@ app.get('/export/materials.csv', async (req, res) => {
 });
 
 app.get('/export/transactions.csv', async (req, res) => {
-  // Per-entry usage = previous stock reading + this entry's issue - this entry's stock,
-  // mirroring the derivation used elsewhere. Only defined for non-voided rows that carry a
-  // stock reading; the prev-stock chain likewise ignores voided entries and rows with no stock.
-  // The stock_readings CTE spans the full history (unfiltered) so prev_stock stays correct even
-  // when a date range is selected; the user's filters are applied only to the outer result set.
+  // Per-entry usage = previous stock reading + this entry's issue - this entry's stock
+  // - this entry's issue NCN + this entry's return NCN, mirroring the derivation used elsewhere.
+  // Only defined for non-voided rows that carry a stock reading; the prev-stock chain likewise
+  // ignores voided entries and rows with no stock. The stock_readings CTE spans the full history
+  // (unfiltered) so prev_stock stays correct even when a date range is selected; the user's
+  // filters are applied only to the outer result set.
   const { clause, params } = buildTransactionFilter(req.query);
   const transactions = await db.all(
     `WITH stock_readings AS (
@@ -1460,6 +1576,7 @@ app.get('/export/transactions.csv', async (req, res) => {
      SELECT e.*, m.prod_material_code, m.name AS material_name, m.workshop AS material_workshop,
             CASE WHEN e.voided = 0 AND e.current_stock IS NOT NULL
                  THEN COALESCE(sr.prev_stock, e.current_stock) + COALESCE(e.issue_qty, 0) - e.current_stock
+                      - COALESCE(e.issue_ncn, 0) + COALESCE(e.return_ncn, 0)
                  ELSE NULL END AS usage
      FROM issue_entries e
      JOIN materials m ON m.id = e.material_id

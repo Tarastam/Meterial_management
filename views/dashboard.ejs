@@ -11,65 +11,96 @@ function fmtMoney0(n) {
 %>
 <h1>Dashboard</h1>
 
-<h2>Filters</h2>
-<form class="filters" method="get" action="/">
-  <div class="field" style="margin-bottom:0;">
-    <label>Search</label>
-    <input type="text" name="q" value="<%= filters.q %>" placeholder="Code or name">
+<div class="trend-filter-row">
+  <div>
+    <h2>Material Trends</h2>
+    <div class="card">
+      <div class="chart-toggle">
+        <button type="button" class="btn small secondary chart-toggle-btn" data-series="issue">Issue (Daily)</button>
+        <button type="button" class="btn small secondary chart-toggle-btn active" data-series="usage">Usage (Daily)</button>
+      </div>
+      <% if (dailyChartData.materials.length) { %>
+      <canvas id="dailyChart" height="90" role="img" aria-label="Daily material issue or usage for the selected period, stacked by material"></canvas>
+      <% } else { %>
+      <div class="empty-state">No data in this period.</div>
+      <% } %>
+    </div>
   </div>
-  <div class="field" style="margin-bottom:0;">
-    <label>Workshop</label>
-    <select name="workshop" onchange="this.form.submit()">
-      <option value="">All Workshops</option>
-      <% workshops.forEach(w => { %>
-      <option value="<%= w %>" <%= filters.workshop === w ? 'selected' : '' %>><%= w %></option>
-      <% }) %>
-    </select>
+  <div>
+    <h2>Filters</h2>
+    <div class="card">
+      <form class="filters stacked" method="get" action="/">
+        <div class="field">
+          <label>Search</label>
+          <input type="text" name="q" value="<%= filters.q %>" placeholder="Code or name">
+        </div>
+        <div class="field">
+          <label>Workshop</label>
+          <select name="workshop" onchange="this.form.submit()">
+            <option value="">All Workshops</option>
+            <% workshops.forEach(w => { %>
+            <option value="<%= w %>" <%= filters.workshop === w ? 'selected' : '' %>><%= w %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="field">
+          <label>Material</label>
+          <select name="material_id">
+            <option value="">All Materials</option>
+            <% materials.forEach(m => { %>
+            <option value="<%= m.id %>" <%= String(filters.material_id) === String(m.id) ? 'selected' : '' %>><%= m.prod_material_code %> - <%= m.name %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="field">
+          <label>Shift</label>
+          <select name="shift">
+            <option value="">All</option>
+            <% shifts.forEach(s => { %>
+            <option value="<%= s %>" <%= filters.shift === s ? 'selected' : '' %>><%= s %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="field">
+          <label>From Date</label>
+          <input type="date" name="from" value="<%= filters.from %>">
+        </div>
+        <div class="field">
+          <label>To Date</label>
+          <input type="date" name="to" value="<%= filters.to %>">
+        </div>
+        <button class="btn secondary" type="submit" style="width:100%;">Apply</button>
+      </form>
+    </div>
   </div>
-  <div class="field" style="margin-bottom:0;">
-    <label>Material</label>
-    <select name="material_id">
-      <option value="">All Materials</option>
-      <% materials.forEach(m => { %>
-      <option value="<%= m.id %>" <%= String(filters.material_id) === String(m.id) ? 'selected' : '' %>><%= m.prod_material_code %> - <%= m.name %></option>
-      <% }) %>
-    </select>
-  </div>
-  <div class="field" style="margin-bottom:0;">
-    <label>Shift</label>
-    <select name="shift">
-      <option value="">All</option>
-      <% shifts.forEach(s => { %>
-      <option value="<%= s %>" <%= filters.shift === s ? 'selected' : '' %>><%= s %></option>
-      <% }) %>
-    </select>
-  </div>
-  <div style="flex-basis:100%; height:0;"></div>
-  <div class="field" style="margin-bottom:0;">
-    <label>From Date</label>
-    <input type="date" name="from" value="<%= filters.from %>">
-  </div>
-  <div class="field" style="margin-bottom:0;">
-    <label>To Date</label>
-    <input type="date" name="to" value="<%= filters.to %>">
-  </div>
-  <div class="field" style="margin-bottom:0; align-self:flex-end;">
-    <button class="btn secondary" type="submit">Apply</button>
-  </div>
-</form>
-
-<h2>Material Trends</h2>
-<div class="card">
-  <div class="chart-toggle">
-    <button type="button" class="btn small secondary chart-toggle-btn" data-series="issue">Issue (Daily)</button>
-    <button type="button" class="btn small secondary chart-toggle-btn active" data-series="usage">Usage (Daily)</button>
-  </div>
-  <% if (dailyChartData.materials.length) { %>
-  <canvas id="dailyChart" height="90" role="img" aria-label="Daily material issue or usage for the selected period, stacked by material"></canvas>
-  <% } else { %>
-  <div class="empty-state">No data in this period.</div>
-  <% } %>
 </div>
+
+<h2>Abnormal Usage</h2>
+<% if (usageAnomalies.length) { %>
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr><th>Date</th><th>Code</th><th>Name</th><th>Workshop</th><th>Usage</th><th>Baseline (14d)</th><th>Deviation</th><th>Severity</th></tr>
+    </thead>
+    <tbody>
+      <% usageAnomalies.forEach(a => { %>
+      <tr>
+        <td><%= a.date %></td>
+        <td><%= a.material.prod_material_code %></td>
+        <td><%= a.material.name %></td>
+        <td><%= a.material.workshop %></td>
+        <td><%= fmtNum(a.usage) %> <%= a.material.unit %></td>
+        <td><%= fmtNum(a.baseline) %> <%= a.material.unit %></td>
+        <td><%= a.deviationPct !== null ? (a.deviationPct > 0 ? '+' : '') + fmtNum(a.deviationPct, 0) + '%' : '-' %></td>
+        <td><span class="badge <%= a.severity %>"><%= a.severity === 'severe' ? 'Severe' : 'Moderate' %></span></td>
+      </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+<% } else { %>
+<div class="card empty-state">No unusual usage detected in this period.</div>
+<% } %>
 
 <h2>Month-over-Month Comparison</h2>
 <div class="card">

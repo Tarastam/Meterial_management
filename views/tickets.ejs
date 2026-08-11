@@ -9,7 +9,9 @@
 
 <div class="card">
   <h3>Tickets by Workshop</h3>
-  <canvas id="ticketsByWorkshopChart" height="110" role="img" aria-label="Number of tickets per workshop, stacked by shift"></canvas>
+  <div style="position:relative; height:220px;">
+    <canvas id="ticketsByWorkshopChart" role="img" aria-label="Number of tickets per workshop, stacked by shift"></canvas>
+  </div>
 </div>
 
 <form class="filters" method="get" action="/tickets">
@@ -228,9 +230,11 @@ function closeTicketDetail() {
         })),
       },
       options: {
+        indexAxis: 'y',
         responsive: true,
+        maintainAspectRatio: false,
         plugins: { legend: { display: true, position: 'bottom' } },
-        scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true, ticks: { precision: 0 } } },
+        scales: { x: { stacked: true, beginAtZero: true, ticks: { precision: 0 } }, y: { stacked: true } },
       },
     });
   }

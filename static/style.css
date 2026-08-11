@@ -262,6 +262,8 @@ tr:last-child td { border-bottom: none; }
 .badge.type-manual { background: var(--gray-200); color: var(--gray-600); }
 .badge.type-change { background: #ede9fe; color: #5b21b6; }
 .badge.type-create { background: #dbeafe; color: #1e40af; }
+.badge.severe { background: #fee2e2; color: #991b1b; }
+.badge.moderate { background: #fef3c7; color: #92400e; }
 
 .detail-cell { max-width: 260px; }
 .detail-text { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -425,6 +427,22 @@ form.inline { display: inline; }
   flex-wrap: wrap;
   margin-bottom: 1rem;
 }
+
+.trend-filter-row {
+  display: grid;
+  grid-template-columns: 3fr 1fr;
+  gap: 1rem;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .trend-filter-row { grid-template-columns: 1fr; }
+}
+
+.filters.stacked {
+  flex-direction: column;
+  margin-bottom: 0;
+}
+.filters.stacked .field { max-width: none; }
 
 label {
   display: block;
