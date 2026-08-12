@@ -11,95 +11,105 @@ function fmtMoney0(n) {
 %>
 <h1>Dashboard</h1>
 
-<div class="trend-filter-row">
-  <div>
-    <h2>Material Trends</h2>
-    <div class="card">
-      <div class="chart-toggle">
-        <button type="button" class="btn small secondary chart-toggle-btn" data-series="issue">Issue (Daily)</button>
-        <button type="button" class="btn small secondary chart-toggle-btn active" data-series="usage">Usage (Daily)</button>
-      </div>
-      <% if (dailyChartData.materials.length) { %>
-      <canvas id="dailyChart" height="90" role="img" aria-label="Daily material issue or usage for the selected period, stacked by material"></canvas>
-      <% } else { %>
-      <div class="empty-state">No data in this period.</div>
-      <% } %>
+<div class="filters-card-compact filters-floating">
+  <form class="filters compact" method="get" action="/">
+    <div class="field">
+      <label>Search</label>
+      <input type="text" name="q" value="<%= filters.q %>" placeholder="Code or name">
     </div>
-  </div>
-  <div>
-    <h2>Filters</h2>
-    <div class="card">
-      <form class="filters stacked" method="get" action="/">
-        <div class="field">
-          <label>Search</label>
-          <input type="text" name="q" value="<%= filters.q %>" placeholder="Code or name">
-        </div>
-        <div class="field">
-          <label>Workshop</label>
-          <select name="workshop" onchange="this.form.submit()">
-            <option value="">All Workshops</option>
-            <% workshops.forEach(w => { %>
-            <option value="<%= w %>" <%= filters.workshop === w ? 'selected' : '' %>><%= w %></option>
-            <% }) %>
-          </select>
-        </div>
-        <div class="field">
-          <label>Material</label>
-          <select name="material_id">
-            <option value="">All Materials</option>
-            <% materials.forEach(m => { %>
-            <option value="<%= m.id %>" <%= String(filters.material_id) === String(m.id) ? 'selected' : '' %>><%= m.prod_material_code %> - <%= m.name %></option>
-            <% }) %>
-          </select>
-        </div>
-        <div class="field">
-          <label>Shift</label>
-          <select name="shift">
-            <option value="">All</option>
-            <% shifts.forEach(s => { %>
-            <option value="<%= s %>" <%= filters.shift === s ? 'selected' : '' %>><%= s %></option>
-            <% }) %>
-          </select>
-        </div>
-        <div class="field">
-          <label>From Date</label>
-          <input type="date" name="from" value="<%= filters.from %>">
-        </div>
-        <div class="field">
-          <label>To Date</label>
-          <input type="date" name="to" value="<%= filters.to %>">
-        </div>
-        <button class="btn secondary" type="submit" style="width:100%;">Apply</button>
-      </form>
+    <div class="field">
+      <label>Workshop</label>
+      <select name="workshop" onchange="this.form.submit()">
+        <option value="">All Workshops</option>
+        <% workshops.forEach(w => { %>
+        <option value="<%= w %>" <%= filters.workshop === w ? 'selected' : '' %>><%= w %></option>
+        <% }) %>
+      </select>
     </div>
-  </div>
+    <div class="field">
+      <label>Material</label>
+      <select name="material_id">
+        <option value="">All Materials</option>
+        <% materials.forEach(m => { %>
+        <option value="<%= m.id %>" <%= String(filters.material_id) === String(m.id) ? 'selected' : '' %>><%= m.prod_material_code %> - <%= m.name %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="field">
+      <label>Shift</label>
+      <select name="shift">
+        <option value="">All</option>
+        <% shifts.forEach(s => { %>
+        <option value="<%= s %>" <%= filters.shift === s ? 'selected' : '' %>><%= s %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="field">
+      <label>From Date</label>
+      <input type="date" name="from" value="<%= filters.from %>">
+    </div>
+    <div class="field">
+      <label>To Date</label>
+      <input type="date" name="to" value="<%= filters.to %>">
+    </div>
+    <div class="field">
+      <label>&nbsp;</label>
+      <button class="btn small secondary" type="submit">Apply</button>
+    </div>
+  </form>
 </div>
 
+<h2>Material Trends</h2>
+<div class="card">
+  <div class="chart-toggle">
+    <button type="button" class="btn small secondary chart-toggle-btn" data-series="issue">Issue (Daily)</button>
+    <button type="button" class="btn small secondary chart-toggle-btn active" data-series="usage">Usage (Daily)</button>
+  </div>
+  <% if (dailyChartData.materials.length) { %>
+  <canvas id="dailyChart" height="90" role="img" aria-label="Daily material issue or usage for the selected period, stacked by material"></canvas>
+  <% } else { %>
+  <div class="empty-state">No data in this period.</div>
+  <% } %>
+</div>
+
+<% if (isAdmin) { %>
 <h2>Abnormal Usage</h2>
 <% if (usageAnomalies.length) { %>
-<div class="table-wrap">
-  <table>
-    <thead>
-      <tr><th>Date</th><th>Code</th><th>Name</th><th>Workshop</th><th>Usage</th><th>Baseline (14d)</th><th>Deviation</th><th>Severity</th></tr>
-    </thead>
-    <tbody>
-      <% usageAnomalies.forEach(a => { %>
-      <tr>
-        <td><%= a.date %></td>
-        <td><%= a.material.prod_material_code %></td>
-        <td><%= a.material.name %></td>
-        <td><%= a.material.workshop %></td>
-        <td><%= fmtNum(a.usage) %> <%= a.material.unit %></td>
-        <td><%= fmtNum(a.baseline) %> <%= a.material.unit %></td>
-        <td><%= a.deviationPct !== null ? (a.deviationPct > 0 ? '+' : '') + fmtNum(a.deviationPct, 0) + '%' : '-' %></td>
-        <td><span class="badge <%= a.severity %>"><%= a.severity === 'severe' ? 'Severe' : 'Moderate' %></span></td>
-      </tr>
-      <% }) %>
-    </tbody>
-  </table>
+<% const noEntryCount = usageAnomalies.filter(a => a.noEntry).length;
+   const abnormalCount = usageAnomalies.length - noEntryCount; %>
+<div class="anomaly-filter">
+  <button type="button" class="btn small secondary anomaly-filter-btn active" data-filter="all">All (<%= usageAnomalies.length %>)</button>
+  <button type="button" class="btn small secondary anomaly-filter-btn" data-filter="abnormal">Abnormal (<%= abnormalCount %>)</button>
+  <button type="button" class="btn small secondary anomaly-filter-btn" data-filter="no-entry">No Entry (<%= noEntryCount %>)</button>
 </div>
+<div class="anomaly-cards">
+  <% usageAnomalies.forEach(a => { %>
+  <div class="anomaly-card <%= a.severity %>" data-anomaly-type="<%= a.noEntry ? 'no-entry' : 'abnormal' %>">
+    <div class="anomaly-card-head">
+      <span class="anomaly-code"><%= a.material.prod_material_code %></span>
+      <span>
+        <% if (a.noEntry) { %>
+        <span class="badge no-entry">No Entry</span>
+        <% } %>
+        <span class="badge <%= a.severity %>"><%= a.severity === 'severe' ? 'Severe' : 'Moderate' %></span>
+      </span>
+    </div>
+    <div class="anomaly-name"><%= a.material.name %></div>
+    <% if (a.noEntry) { %>
+    <div class="anomaly-usage">No entry recorded</div>
+    <% } else { %>
+    <div class="anomaly-usage"><%= fmtNum(a.usage) %> <span class="anomaly-unit"><%= a.material.unit %></span></div>
+    <% } %>
+    <div class="anomaly-meta">Baseline (14d): <%= fmtNum(a.baseline) %> <%= a.material.unit %></div>
+    <div class="anomaly-meta">Deviation: <%= a.deviationPct !== null ? (a.deviationPct > 0 ? '+' : '') + fmtNum(a.deviationPct, 0) + '%' : '-' %></div>
+    <div class="anomaly-meta"><%= a.material.workshop %> &middot; <%= a.date %></div>
+  </div>
+  <% }) %>
+</div>
+<div class="empty-state anomaly-filter-empty" style="display:none;">No entries match this filter.</div>
 <% } else { %>
 <div class="card empty-state">No unusual usage detected in this period.</div>
+<% } %>
 <% } %>
 
 <h2>Month-over-Month Comparison</h2>
@@ -178,21 +188,6 @@ function fmtMoney0(n) {
   </div>
 </div>
 
-<h2>Top 5 Issued Materials (Last 30 Days)</h2>
-<% if (topIssuedRows.length) { %>
-<div class="card">
-  <% topIssuedRows.forEach(row => { %>
-  <div class="bar-row">
-    <div class="bar-label"><%= row.prod_material_code %> - <%= row.name %></div>
-    <div class="bar-track"><div class="bar-fill" style="width: <%= (row.total_out / maxOut * 100).toFixed(1) %>%"></div></div>
-    <div class="bar-value"><%= fmtNum(row.total_out) %></div>
-  </div>
-  <% }) %>
-</div>
-<% } else { %>
-<div class="card empty-state">No stock-out activity in the last 30 days.</div>
-<% } %>
-
 <h2>Recent Transactions</h2>
 <% if (recentTransactions.length) { %>
 <div class="table-wrap">
@@ -255,6 +250,23 @@ function fmtMoney0(n) {
       });
     });
   }
+
+  const anomalyCards = document.querySelectorAll('.anomaly-card');
+  const anomalyEmptyState = document.querySelector('.anomaly-filter-empty');
+  document.querySelectorAll('.anomaly-filter-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.anomaly-filter-btn').forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      const filter = btn.dataset.filter;
+      let visibleCount = 0;
+      anomalyCards.forEach((card) => {
+        const match = filter === 'all' || card.dataset.anomalyType === filter;
+        card.style.display = match ? '' : 'none';
+        if (match) visibleCount++;
+      });
+      if (anomalyEmptyState) anomalyEmptyState.style.display = visibleCount ? 'none' : '';
+    });
+  });
 
   const compareCanvas = document.getElementById('monthCompareChart');
   if (compareCanvas) {

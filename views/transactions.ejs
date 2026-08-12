@@ -76,10 +76,20 @@ function sortLink(col, label) {
 <p class="hint">Showing the last 3 days. Use the date filters above to see more.</p>
 <% } %>
 
+<% if (isAdmin) { %>
+<form id="bulkVoidForm" method="post" action="/transactions/bulk-void">
+  <input type="hidden" name="return_qs" value="<%= returnQs %>">
+</form>
+<div id="bulkBar" class="bulk-actions-bar" style="display:none;">
+  <span id="bulkCount">0 selected</span>
+  <button type="submit" form="bulkVoidForm" class="btn small danger">Void Selected</button>
+</div>
+<% } %>
 <div class="table-wrap">
   <table class="compact-table transactions-table">
     <thead>
       <tr>
+        <% if (isAdmin) { %><th><input type="checkbox" id="selectAllTx" title="Select all"></th><% } %>
         <th class="col-date"><%- sortLink('entry_date', 'Entry Date') %></th>
         <% if (isAdmin) { %><th><%- sortLink('id', 'ID') %></th><% } %>
         <th class="col-left"><%- sortLink('material', 'Material') %></th>
@@ -99,6 +109,13 @@ function sortLink(col, label) {
     <tbody>
       <% transactions.forEach(t => { %>
       <tr>
+        <% if (isAdmin) { %>
+        <td>
+          <% if (!t.voided) { %>
+          <input type="checkbox" class="tx-select" name="ids" value="<%= t.id %>" form="bulkVoidForm">
+          <% } %>
+        </td>
+        <% } %>
         <td class="col-date"><%= fmtDateOnly(t.entry_date) %></td>
         <% if (isAdmin) { %><td><%= t.id %></td><% } %>
         <td class="col-left"><%= t.prod_material_code %> - <%= t.material_name %></td>
@@ -117,11 +134,12 @@ function sortLink(col, label) {
           <span class="badge voided" title="<%= t.voided_reason %>">VOIDED</span>
           <% } else if (isAdmin) { %>
           <form class="inline" method="post" action="/transactions/<%= t.id %>/void" onsubmit="return handleVoid(event, this);">
+            <input type="hidden" name="return_qs" value="<%= returnQs %>">
             <button class="btn small secondary" type="submit">Void</button>
           </form>
           <% } %>
           <% if (isAdmin) { %>
-          <a class="btn small secondary" href="/transactions/<%= t.id %>/edit">Edit</a>
+          <a class="btn small secondary" href="/transactions/<%= t.id %>/edit?return_qs=<%= encodeURIComponent(returnQs) %>">Edit</a>
           <% } %>
         </td>
       </tr>
@@ -166,5 +184,44 @@ function handleVoid(event, form) {
   form.appendChild(input);
   return true;
 }
+
+(function () {
+  const selectAll = document.getElementById('selectAllTx');
+  const bulkForm = document.getElementById('bulkVoidForm');
+  if (!selectAll || !bulkForm) return;
+  const bulkBar = document.getElementById('bulkBar');
+  const bulkCount = document.getElementById('bulkCount');
+  const checkboxes = Array.from(document.querySelectorAll('.tx-select'));
+
+  function updateBulkBar() {
+    const checked = checkboxes.filter((c) => c.checked);
+    bulkBar.style.display = checked.length ? 'flex' : 'none';
+    bulkCount.textContent = checked.length + ' selected';
+    selectAll.checked = checked.length > 0 && checked.length === checkboxes.length;
+  }
+
+  selectAll.addEventListener('change', () => {
+    checkboxes.forEach((c) => { c.checked = selectAll.checked; });
+    updateBulkBar();
+  });
+  checkboxes.forEach((c) => c.addEventListener('change', updateBulkBar));
+
+  bulkForm.addEventListener('submit', (event) => {
+    const checked = checkboxes.filter((c) => c.checked);
+    if (!checked.length) { event.preventDefault(); return; }
+    const reason = prompt(`Reason for voiding ${checked.length} selected transaction(s) (this correction will be visible in history):`);
+    if (reason === null) { event.preventDefault(); return; }
+    let reasonInput = bulkForm.querySelector('input[name="voided_reason"]');
+    if (!reasonInput) {
+      reasonInput = document.createElement('input');
+      reasonInput.type = 'hidden';
+      reasonInput.name = 'voided_reason';
+      bulkForm.appendChild(reasonInput);
+    }
+    reasonInput.value = reason;
+  });
+
+  updateBulkBar();
+})();
 </script>
 <%- include('partials/foot') %>

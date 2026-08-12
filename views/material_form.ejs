@@ -4,6 +4,7 @@
 <% if (error) { %><div class="alert error"><%= error %></div><% } %>
 
 <form class="card form-card" method="post" action="<%= editingId ? '/materials/' + editingId + '/edit' : '/materials/new' %>">
+  <input type="hidden" name="return_qs" value="<%= returnQs %>">
   <div class="field">
     <label>Material Code (unique)<%= editingId ? ' *' : ' (auto-generated)' %></label>
     <% if (editingId) { %>
@@ -47,6 +48,6 @@
     <input type="number" step="1" min="0" max="6" name="decimal_places" value="<%= material && material.decimal_places != null ? material.decimal_places : 3 %>">
   </div>
   <button class="btn" type="submit"><%= editingId ? 'Save Changes' : 'Add Material' %></button>
-  <a class="btn secondary" href="/materials">Cancel</a>
+  <a class="btn secondary" href="<%= returnQs ? '/materials?' + returnQs : '/materials' %>">Cancel</a>
 </form>
 <%- include('partials/foot') %>

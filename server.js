@@ -336,9 +336,17 @@ async function getDailyMaterialSeries(fromDate, toDate, workshop, shift, materia
     [...filterParams, fromDate, toDate]
   );
 
+  const presenceRows = await db.all(
+    `SELECT DISTINCT e.material_id, e.entry_date
+     FROM issue_entries e JOIN materials m ON m.id = e.material_id
+     WHERE e.voided = 0 AND e.entry_date BETWEEN ? AND ?${filterSql}`,
+    [fromDate, toDate, ...filterParams]
+  );
+
   const dates = buildDateRange(fromDate, toDate);
   const issueByMaterial = {};
   const usageByMaterial = {};
+  const entryDatesByMaterial = {};
   const materialIdsSeen = new Set();
 
   issueRows.forEach((r) => {
@@ -349,8 +357,12 @@ async function getDailyMaterialSeries(fromDate, toDate, workshop, shift, materia
     materialIdsSeen.add(r.material_id);
     (usageByMaterial[r.material_id] = usageByMaterial[r.material_id] || {})[dateKey(r.entry_date)] = r.total;
   });
+  presenceRows.forEach((r) => {
+    materialIdsSeen.add(r.material_id);
+    (entryDatesByMaterial[r.material_id] = entryDatesByMaterial[r.material_id] || new Set()).add(dateKey(r.entry_date));
+  });
 
-  return { dates, materialIds: [...materialIdsSeen], issueByMaterial, usageByMaterial };
+  return { dates, materialIds: [...materialIdsSeen], issueByMaterial, usageByMaterial, entryDatesByMaterial };
 }
 
 function sumDaily(daily) {
@@ -412,18 +424,26 @@ async function computeUsageAnomalies(from, to, workshop, shift, materialIds, mat
 
   const rangeDates = buildDateRange(from, to);
   const anomalies = [];
+  const currentDay = entryDayStr();
 
   series.materialIds.forEach((id) => {
     const material = materialMap[id];
     if (!material) return;
     const usageByDate = series.usageByMaterial[id] || {};
+    const entryDates = series.entryDatesByMaterial[id] || new Set();
 
     rangeDates.forEach((date) => {
       const todayUsage = usageByDate[date] || 0;
       const windowDates = buildDateRange(addDays(date, -ANOMALY_BASELINE_DAYS), addDays(date, -1));
       const baselineUsages = windowDates.filter((d) => d in usageByDate).map((d) => usageByDate[d]);
+      const noEntry = !entryDates.has(date);
+      // The current (still in-progress) day just may not have been logged yet - don't
+      // flag it as a missing entry until it's actually over.
+      if (noEntry && date >= currentDay) return;
       const result = detectAnomaly(baselineUsages, todayUsage);
-      if (result) anomalies.push({ material, date, usage: todayUsage, ...result });
+      // A missing entry_date row reads as usage 0 the same as a logged zero, but it means
+      // no one recorded data that day rather than the material genuinely seeing no usage.
+      if (result) anomalies.push({ material, date, usage: todayUsage, noEntry, ...result });
     });
   });
 
@@ -549,19 +569,6 @@ app.get('/', async (req, res) => {
     recentFilter.params
   );
 
-  const cutoff = addDays(today, -30);
-  const topFilter = materialIdsFilter('e.material_id', materialIds);
-  const topIssuedRows = await db.all(
-    `SELECT TOP 5 m.id, m.name, m.prod_material_code, SUM(e.issue_qty) AS total_out
-     FROM issue_entries e
-     JOIN materials m ON m.id = e.material_id
-     WHERE e.voided = 0 AND e.issue_qty IS NOT NULL AND e.entry_date >= ?${topFilter.sql}
-     GROUP BY m.id, m.name, m.prod_material_code
-     ORDER BY total_out DESC`,
-    [cutoff, ...topFilter.params]
-  );
-  const maxOut = topIssuedRows.reduce((max, r) => Math.max(max, r.total_out), 0) || 1;
-
   const materialSeries = await getDailyMaterialSeries(from, to, workshop, shift, materialIds);
   const materialLabelMap = {};
   materials.forEach((m) => { materialLabelMap[m.id] = `${m.prod_material_code} - ${m.name}`; });
@@ -579,16 +586,14 @@ app.get('/', async (req, res) => {
   const prevMonth = prevMonthRange(today);
   const prevMonthTotals = sumDaily(await getDailyIssueUsage(prevMonth.start, prevMonth.end, workshop, shift, materialIds));
 
-  const usageAnomalies = (
+  const usageAnomalies = req.isAdmin ? (
     await computeUsageAnomalies(from, to, workshop, shift, materialIds, materials)
-  ).slice(0, 10);
+  ).slice(0, 5) : [];
 
   res.render('dashboard', {
     totalMaterials: materials.length,
     transactionsToday,
     recentTransactions,
-    topIssuedRows,
-    maxOut,
     costRows,
     fmtDate,
     materials: materialOptions,
@@ -599,6 +604,7 @@ app.get('/', async (req, res) => {
     curMonthTotals,
     prevMonthTotals,
     usageAnomalies,
+    isAdmin: req.isAdmin,
   });
 });
 
@@ -673,6 +679,8 @@ app.get('/materials', async (req, res) => {
     return 0;
   });
 
+  const returnQs = req.originalUrl.includes('?') ? req.originalUrl.slice(req.originalUrl.indexOf('?') + 1) : '';
+
   res.render('materials_list', {
     rows,
     workshops,
@@ -682,6 +690,7 @@ app.get('/materials', async (req, res) => {
     to,
     sort,
     dir,
+    returnQs,
   });
 });
 
@@ -706,6 +715,7 @@ app.get('/materials/new', requireAdmin, async (req, res) => {
     workshops: KNOWN_WORKSHOPS,
     error: null,
     editingId: null,
+    returnQs: req.query.return_qs || '',
   });
 });
 
@@ -714,6 +724,7 @@ app.post('/materials/new', requireAdmin, async (req, res) => {
   const minStock = parseFloat(min_stock) || 0;
   const parsedDecimalPlaces = parseInt(decimal_places, 10);
   const decimalPlaces = Number.isNaN(parsedDecimalPlaces) ? 3 : Math.min(6, Math.max(0, parsedDecimalPlaces));
+  const returnQs = req.body.return_qs || '';
 
   let error = null;
   if (minStock < 0) {
@@ -727,6 +738,7 @@ app.post('/materials/new', requireAdmin, async (req, res) => {
       workshops: KNOWN_WORKSHOPS,
       error,
       editingId: null,
+      returnQs,
     });
   }
 
@@ -739,7 +751,7 @@ app.post('/materials/new', requireAdmin, async (req, res) => {
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [prodMaterialCode, material_code.trim(), name.trim(), unit.trim(), workshop.trim(), minStock, decimalPlaces]
       );
-      return res.redirect('/materials');
+      return res.redirect(returnQs ? `/materials?${returnQs}` : '/materials');
     } catch (err) {
       if (attempt === 4) throw err;
     }
@@ -754,6 +766,7 @@ app.get('/materials/:id/edit', requireAdmin, async (req, res) => {
     workshops: KNOWN_WORKSHOPS,
     error: null,
     editingId: req.params.id,
+    returnQs: req.query.return_qs || '',
   });
 });
 
@@ -764,6 +777,7 @@ app.post('/materials/:id/edit', requireAdmin, async (req, res) => {
   const minStock = parseFloat(min_stock) || 0;
   const parsedDecimalPlaces = parseInt(decimal_places, 10);
   const decimalPlaces = Number.isNaN(parsedDecimalPlaces) ? 3 : Math.min(6, Math.max(0, parsedDecimalPlaces));
+  const returnQs = req.body.return_qs || '';
 
   let error = null;
   if (!prodMaterialCode) {
@@ -793,6 +807,7 @@ app.post('/materials/:id/edit', requireAdmin, async (req, res) => {
       workshops: KNOWN_WORKSHOPS,
       error,
       editingId: materialId,
+      returnQs,
     });
   }
 
@@ -802,13 +817,14 @@ app.post('/materials/:id/edit', requireAdmin, async (req, res) => {
     [prodMaterialCode, material_code.trim(), name.trim(), unit.trim(), workshop.trim(), minStock, decimalPlaces, materialId]
   );
 
-  res.redirect('/materials');
+  res.redirect(returnQs ? `/materials?${returnQs}` : '/materials');
 });
 
 app.post('/materials/:id/delete', requireAdmin, async (req, res) => {
   await db.run('DELETE FROM issue_entries WHERE material_id = ?', [req.params.id]);
   await db.run('DELETE FROM materials WHERE id = ?', [req.params.id]);
-  res.redirect('/materials');
+  const qs = req.body.return_qs || '';
+  res.redirect(qs ? `/materials?${qs}` : '/materials');
 });
 
 // ---------- issue (bulk daily entry) ----------
@@ -827,7 +843,8 @@ async function renderIssueForm(req, res, status, extra) {
   const workshop = extra.workshop || '';
   const entryDate = extra.entryDate || entryDayStr();
   const materials = await getIssueMaterials(workshop);
-  const stockMap = await getStockAsOfMap(entryDate);
+  // Matches the carry-forward default applied in POST /issue when Current Stock is left blank.
+  const stockMap = await getStockAsOfMap(addDays(entryDate, -1));
   const workshops = (await db.all('SELECT DISTINCT workshop FROM materials ORDER BY workshop')).map((r) => r.workshop);
   res.status(status).render('issue', {
     materials,
@@ -867,6 +884,10 @@ app.post('/issue', async (req, res) => {
     error = 'Please select a valid shift (A, B, or C).';
   }
 
+  // Current Stock must be recorded every day, so a blank Current Stock field falls back to the
+  // last known value (carried forward) instead of being skipped.
+  const stockYesterdayMap = await getStockAsOfMap(addDays(entryDate, -1));
+
   const values = {};
   const rowsToInsert = [];
   for (const m of materials) {
@@ -875,7 +896,6 @@ app.post('/issue', async (req, res) => {
       raw[field] = (req.body[`${field}_${m.id}`] || '').trim();
     }
     values[m.id] = raw;
-    if (!raw.current_stock && !raw.issue_qty && !raw.issue_ncn && !raw.return_ncn) continue;
 
     const parsed = {};
     let rowError = false;
@@ -898,6 +918,9 @@ app.post('/issue', async (req, res) => {
       parsed[field] = num;
     }
     if (rowError) continue;
+    if (parsed.current_stock == null) {
+      parsed.current_stock = stockYesterdayMap[m.id] != null ? stockYesterdayMap[m.id] : 0;
+    }
     rowsToInsert.push({ materialId: m.id, ...parsed });
   }
 
@@ -927,7 +950,6 @@ app.post('/issue', async (req, res) => {
 
   // Block any submission where a material's usage would come out negative. Computed against
   // pre-insert data plus this submission's own values, since the row hasn't been written yet.
-  const stockYesterdayMap = await getStockAsOfMap(addDays(entryDate, -1));
   const stockTodayMapBefore = await getStockAsOfMap(entryDate);
   const issueSumMapBefore = await getIssueSumMap(entryDate, entryDate);
   const ncnSumMapBefore = await getNcnSumMap(entryDate, entryDate);
@@ -1017,6 +1039,15 @@ app.get('/consumption', async (req, res) => {
     result,
     error,
   });
+});
+
+// ---------- material request (coming soon) ----------
+app.get('/material-request/1st-production', (req, res) => {
+  res.render('material_request_coming_soon', { title: '1st Production' });
+});
+
+app.get('/material-request/2nd-production', (req, res) => {
+  res.render('material_request_coming_soon', { title: '2nd Production' });
 });
 
 // ---------- transactions / void ----------
@@ -1115,6 +1146,7 @@ app.get('/transactions', async (req, res) => {
   const transactions = await db.all(sql, params);
   const materials = await db.all('SELECT * FROM materials ORDER BY prod_material_code');
   const workshops = (await db.all('SELECT DISTINCT workshop FROM materials ORDER BY workshop')).map((r) => r.workshop);
+  const returnQs = req.originalUrl.includes('?') ? req.originalUrl.slice(req.originalUrl.indexOf('?') + 1) : '';
 
   res.render('transactions', {
     transactions,
@@ -1127,6 +1159,7 @@ app.get('/transactions', async (req, res) => {
     dir,
     fmtDate,
     fmtDateOnly,
+    returnQs,
   });
 });
 
@@ -1294,7 +1327,7 @@ app.post('/transactions/undo', async (req, res) => {
     [employeeId, shift, workshop, detail, mode]
   );
 
-  res.redirect(`/transactions/undo?success=1&workshop=${encodeURIComponent(workshop)}`);
+  res.redirect(`/transactions/undo?success=1&mode=${encodeURIComponent(mode)}&date_choice=${encodeURIComponent(dateChoice)}&workshop=${encodeURIComponent(workshop)}`);
 });
 
 app.post('/transactions/:id/void', requireAdmin, async (req, res) => {
@@ -1303,7 +1336,18 @@ app.post('/transactions/:id/void', requireAdmin, async (req, res) => {
     const reason = (req.body.voided_reason || '').trim() || 'No reason given';
     await db.run('UPDATE issue_entries SET voided = 1, voided_reason = ? WHERE id = ?', [reason, req.params.id]);
   }
-  res.redirect('/transactions');
+  const qs = req.body.return_qs || '';
+  res.redirect(qs ? `/transactions?${qs}` : '/transactions');
+});
+
+app.post('/transactions/bulk-void', requireAdmin, async (req, res) => {
+  const ids = [].concat(req.body.ids || []).map((id) => parseInt(id, 10)).filter(Number.isInteger);
+  const reason = (req.body.voided_reason || '').trim() || 'No reason given';
+  for (const id of ids) {
+    await db.run('UPDATE issue_entries SET voided = 1, voided_reason = ? WHERE id = ? AND voided = 0', [reason, id]);
+  }
+  const qs = req.body.return_qs || '';
+  res.redirect(qs ? `/transactions?${qs}` : '/transactions');
 });
 
 app.get('/transactions/:id/edit', requireAdmin, async (req, res) => {
@@ -1315,13 +1359,15 @@ app.get('/transactions/:id/edit', requireAdmin, async (req, res) => {
   );
   if (!entry) return res.redirect('/transactions');
   const materials = await db.all('SELECT * FROM materials ORDER BY prod_material_code');
-  res.render('transaction_edit', { entry, materials, shifts: SHIFTS, error: null, fmtDate });
+  const returnQs = req.query.return_qs || '';
+  res.render('transaction_edit', { entry, materials, shifts: SHIFTS, error: null, fmtDate, returnQs });
 });
 
 app.post('/transactions/:id/edit', requireAdmin, async (req, res) => {
   const entry = await db.get('SELECT * FROM issue_entries WHERE id = ?', [req.params.id]);
   if (!entry) return res.redirect('/transactions');
   const materials = await db.all('SELECT * FROM materials ORDER BY prod_material_code');
+  const returnQs = req.body.return_qs || '';
 
   const materialId = parseInt(req.body.material_id, 10);
   const employeeId = (req.body.employee_id || '').trim();
@@ -1382,6 +1428,7 @@ app.post('/transactions/:id/edit', requireAdmin, async (req, res) => {
       shifts: SHIFTS,
       error,
       fmtDate,
+      returnQs,
     });
   }
 
@@ -1391,7 +1438,7 @@ app.post('/transactions/:id/edit', requireAdmin, async (req, res) => {
     [materialId, entryDate, parsed.current_stock, parsed.issue_qty, parsed.issue_ncn, parsed.return_ncn, employeeId, shift, voided, voidedReason, req.params.id]
   );
 
-  res.redirect('/transactions');
+  res.redirect(returnQs ? `/transactions?${returnQs}` : '/transactions');
 });
 
 // ---------- tickets (request a data correction) ----------
@@ -1489,6 +1536,7 @@ app.get('/tickets', async (req, res) => {
   sql += ' ORDER BY created_at DESC, id DESC';
   const tickets = await db.all(sql, params);
   const openCount = (await db.get("SELECT COUNT(*) c FROM tickets WHERE status = 'OPEN'")).c;
+  const returnQs = req.originalUrl.includes('?') ? req.originalUrl.slice(req.originalUrl.indexOf('?') + 1) : '';
 
   const workshopShiftCounts = {
     workshops: KNOWN_WORKSHOPS,
@@ -1498,7 +1546,7 @@ app.get('/tickets', async (req, res) => {
     })),
   };
 
-  res.render('tickets', { tickets, status, type, dateFrom, dateTo, openCount, fmtDate, workshopShiftCounts });
+  res.render('tickets', { tickets, status, type, dateFrom, dateTo, openCount, fmtDate, workshopShiftCounts, returnQs });
 });
 
 app.get('/tickets/:id/attachment', async (req, res) => {
@@ -1514,7 +1562,8 @@ app.post('/tickets/:id/resolve', requireAdmin, async (req, res) => {
     `UPDATE tickets SET status = 'RESOLVED', resolved_at = SYSDATETIME(), resolved_note = ? WHERE id = ?`,
     [note, req.params.id]
   );
-  res.redirect('/tickets');
+  const qs = req.body.return_qs || '';
+  res.redirect(qs ? `/tickets?${qs}` : '/tickets');
 });
 
 app.post('/tickets/:id/delete', requireAdmin, async (req, res) => {
@@ -1523,7 +1572,8 @@ app.post('/tickets/:id/delete', requireAdmin, async (req, res) => {
   if (ticket && ticket.attachment_path) {
     fs.unlink(path.join(TICKET_UPLOAD_DIR, path.basename(ticket.attachment_path)), () => {});
   }
-  res.redirect('/tickets');
+  const qs = req.body.return_qs || '';
+  res.redirect(qs ? `/tickets?${qs}` : '/tickets');
 });
 
 // ---------- exports ----------

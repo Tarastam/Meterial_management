@@ -13,7 +13,7 @@ function sortLink(col, label) {
   <div>
     <a class="btn secondary" href="/export/materials.csv?<%= new URLSearchParams({ q, workshop: selectedWorkshop, from, to }).toString() %>">Export CSV</a>
     <% if (isAdmin) { %>
-    <a class="btn" href="/materials/new">+ Add Material</a>
+    <a class="btn" href="/materials/new?return_qs=<%= encodeURIComponent(returnQs) %>">+ Add Material</a>
     <% } %>
   </div>
 </div>
@@ -77,8 +77,9 @@ function sortLink(col, label) {
         <td class="col-num"><%= fmtNum(row.hold, dp) %></td>
         <td>
           <% if (isAdmin) { %>
-          <a class="btn small secondary" href="/materials/<%= m.id %>/edit">Edit</a>
+          <a class="btn small secondary" href="/materials/<%= m.id %>/edit?return_qs=<%= encodeURIComponent(returnQs) %>">Edit</a>
           <form class="inline" method="post" action="/materials/<%= m.id %>/delete" onsubmit="return confirm('Delete <%= m.prod_material_code %>? This also deletes its issue history.');">
+            <input type="hidden" name="return_qs" value="<%= returnQs %>">
             <button class="btn small danger" type="submit">Delete</button>
           </form>
           <% } %>
