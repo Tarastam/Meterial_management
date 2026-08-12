@@ -20,6 +20,26 @@ entry to the **Change Log** section below **before** ending your turn.
 
 <!-- Newest entries go on top. -->
 
+### 2026-08-12 — feature/ticket-attachments-and-transaction-improvements
+- Pushed `1b26f28` and `60f1c8a`, then opened a PR to `main`.
+- List actions (edit/delete/resolve/void on materials, tickets,
+  transactions) now redirect back to the filtered/sorted list instead
+  of the bare list URL.
+- Dashboard usage anomalies restricted to admins; split into
+  abnormal-usage vs. missing-entry categories with filter buttons; the
+  in-progress current day is no longer flagged as a missing entry.
+- Blank Current Stock on `/issue` now carries the prior day's value
+  forward instead of being skipped (was producing false "no entry"
+  anomalies).
+- Added admin bulk-void on the transactions list.
+- Added a placeholder "Material Request" nav section (coming-soon
+  pages) ahead of the call-in feature in
+  `material-request-system-design.md`.
+- Removed the Top 5 Issued Materials dashboard panel; dashboard
+  filters moved into a floating bottom bar.
+- Added 3 one-off data-correction scripts (TA0168 unit fix, TA0212
+  cost, ANODIZE entry_date shift) for the audit trail.
+
 ### 2026-08-11 — feature/ticket-attachments-and-transaction-improvements
 - Set up this Change Log policy and CLAUDE.md file (no code changes pushed yet).
 
