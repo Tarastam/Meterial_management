@@ -8,6 +8,7 @@
   <p><strong>Created At:</strong> <%= fmtDate(entry.created_at) %> <span class="hint">(not editable)</span></p>
 
   <form method="post" action="/transactions/<%= entry.id %>/edit">
+    <input type="hidden" name="return_qs" value="<%= returnQs %>">
     <div class="field">
       <label>Material *</label>
       <select name="material_id" required>
@@ -56,7 +57,7 @@
       <input type="text" name="voided_reason" value="<%= entry.voided_reason || '' %>">
     </div>
     <button class="btn" type="submit">Save Correction</button>
-    <a class="btn secondary" href="/transactions">Cancel</a>
+    <a class="btn secondary" href="<%= returnQs ? '/transactions?' + returnQs : '/transactions' %>">Cancel</a>
   </form>
 </div>
 <%- include('partials/foot') %>

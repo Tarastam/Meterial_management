@@ -1,3 +1,29 @@
   </main>
+  <div class="modal-overlay" id="adminOpenTicketsOverlay" onclick="if (event.target === this) this.classList.remove('show');">
+    <div class="modal" style="max-width: 360px;">
+      <div class="modal-header">
+        <div><h2>Open Tickets</h2></div>
+        <button type="button" class="modal-close" onclick="document.getElementById('adminOpenTicketsOverlay').classList.remove('show');" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p id="adminOpenTicketsMsg"></p>
+      </div>
+      <div class="modal-footer">
+        <a class="btn" href="/tickets?status=OPEN">View Tickets</a>
+      </div>
+    </div>
+  </div>
+  <script>
+    (function () {
+      var match = document.cookie.match(/(?:^|; )admin_login_popup=([^;]*)/);
+      if (!match) return;
+      document.cookie = 'admin_login_popup=; Max-Age=0; path=/';
+      var count = parseInt(decodeURIComponent(match[1]), 10) || 0;
+      var msg = document.getElementById('adminOpenTicketsMsg');
+      if (msg) msg.textContent = count === 1 ? 'There is 1 open ticket.' : 'There are ' + count + ' open tickets.';
+      var overlay = document.getElementById('adminOpenTicketsOverlay');
+      if (overlay) overlay.classList.add('show');
+    })();
+  </script>
 </body>
 </html>
