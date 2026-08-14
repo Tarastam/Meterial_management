@@ -20,6 +20,22 @@ entry to the **Change Log** section below **before** ending your turn.
 
 <!-- Newest entries go on top. -->
 
+### 2026-08-14 — feature/ticket-attachments-and-transaction-improvements
+- Pushed `539f9b1` (`gh` CLI unavailable in this environment, so the PR to
+  `main` still needs to be opened manually from the compare link).
+- `src/db.js` refactored into a `createDbClient(config)` factory so the app
+  can hold two separate connection pools: the existing primary TaMFGdb and
+  a new ProductionMES connection (`DB2_*` env vars), exposed as `db.mes`.
+- `scripts/test-db-connection.js` now exercises both pools through the
+  shared client instead of duplicating connection setup.
+- `/issue` skips materials left completely untouched in a submission
+  instead of recording them as a blank entry (previously any material
+  present in the form, even with no fields filled in, got inserted).
+- Added `/export/transactions.csv?daily=1`: one row per material per
+  calendar day in range, with Current Stock carried forward on days with
+  no entry, for paper-style daily stock reports. Transactions page CSV
+  export link now points at this daily grid instead of per-entry rows.
+
 ### 2026-08-12 — feature/ticket-attachments-and-transaction-improvements
 - Pushed `1b26f28` and `60f1c8a`, then opened a PR to `main`.
 - List actions (edit/delete/resolve/void on materials, tickets,

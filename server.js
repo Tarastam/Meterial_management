@@ -902,6 +902,10 @@ app.post('/issue', async (req, res) => {
     }
     values[m.id] = raw;
 
+    // Material wasn't touched at all this submission — skip it entirely so it
+    // doesn't count as "recorded today" and remains available to key in later.
+    if (NUMERIC_FIELDS.every((field) => raw[field] === '')) continue;
+
     const parsed = {};
     let rowError = false;
     for (const field of NUMERIC_FIELDS) {
@@ -1583,6 +1587,83 @@ app.post('/tickets/:id/delete', requireAdmin, async (req, res) => {
 
 // ---------- exports ----------
 
+// Daily stock-cutoff grid: one row per material per calendar day in [from, to], even for days
+// with no issue_entries row. Current Stock forward-fills from the last day that actually has a
+// reading (mirrors getStockAsOfMap's carry-forward), so paper-style reports never show a gap.
+// Ignores employee_id/shift filters since a single day/material can span multiple entries.
+async function getDailyStockGridRows({ workshop, materialId, q, from, to }) {
+  let matSql = 'SELECT * FROM materials WHERE 1=1';
+  const matParams = [];
+  if (workshop) { matSql += ' AND workshop = ?'; matParams.push(workshop); }
+  if (materialId && materialId !== '0') { matSql += ' AND id = ?'; matParams.push(materialId); }
+  if (q) {
+    matSql += ' AND (name LIKE ? OR prod_material_code LIKE ? OR material_code LIKE ?)';
+    const like = `%${q}%`;
+    matParams.push(like, like, like);
+  }
+  matSql += ' ORDER BY prod_material_code';
+  const materials = await db.all(matSql, matParams);
+  if (!materials.length) return [];
+  const idFilter = materialIdsFilter('material_id', materials.map((m) => m.id));
+
+  // Stock readings up to `to`, oldest first, for forward-filling Current Stock day by day.
+  const stockHistory = await db.all(
+    `SELECT material_id, entry_date, current_stock FROM issue_entries
+     WHERE voided = 0 AND current_stock IS NOT NULL AND entry_date <= ?${idFilter.sql}
+     ORDER BY material_id, entry_date, id`,
+    [to, ...idFilter.params]
+  );
+  const stockHistoryByMaterial = {};
+  stockHistory.forEach((r) => {
+    (stockHistoryByMaterial[r.material_id] = stockHistoryByMaterial[r.material_id] || [])
+      .push({ date: dateKey(r.entry_date), stock: r.current_stock });
+  });
+
+  // Raw entries within the report range, for per-day issue/NCN totals; last entry of the
+  // day (by id) wins for the displayed employee/shift.
+  const dayEntries = await db.all(
+    `SELECT material_id, entry_date, issue_qty, issue_ncn, return_ncn, employee_id, shift
+     FROM issue_entries
+     WHERE voided = 0 AND entry_date BETWEEN ? AND ?${idFilter.sql}
+     ORDER BY material_id, entry_date, id`,
+    [from, to, ...idFilter.params]
+  );
+  const dayMap = {};
+  dayEntries.forEach((r) => {
+    const key = `${r.material_id}|${dateKey(r.entry_date)}`;
+    const cur = dayMap[key] || { issueQty: 0, issueNcn: 0, returnNcn: 0, employeeId: '', shift: '', hasEntry: false };
+    cur.issueQty += r.issue_qty || 0;
+    cur.issueNcn += r.issue_ncn || 0;
+    cur.returnNcn += r.return_ncn || 0;
+    cur.employeeId = r.employee_id || cur.employeeId;
+    cur.shift = r.shift || cur.shift;
+    cur.hasEntry = true;
+    dayMap[key] = cur;
+  });
+
+  const dates = buildDateRange(from, to);
+  const rows = [];
+  for (const m of materials) {
+    const history = stockHistoryByMaterial[m.id] || [];
+    let ptr = 0;
+    let prevStock = 0;
+    while (ptr < history.length && history[ptr].date < from) { prevStock = history[ptr].stock; ptr++; }
+    for (const date of dates) {
+      let stockToday = prevStock;
+      while (ptr < history.length && history[ptr].date <= date) { stockToday = history[ptr].stock; ptr++; }
+      const day = dayMap[`${m.id}|${date}`] || { issueQty: 0, issueNcn: 0, returnNcn: 0, employeeId: '', shift: '', hasEntry: false };
+      const usage = prevStock + day.issueQty - stockToday - day.issueNcn + day.returnNcn;
+      rows.push({
+        date, material: m, currentStock: stockToday, issueQty: day.issueQty,
+        issueNcn: day.issueNcn, returnNcn: day.returnNcn, usage,
+        employeeId: day.employeeId, shift: day.shift, hasEntry: day.hasEntry,
+      });
+      prevStock = stockToday;
+    }
+  }
+  return rows;
+}
+
 function csvEscape(value) {
   const s = String(value ?? '');
   if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
@@ -1614,6 +1695,47 @@ app.get('/export/materials.csv', async (req, res) => {
 });
 
 app.get('/export/transactions.csv', async (req, res) => {
+  // Daily stock-cutoff mode: one row per material per day for every day in range, with
+  // Current Stock carried forward on days with no entry (see getDailyStockGridRows).
+  if (req.query.daily === '1') {
+    const today = todayStr();
+    const from = DATE_RE.test(req.query.date_from) ? req.query.date_from : addDays(today, -2);
+    const to = DATE_RE.test(req.query.date_to) ? req.query.date_to : today;
+    const rows = await getDailyStockGridRows({
+      workshop: req.query.workshop || '',
+      materialId: req.query.material_id || '0',
+      q: req.query.q || '',
+      from,
+      to,
+    });
+
+    const lines = ['Date,MaterialCode,MaterialName,Workshop,CurrentStock,Issue,Usage,IssueNCN,ReturnNCN,EmployeeId,Shift,HasEntry'];
+    for (const r of rows) {
+      lines.push(
+        [
+          r.date,
+          r.material.prod_material_code,
+          r.material.name,
+          r.material.workshop,
+          r.currentStock,
+          r.issueQty,
+          r.usage,
+          r.issueNcn,
+          r.returnNcn,
+          r.employeeId,
+          r.shift,
+          r.hasEntry ? 'YES' : '',
+        ]
+          .map(csvEscape)
+          .join(',')
+      );
+    }
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=daily-stock.csv');
+    return res.send(lines.join('\r\n'));
+  }
+
   // Per-entry usage = previous stock reading + this entry's issue - this entry's stock
   // - this entry's issue NCN + this entry's return NCN, mirroring the derivation used elsewhere.
   // Only defined for non-voided rows that carry a stock reading; the prev-stock chain likewise

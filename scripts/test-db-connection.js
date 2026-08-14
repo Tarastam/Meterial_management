@@ -1,31 +1,21 @@
 require('dotenv').config();
-const sql = require('mssql');
+const db = require('../src/db');
 
-const config = {
-  server: process.env.DB_SERVER,
-  port: process.env.DB_PORT ? Number(process.env.DB_PORT) : undefined,
-  database: process.env.DB_NAME,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  options: {
-    instanceName: process.env.DB_INSTANCE || undefined,
-    trustServerCertificate: process.env.DB_TRUST_SERVER_CERT === 'true',
-    encrypt: process.env.DB_ENCRYPT !== 'false',
-  },
-};
+async function testConnection(label, client) {
+  try {
+    const pool = await client.getPool();
+    const result = await pool.request().query('SELECT @@VERSION AS version, DB_NAME() AS db');
+    console.log(`[${label}] Connected. Database: ${result.recordset[0].db}`);
+    console.log(`[${label}] Server version: ${result.recordset[0].version.split('\n')[0]}`);
+    return true;
+  } catch (err) {
+    console.error(`[${label}] Connection failed:`, err.message);
+    return false;
+  }
+}
 
 (async () => {
-  console.log(`Connecting to ${config.server}${config.options.instanceName ? '\\' + config.options.instanceName : ''} / ${config.database} as ${config.user}...`);
-  try {
-    const pool = await sql.connect(config);
-    const result = await pool.request().query('SELECT @@VERSION AS version, DB_NAME() AS db');
-    console.log('Connected successfully.');
-    console.log('Database:', result.recordset[0].db);
-    console.log('Server version:', result.recordset[0].version.split('\n')[0]);
-    await pool.close();
-    process.exit(0);
-  } catch (err) {
-    console.error('Connection failed:', err.message);
-    process.exit(1);
-  }
+  const okPrimary = await testConnection(`TaMFGdb (${process.env.DB_SERVER})`, db);
+  const okMes = await testConnection(`ProductionMES (${process.env.DB2_SERVER || process.env.DB_SERVER})`, db.mes);
+  process.exit(okPrimary && okMes ? 0 : 1);
 })();
