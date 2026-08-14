@@ -1,7 +1,7 @@
 require('dotenv').config();
 const sql = require('mssql');
 
-const config = {
+const primaryConfig = {
   server: process.env.DB_SERVER,
   port: process.env.DB_PORT ? Number(process.env.DB_PORT) : undefined,
   database: process.env.DB_NAME,
@@ -14,11 +14,21 @@ const config = {
   },
 };
 
-let poolPromise = null;
-function getPool() {
-  if (!poolPromise) poolPromise = sql.connect(config);
-  return poolPromise;
-}
+// Production MES database — same server/password as above unless overridden.
+const mesConfig = {
+  server: process.env.DB2_SERVER || process.env.DB_SERVER,
+  port: process.env.DB2_PORT
+    ? Number(process.env.DB2_PORT)
+    : (process.env.DB_PORT ? Number(process.env.DB_PORT) : undefined),
+  database: process.env.DB2_NAME,
+  user: process.env.DB2_USER,
+  password: process.env.DB2_PASSWORD || process.env.DB_PASSWORD,
+  options: {
+    instanceName: process.env.DB2_INSTANCE || process.env.DB_INSTANCE || undefined,
+    trustServerCertificate: (process.env.DB2_TRUST_SERVER_CERT || process.env.DB_TRUST_SERVER_CERT) !== 'false',
+    encrypt: true,
+  },
+};
 
 function inferType(value) {
   if (value === null || value === undefined) return sql.NVarChar(sql.MAX);
@@ -34,35 +44,51 @@ function toNamedParams(sqlText) {
   return sqlText.replace(/\?/g, () => `@p${i++}`);
 }
 
-async function request(params) {
-  const pool = await getPool();
-  const req = pool.request();
-  params.forEach((value, i) => {
-    req.input(`p${i}`, inferType(value), value === undefined ? null : value);
-  });
-  return req;
+// Each database gets its own ConnectionPool instance (not the mssql global
+// pool via sql.connect), so the two connections don't clobber each other.
+function createDbClient(config) {
+  let poolPromise = null;
+  function getPool() {
+    if (!poolPromise) poolPromise = new sql.ConnectionPool(config).connect();
+    return poolPromise;
+  }
+
+  async function request(params) {
+    const pool = await getPool();
+    const req = pool.request();
+    params.forEach((value, i) => {
+      req.input(`p${i}`, inferType(value), value === undefined ? null : value);
+    });
+    return req;
+  }
+
+  async function all(sqlText, params = []) {
+    const req = await request(params);
+    const result = await req.query(toNamedParams(sqlText));
+    return result.recordset;
+  }
+
+  async function get(sqlText, params = []) {
+    const rows = await all(sqlText, params);
+    return rows[0];
+  }
+
+  async function run(sqlText, params = []) {
+    const req = await request(params);
+    await req.query(toNamedParams(sqlText));
+  }
+
+  async function exec(sqlText) {
+    const pool = await getPool();
+    await pool.request().query(sqlText);
+  }
+
+  return { all, get, run, exec, getPool };
 }
 
-async function all(sqlText, params = []) {
-  const req = await request(params);
-  const result = await req.query(toNamedParams(sqlText));
-  return result.recordset;
-}
-
-async function get(sqlText, params = []) {
-  const rows = await all(sqlText, params);
-  return rows[0];
-}
-
-async function run(sqlText, params = []) {
-  const req = await request(params);
-  await req.query(toNamedParams(sqlText));
-}
-
-async function exec(sqlText) {
-  const pool = await getPool();
-  await pool.request().query(sqlText);
-}
+const primary = createDbClient(primaryConfig);
+const mes = createDbClient(mesConfig);
+const { all, get, run, exec, getPool } = primary;
 
 async function ensureSchema() {
   await exec(`
@@ -163,4 +189,4 @@ async function ensureSchema() {
   `);
 }
 
-module.exports = { all, get, run, exec, ensureSchema, getPool };
+module.exports = { all, get, run, exec, ensureSchema, getPool, mes };
