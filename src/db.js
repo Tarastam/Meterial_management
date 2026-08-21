@@ -122,6 +122,13 @@ async function ensureSchema() {
   `);
 
   await exec(`
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('materials') AND name = 'std_consumption')
+    BEGIN
+      ALTER TABLE materials ADD std_consumption FLOAT NOT NULL DEFAULT 0
+    END
+  `);
+
+  await exec(`
     IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'issue_entries')
     BEGIN
       CREATE TABLE issue_entries (

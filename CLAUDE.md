@@ -20,6 +20,24 @@ entry to the **Change Log** section below **before** ending your turn.
 
 <!-- Newest entries go on top. -->
 
+### 2026-08-21 — feature/ticket-attachments-and-transaction-improvements
+- Pushed `2b70811` (`gh` CLI still unavailable in this environment, so the
+  PR to `main` needs to be opened manually from the compare link).
+- `/consumption` now pulls Product Output directly from ProductionMES
+  (`DashboardWipProcessDaily`, filtered by OperationName + Serie) instead
+  of a manual entry field, with a daily usage/output/consumption
+  breakdown, chart data, and a new CSV export at
+  `/export/consumption.csv`.
+- Materials gain Unit Cost and STD Consumption fields (material form,
+  create/edit, admin-only inline editing via
+  `/materials/:id/inline-update`), surfaced as sortable Cost/Usage
+  Cost/STD Consumption columns on the materials list.
+- Added `fmtConsumption()` to display small consumption ratios at 3
+  significant figures instead of a fixed decimal count that either hid
+  the value or buried it in trailing zeros.
+- Tickets-by-Workshop dashboard chart now breaks down by ticket type
+  instead of shift.
+
 ### 2026-08-14 — feature/ticket-attachments-and-transaction-improvements
 - Pushed `539f9b1` (`gh` CLI unavailable in this environment, so the PR to
   `main` still needs to be opened manually from the compare link).

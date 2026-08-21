@@ -7,6 +7,17 @@ function sortLink(col, label) {
   const arrow = sort === col ? (dir === 'asc' ? ' ▲' : ' ▼') : '';
   return `<a href="/materials?${params.toString()}" class="sort-link">${label}${arrow}</a>`;
 }
+function fmtMoney(n) {
+  if (n === null || n === undefined || isNaN(n)) return '-';
+  return Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+// Shows exactly the decimal places present in the stored value (as typed), instead of
+// rounding/padding to the material's configured decimal_places.
+function fmtRaw(n) {
+  if (n === null || n === undefined || n === '' || isNaN(n)) return '';
+  const decimals = (Number(n).toString().split('.')[1] || '').length;
+  return Number(n).toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+}
 %>
 <div class="actions-row">
   <h1>Summary</h1>
@@ -60,11 +71,16 @@ function sortLink(col, label) {
         <th class="col-num"><%- sortLink('usage', 'Usage') %></th>
         <th class="col-num"><%- sortLink('stock', 'On Hand') %></th>
         <th class="col-num"><%- sortLink('hold', 'Hold') %></th>
+        <th class="col-num"><%- sortLink('cost', 'Unit Cost') %></th>
+        <th class="col-num"><%- sortLink('usage_cost', 'Usage Cost') %></th>
+        <% if (isAdmin) { %>
+        <th class="col-num"><%- sortLink('std_consumption', 'STD Consumption') %></th>
+        <% } %>
         <th></th>
       </tr>
     </thead>
     <tbody>
-      <% rows.forEach(row => { const m = row.material; const dp = m.decimal_places != null ? m.decimal_places : 3; %>
+      <% rows.forEach(row => { const m = row.material; const dp = m.decimal_places != null ? m.decimal_places : 3; const unitCost = row.unitCost; const usageCost = row.usageCost; %>
       <tr>
         <td><%= m.prod_material_code %></td>
         <td class="col-erp"><%= m.material_code %></td>
@@ -75,6 +91,14 @@ function sortLink(col, label) {
         <td class="col-num"><%= fmtNum(row.usage, dp) %></td>
         <td class="col-num"><%= fmtNum(row.stock, dp) %></td>
         <td class="col-num"><%= fmtNum(row.hold, dp) %></td>
+        <% if (isAdmin) { %>
+        <td class="col-num editable-cell" data-material-id="<%= m.id %>" data-field="cost" data-value="<%= unitCost %>" data-decimals="2"><span class="cell-value"><%= fmtMoney(unitCost) %></span></td>
+        <td class="col-num" data-usage-cost-for="<%= m.id %>" data-usage="<%= row.usage %>"><%= fmtMoney(usageCost) %></td>
+        <td class="col-num editable-cell" data-material-id="<%= m.id %>" data-field="std_consumption" data-value="<%= row.stdConsumption %>" data-decimals="raw"><span class="cell-value"><%= fmtRaw(row.stdConsumption) %></span></td>
+        <% } else { %>
+        <td class="col-num"><%= fmtMoney(unitCost) %></td>
+        <td class="col-num"><%= fmtMoney(usageCost) %></td>
+        <% } %>
         <td>
           <% if (isAdmin) { %>
           <a class="btn small secondary" href="/materials/<%= m.id %>/edit?return_qs=<%= encodeURIComponent(returnQs) %>">Edit</a>
@@ -91,5 +115,97 @@ function sortLink(col, label) {
 </div>
 <% if (!rows.length) { %>
 <div class="card empty-state">No materials found.</div>
+<% } %>
+<% if (isAdmin) { %>
+<script>
+  (function () {
+    function fmtMoney(n) {
+      return Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    function fmtRaw(n) {
+      var decimals = (Number(n).toString().split('.')[1] || '').length;
+      return Number(n).toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+    }
+
+    document.querySelectorAll('td.editable-cell').forEach(function (cell) {
+      cell.addEventListener('dblclick', function () {
+        if (cell.querySelector('input')) return;
+        var span = cell.querySelector('.cell-value');
+        var currentValue = cell.dataset.value || '0';
+        var input = document.createElement('input');
+        input.type = 'number';
+        input.step = 'any';
+        input.min = '0';
+        input.className = 'cell-edit-input';
+        input.value = currentValue;
+        cell.classList.add('editing');
+        span.style.display = 'none';
+        cell.appendChild(input);
+        input.focus();
+        input.select();
+
+        var done = false;
+        function cancel() {
+          if (done) return;
+          done = true;
+          input.remove();
+          span.style.display = '';
+          cell.classList.remove('editing');
+        }
+        function commit() {
+          if (done) return;
+          var raw = input.value;
+          var num = parseFloat(raw);
+          if (raw === '' || isNaN(num) || num < 0) {
+            cancel();
+            return;
+          }
+          if (num === parseFloat(currentValue)) {
+            cancel();
+            return;
+          }
+          done = true;
+          cell.classList.add('saving');
+          fetch('/materials/' + cell.dataset.materialId + '/inline-update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({ field: cell.dataset.field, value: String(num) }),
+          })
+            .then(function (r) { return r.json().then(function (data) { return { ok: r.ok, data: data }; }); })
+            .then(function (res) {
+              cell.classList.remove('saving');
+              input.remove();
+              span.style.display = '';
+              cell.classList.remove('editing');
+              if (!res.ok) {
+                alert(res.data.error || 'Failed to save.');
+                return;
+              }
+              cell.dataset.value = String(res.data.value);
+              span.textContent = cell.dataset.decimals === 'raw' ? fmtRaw(res.data.value) : fmtMoney(res.data.value);
+              if (cell.dataset.field === 'cost') {
+                var usageCell = document.querySelector('[data-usage-cost-for="' + cell.dataset.materialId + '"]');
+                if (usageCell) {
+                  var usage = parseFloat(usageCell.dataset.usage) || 0;
+                  usageCell.textContent = fmtMoney(usage * res.data.value);
+                }
+              }
+            })
+            .catch(function () {
+              cell.classList.remove('saving');
+              cancel();
+              alert('Failed to save.');
+            });
+        }
+
+        input.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+          else if (e.key === 'Escape') { e.preventDefault(); cancel(); }
+        });
+        input.addEventListener('blur', commit);
+      });
+    });
+  })();
+</script>
 <% } %>
 <%- include('partials/foot') %>
