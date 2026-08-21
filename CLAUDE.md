@@ -20,6 +20,12 @@ entry to the **Change Log** section below **before** ending your turn.
 
 <!-- Newest entries go on top. -->
 
+### 2026-08-21 — main
+- Merged `feature/ticket-attachments-and-transaction-improvements` into
+  `main` locally (`gh` CLI unavailable, so via `git merge --no-ff` +
+  `git push`, at the user's explicit request) and pushed `b6d924b`. Clean
+  merge, no conflicts.
+
 ### 2026-08-21 — feature/ticket-attachments-and-transaction-improvements
 - Pushed `2b70811` (`gh` CLI still unavailable in this environment, so the
   PR to `main` needs to be opened manually from the compare link).
