@@ -40,6 +40,14 @@
     </select>
   </div>
   <div class="field">
+    <label>Unit Cost</label>
+    <input type="number" step="any" min="0" name="cost" value="<%= material && material.cost != null ? material.cost : 0 %>">
+  </div>
+  <div class="field">
+    <label>STD Consumption</label>
+    <input type="number" step="any" min="0" name="std_consumption" value="<%= material && material.std_consumption != null ? material.std_consumption : 0 %>">
+  </div>
+  <div class="field">
     <label>Minimum Stock (for low-stock alerts)</label>
     <input type="number" step="any" min="0" name="min_stock" value="<%= material ? material.min_stock : 0 %>">
   </div>

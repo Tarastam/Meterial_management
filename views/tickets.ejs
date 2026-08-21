@@ -10,7 +10,7 @@
 <div class="card">
   <h3>Tickets by Workshop</h3>
   <div style="position:relative; height:220px;">
-    <canvas id="ticketsByWorkshopChart" role="img" aria-label="Number of tickets per workshop, stacked by shift"></canvas>
+    <canvas id="ticketsByWorkshopChart" role="img" aria-label="Number of tickets per workshop, stacked by type"></canvas>
   </div>
 </div>
 
@@ -215,19 +215,19 @@ function closeTicketDetail() {
 </script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script>
-  const workshopShiftCounts = <%- JSON.stringify(workshopShiftCounts) %>;
-  const shiftPalette = ['#2563eb', '#16a34a', '#d97706'];
+  const workshopTypeCounts = <%- JSON.stringify(workshopTypeCounts) %>;
+  const typePalette = ['#2563eb', '#16a34a', '#d97706'];
 
   const workshopCanvas = document.getElementById('ticketsByWorkshopChart');
   if (workshopCanvas) {
     new Chart(workshopCanvas, {
       type: 'bar',
       data: {
-        labels: workshopShiftCounts.workshops,
-        datasets: workshopShiftCounts.series.map((s, i) => ({
-          label: 'Shift ' + s.shift,
+        labels: workshopTypeCounts.workshops,
+        datasets: workshopTypeCounts.series.map((s, i) => ({
+          label: s.type,
           data: s.counts,
-          backgroundColor: shiftPalette[i % shiftPalette.length],
+          backgroundColor: typePalette[i % typePalette.length],
           borderRadius: 2,
         })),
       },

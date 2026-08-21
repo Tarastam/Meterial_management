@@ -442,7 +442,8 @@ form.inline { display: inline; }
   margin-bottom: 1rem;
 }
 
-.filters.compact {
+.filters.compact,
+.filters.form-horizontal {
   gap: 0.6rem;
   margin-bottom: 0;
   align-items: flex-end;
@@ -499,6 +500,61 @@ input:focus, select:focus, textarea:focus {
 .field { margin-bottom: 1rem; max-width: 420px; }
 
 .form-card { max-width: 480px; }
+
+.serie-dropdown {
+  position: relative;
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  background: white;
+}
+.serie-dropdown summary {
+  padding: 0.6rem 0.7rem;
+  cursor: pointer;
+  list-style: none;
+  font-size: 1rem;
+  white-space: nowrap;
+}
+.serie-dropdown summary::-webkit-details-marker { display: none; }
+.serie-dropdown summary::after { content: '\25be'; margin-left: 0.5rem; color: var(--gray-600); }
+
+/* Floats out of the flex row so opening it doesn't push/misalign sibling fields. */
+.serie-dropdown-panel {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 0.25rem;
+  min-width: 100%;
+  width: max-content;
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  padding: 0.6rem 0.7rem;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.15);
+  z-index: 50;
+}
+
+.serie-select-all {
+  padding-bottom: 0.35rem;
+  margin-bottom: 0.35rem;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.serie-checkboxes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.checkbox-row { display: flex; align-items: center; justify-content: flex-start; gap: 0.4rem; font-weight: 400; white-space: nowrap; }
+.checkbox-row input[type="checkbox"] {
+  width: auto;
+  flex: 0 0 auto;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: none;
+}
 
 .alert {
   padding: 0.9rem 1rem;
@@ -575,6 +631,20 @@ input:focus, select:focus, textarea:focus {
 .col-num { text-align: center; }
 
 .col-center { text-align: center; }
+
+.editable-cell { cursor: pointer; position: relative; }
+.editable-cell:hover:not(.editing) { background: var(--gray-100); box-shadow: inset 0 0 0 1px var(--gray-200); }
+.editable-cell.saving { opacity: 0.6; }
+.editable-cell .cell-edit-input {
+  width: 100%;
+  min-width: 70px;
+  padding: 0.2rem 0.35rem;
+  font-size: 0.85rem;
+  text-align: center;
+  border: 1px solid var(--blue);
+  border-radius: 4px;
+  box-sizing: border-box;
+}
 
 .nav-right { display: flex; align-items: center; margin-left: auto; }
 .nav-logout { display: flex; align-items: center; gap: 0.5rem; margin-left: 0.3rem; }

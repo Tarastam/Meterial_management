@@ -63,6 +63,7 @@ app.use((req, res, next) => {
   req.isAdmin = parseCookies(req)[ADMIN_COOKIE] === ADMIN_TOKEN;
   res.locals.isAdmin = req.isAdmin;
   res.locals.fmtNum = fmtNum;
+  res.locals.fmtConsumption = fmtConsumption;
   res.locals.fmtDateOnly = fmtDateOnly;
   next();
 });
@@ -472,6 +473,40 @@ function fmtNum(n, decimals = 2) {
   return Number(n).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: decimals });
 }
 
+// Rounds to 3 significant figures, except when the 3rd significant digit is 0 - then it's
+// dropped and only 2 significant figures are shown (0.000420 -> "0.00042", not "0.000420").
+// Meant for small consumption ratios where a fixed decimal count would either hide the
+// value entirely (0.00) or bury it in trailing zeros.
+function fmtConsumption(n) {
+  if (n === null || n === undefined || n === '' || isNaN(n)) return '-';
+  const num = Number(n);
+  if (num === 0) return '0';
+  const sign = num < 0 ? '-' : '';
+  const abs = Math.abs(num);
+  let exp = Math.floor(Math.log10(abs));
+  const roundToSig = (sig) => {
+    const factor = Math.pow(10, sig - 1 - exp);
+    return Math.round(abs * factor) / factor;
+  };
+
+  let rounded = roundToSig(3);
+  const newExp = Math.floor(Math.log10(rounded));
+  if (newExp !== exp) {
+    exp = newExp;
+    rounded = roundToSig(3);
+  }
+
+  let decimals = Math.max(0, 2 - exp);
+  let str = rounded.toFixed(decimals);
+  const digits = str.replace('.', '').replace(/^0+/, '') || '0';
+  if (digits.length >= 3 && digits[2] === '0') {
+    decimals = Math.max(0, 1 - exp);
+    rounded = roundToSig(2);
+    str = rounded.toFixed(decimals);
+  }
+  return sign + str;
+}
+
 function fmtDateOnly(date) {
   if (!date) return '';
   if (typeof date === 'string') return date.slice(0, 10);
@@ -620,6 +655,9 @@ const MATERIAL_SORT_COLUMNS = {
   usage: 'usage',
   issue: 'issue',
   hold: 'hold',
+  cost: 'unitCost',
+  usage_cost: 'usageCost',
+  std_consumption: 'stdConsumption',
 };
 
 // Shared by the materials list page and its CSV export so both stay in sync.
@@ -648,7 +686,10 @@ async function getMaterialsListRows({ workshop, q, from, to }) {
     const ncn = ncnSumMap[m.id] || { issueNcn: 0, returnNcn: 0 };
     const usage = (stockYesterdayMap[m.id] || 0) + issue - stock - ncn.issueNcn + ncn.returnNcn;
     const hold = ncn.issueNcn - ncn.returnNcn;
-    return { material: m, stock, usage, issue, hold };
+    const unitCost = m.cost || 0;
+    const usageCost = usage * unitCost;
+    const stdConsumption = m.std_consumption || 0;
+    return { material: m, stock, usage, issue, hold, unitCost, usageCost, stdConsumption };
   });
 }
 
@@ -667,7 +708,7 @@ app.get('/materials', async (req, res) => {
   const sortCol = MATERIAL_SORT_COLUMNS[sort];
   rows.sort((a, b) => {
     let av, bv;
-    if (sortCol === 'stock' || sortCol === 'usage' || sortCol === 'issue' || sortCol === 'hold') {
+    if (sortCol === 'stock' || sortCol === 'usage' || sortCol === 'issue' || sortCol === 'hold' || sortCol === 'unitCost' || sortCol === 'usageCost' || sortCol === 'stdConsumption') {
       av = a[sortCol];
       bv = b[sortCol];
     } else {
@@ -720,8 +761,10 @@ app.get('/materials/new', requireAdmin, async (req, res) => {
 });
 
 app.post('/materials/new', requireAdmin, async (req, res) => {
-  const { material_code = '', name, unit, workshop, min_stock, decimal_places } = req.body;
+  const { material_code = '', name, unit, workshop, min_stock, decimal_places, cost, std_consumption } = req.body;
   const minStock = parseFloat(min_stock) || 0;
+  const unitCost = parseFloat(cost) || 0;
+  const stdConsumption = parseFloat(std_consumption) || 0;
   const parsedDecimalPlaces = parseInt(decimal_places, 10);
   const decimalPlaces = Number.isNaN(parsedDecimalPlaces) ? 3 : Math.min(6, Math.max(0, parsedDecimalPlaces));
   const returnQs = req.body.return_qs || '';
@@ -729,11 +772,15 @@ app.post('/materials/new', requireAdmin, async (req, res) => {
   let error = null;
   if (minStock < 0) {
     error = 'Minimum stock cannot be negative.';
+  } else if (unitCost < 0) {
+    error = 'Unit cost cannot be negative.';
+  } else if (stdConsumption < 0) {
+    error = 'STD Consumption cannot be negative.';
   }
 
   if (error) {
     return res.status(400).render('material_form', {
-      material: { prod_material_code: await getNextMaterialCode(), material_code, name, unit, workshop, min_stock: minStock, decimal_places: decimalPlaces },
+      material: { prod_material_code: await getNextMaterialCode(), material_code, name, unit, workshop, min_stock: minStock, decimal_places: decimalPlaces, cost: unitCost, std_consumption: stdConsumption },
       units: KNOWN_UNITS,
       workshops: KNOWN_WORKSHOPS,
       error,
@@ -747,9 +794,9 @@ app.post('/materials/new', requireAdmin, async (req, res) => {
     const prodMaterialCode = await getNextMaterialCode();
     try {
       await db.run(
-        `INSERT INTO materials (prod_material_code, material_code, name, unit, workshop, min_stock, decimal_places)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [prodMaterialCode, material_code.trim(), name.trim(), unit.trim(), workshop.trim(), minStock, decimalPlaces]
+        `INSERT INTO materials (prod_material_code, material_code, name, unit, workshop, min_stock, decimal_places, cost, std_consumption)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [prodMaterialCode, material_code.trim(), name.trim(), unit.trim(), workshop.trim(), minStock, decimalPlaces, unitCost, stdConsumption]
       );
       return res.redirect(returnQs ? `/materials?${returnQs}` : '/materials');
     } catch (err) {
@@ -772,9 +819,11 @@ app.get('/materials/:id/edit', requireAdmin, async (req, res) => {
 
 app.post('/materials/:id/edit', requireAdmin, async (req, res) => {
   const materialId = req.params.id;
-  const { material_code = '', name, unit, workshop, min_stock, decimal_places } = req.body;
+  const { material_code = '', name, unit, workshop, min_stock, decimal_places, cost, std_consumption } = req.body;
   const prodMaterialCode = (req.body.prod_material_code || '').trim();
   const minStock = parseFloat(min_stock) || 0;
+  const unitCost = parseFloat(cost) || 0;
+  const stdConsumption = parseFloat(std_consumption) || 0;
   const parsedDecimalPlaces = parseInt(decimal_places, 10);
   const decimalPlaces = Number.isNaN(parsedDecimalPlaces) ? 3 : Math.min(6, Math.max(0, parsedDecimalPlaces));
   const returnQs = req.body.return_qs || '';
@@ -790,6 +839,8 @@ app.post('/materials/:id/edit', requireAdmin, async (req, res) => {
     if (conflict) error = `Material code '${prodMaterialCode}' already exists.`;
   }
   if (minStock < 0) error = 'Minimum stock cannot be negative.';
+  else if (unitCost < 0) error = 'Unit cost cannot be negative.';
+  else if (stdConsumption < 0) error = 'STD Consumption cannot be negative.';
 
   if (error) {
     return res.status(400).render('material_form', {
@@ -802,6 +853,8 @@ app.post('/materials/:id/edit', requireAdmin, async (req, res) => {
         workshop,
         min_stock: minStock,
         decimal_places: decimalPlaces,
+        cost: unitCost,
+        std_consumption: stdConsumption,
       },
       units: KNOWN_UNITS,
       workshops: KNOWN_WORKSHOPS,
@@ -812,12 +865,28 @@ app.post('/materials/:id/edit', requireAdmin, async (req, res) => {
   }
 
   await db.run(
-    `UPDATE materials SET prod_material_code = ?, material_code = ?, name = ?, unit = ?, workshop = ?, min_stock = ?, decimal_places = ?
+    `UPDATE materials SET prod_material_code = ?, material_code = ?, name = ?, unit = ?, workshop = ?, min_stock = ?, decimal_places = ?, cost = ?, std_consumption = ?
      WHERE id = ?`,
-    [prodMaterialCode, material_code.trim(), name.trim(), unit.trim(), workshop.trim(), minStock, decimalPlaces, materialId]
+    [prodMaterialCode, material_code.trim(), name.trim(), unit.trim(), workshop.trim(), minStock, decimalPlaces, unitCost, stdConsumption, materialId]
   );
 
   res.redirect(returnQs ? `/materials?${returnQs}` : '/materials');
+});
+
+const INLINE_EDITABLE_FIELDS = new Set(['cost', 'std_consumption']);
+
+app.post('/materials/:id/inline-update', async (req, res) => {
+  if (!req.isAdmin) return res.status(403).json({ error: 'Admin only.' });
+  const { field, value } = req.body;
+  if (!INLINE_EDITABLE_FIELDS.has(field)) return res.status(400).json({ error: 'Invalid field.' });
+  const num = parseFloat(value);
+  if (isNaN(num) || num < 0) return res.status(400).json({ error: 'Value must be a non-negative number.' });
+
+  const material = await db.get('SELECT id FROM materials WHERE id = ?', [req.params.id]);
+  if (!material) return res.status(404).json({ error: 'Material not found.' });
+
+  await db.run(`UPDATE materials SET ${field} = ? WHERE id = ?`, [num, req.params.id]);
+  res.json({ ok: true, value: num });
 });
 
 app.post('/materials/:id/delete', requireAdmin, async (req, res) => {
@@ -991,19 +1060,60 @@ app.post('/issue', async (req, res) => {
 
 // ---------- consumption calculator ----------
 
-app.get('/consumption', async (req, res) => {
-  const workshop = req.query.workshop || '';
-  const materialId = req.query.material_id || '';
+// QuantityMoved in DashboardWipProcessDaily is raw Pcs; divide by 1000 to match the
+// kPcs unit the Product Output field is expressed in.
+const MES_OUTPUT_UNIT_DIVISOR = 1000;
+
+// Per-day QuantityMoved (in kPcs) for the given operation/series, keyed by date string.
+async function getMesDailyOutputMap(operationName, series, fromDate, toDate) {
+  const placeholders = series.map(() => '?').join(', ');
+  const rows = await db.mes.all(
+    `SELECT ReportingDate, SUM(QuantityMoved) AS total FROM DashboardWipProcessDaily
+     WHERE OperationName = ? AND Serie IN (${placeholders}) AND ReportingDate BETWEEN ? AND ?
+     GROUP BY ReportingDate`,
+    [operationName, ...series, fromDate, toDate]
+  );
+  const map = {};
+  rows.forEach((r) => { map[dateKey(r.ReportingDate)] = Number(r.total) / MES_OUTPUT_UNIT_DIVISOR; });
+  return map;
+}
+
+async function computeConsumption(query) {
+  const workshop = query.workshop || '';
+  const materialId = query.material_id || '';
   const today = todayStr();
-  const from = req.query.from || today;
-  const to = req.query.to || today;
-  const outputRaw = (req.query.output || '').trim();
+  const from = query.from || today;
+  const to = query.to || today;
+  const operationName = query.operation_name || '';
+  const selectedSeries = [].concat(query.serie || []).filter(Boolean);
 
   const materials = await getIssueMaterials(workshop);
   const workshops = (await db.all('SELECT DISTINCT workshop FROM materials ORDER BY workshop')).map((r) => r.workshop);
 
+  const operationNames = (
+    await db.mes.all('SELECT DISTINCT OperationName FROM DashboardWipProcessDaily WHERE OperationName IS NOT NULL ORDER BY OperationName')
+  ).map((r) => r.OperationName);
+
+  let seriesOptions = [];
+  if (operationName) {
+    seriesOptions = (
+      await db.mes.all(
+        'SELECT DISTINCT Serie FROM DashboardWipProcessDaily WHERE OperationName = ? AND Serie IS NOT NULL ORDER BY Serie',
+        [operationName]
+      )
+    ).map((r) => r.Serie);
+  }
+
+  let mesOutput = null;
+  let mesDailyOutput = null;
+  if (operationName && selectedSeries.length) {
+    mesDailyOutput = await getMesDailyOutputMap(operationName, selectedSeries, from, to);
+    mesOutput = Object.values(mesDailyOutput).reduce((sum, v) => sum + v, 0);
+  }
+
   let result = null;
   let error = null;
+  let dailyChartData = null;
   if (materialId) {
     const material = await db.get('SELECT * FROM materials WHERE id = ?', [materialId]);
     if (!material) {
@@ -1015,13 +1125,10 @@ app.get('/consumption', async (req, res) => {
       const ncn = (await getNcnSumMap(from, to))[material.id] || { issueNcn: 0, returnNcn: 0 };
       const usage = stockYesterday + issueSum - stockToday - ncn.issueNcn + ncn.returnNcn;
 
-      let output = null;
+      const output = mesOutput;
       let consumption = null;
-      if (outputRaw !== '') {
-        output = parseFloat(outputRaw);
-        if (Number.isNaN(output)) {
-          error = 'Output must be a number.';
-        } else if (output <= 0) {
+      if (output != null) {
+        if (output <= 0) {
           error = 'Output must be greater than zero.';
         } else {
           consumption = usage / output;
@@ -1029,20 +1136,70 @@ app.get('/consumption', async (req, res) => {
       }
 
       result = { material, usage, output, consumption };
+
+      if (!error) {
+        const daily = await getDailyMaterialSeries(from, to, '', '', [material.id]);
+        const usageByDate = daily.usageByMaterial[material.id] || {};
+        const dailyUsage = daily.dates.map((d) => usageByDate[d] || 0);
+        const dailyOutput = mesDailyOutput ? daily.dates.map((d) => mesDailyOutput[d] || 0) : null;
+        const dailyConsumption = dailyOutput
+          ? daily.dates.map((_, i) => (dailyOutput[i] > 0 ? dailyUsage[i] / dailyOutput[i] : null))
+          : null;
+        dailyChartData = { dates: daily.dates, usage: dailyUsage, output: dailyOutput, consumption: dailyConsumption };
+      }
     }
   }
 
-  res.render('consumption', {
+  return {
     materials,
     workshops,
     selectedWorkshop: workshop,
     selectedMaterialId: materialId,
     from,
     to,
-    outputRaw,
+    operationNames,
+    selectedOperationName: operationName,
+    seriesOptions,
+    selectedSeries,
+    mesOutput,
+    dailyChartData,
     result,
     error,
-  });
+  };
+}
+
+app.get('/consumption', async (req, res) => {
+  const data = await computeConsumption(req.query);
+  res.render('consumption', data);
+});
+
+app.get('/export/consumption.csv', async (req, res) => {
+  const data = await computeConsumption(req.query);
+
+  const lines = ['Date,Workshop,Process,Material,Output,Consumption,Unit'];
+  if (data.result && !data.error && data.dailyChartData) {
+    const { material } = data.result;
+    const { dates, output, consumption } = data.dailyChartData;
+    dates.forEach((d, i) => {
+      lines.push(
+        [
+          d,
+          material.workshop,
+          data.selectedOperationName,
+          `${material.prod_material_code} - ${material.name}`,
+          output ? output[i] : '',
+          consumption && consumption[i] != null ? consumption[i] : '',
+          material.unit,
+        ]
+          .map(csvEscape)
+          .join(',')
+      );
+    });
+  }
+
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', 'attachment; filename=consumption.csv');
+  res.send(lines.join('\r\n'));
 });
 
 // ---------- material request (coming soon) ----------
@@ -1542,15 +1699,15 @@ app.get('/tickets', async (req, res) => {
   const openCount = (await db.get("SELECT COUNT(*) c FROM tickets WHERE status = 'OPEN'")).c;
   const returnQs = req.originalUrl.includes('?') ? req.originalUrl.slice(req.originalUrl.indexOf('?') + 1) : '';
 
-  const workshopShiftCounts = {
+  const workshopTypeCounts = {
     workshops: KNOWN_WORKSHOPS,
-    series: SHIFTS.map((s) => ({
-      shift: s,
-      counts: KNOWN_WORKSHOPS.map((w) => tickets.filter((t) => t.workshop === w && t.shift === s).length),
+    series: TICKET_TYPES.map((tt) => ({
+      type: tt,
+      counts: KNOWN_WORKSHOPS.map((w) => tickets.filter((t) => t.workshop === w && t.type === tt).length),
     })),
   };
 
-  res.render('tickets', { tickets, status, type, dateFrom, dateTo, openCount, fmtDate, workshopShiftCounts, returnQs });
+  res.render('tickets', { tickets, status, type, dateFrom, dateTo, openCount, fmtDate, workshopTypeCounts, returnQs });
 });
 
 app.get('/tickets/:id/attachment', async (req, res) => {

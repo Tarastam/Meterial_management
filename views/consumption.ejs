@@ -4,8 +4,8 @@
 
 <% if (error) { %><div class="alert error"><%= error %></div><% } %>
 
-<form class="card form-card" method="get" action="/consumption">
-  <div class="field">
+<form class="card filters form-horizontal" method="get" action="/consumption" id="consumptionForm">
+  <div class="field" style="margin-bottom:0;">
     <label>Workshop</label>
     <select name="workshop" onchange="this.form.submit()">
       <option value="">All Workshops</option>
@@ -14,7 +14,7 @@
       <% }) %>
     </select>
   </div>
-  <div class="field">
+  <div class="field" style="margin-bottom:0;">
     <label>Material *</label>
     <select name="material_id" required>
       <option value="">Select material...</option>
@@ -23,19 +23,47 @@
       <% }) %>
     </select>
   </div>
-  <div class="field">
+  <div class="field" style="margin-bottom:0;">
     <label>From *</label>
     <input type="date" name="from" value="<%= from %>" required>
   </div>
-  <div class="field">
+  <div class="field" style="margin-bottom:0;">
     <label>To *</label>
     <input type="date" name="to" value="<%= to %>" required>
   </div>
-  <div class="field">
-    <label>Product Output (kPcs)</label>
-    <input type="number" step="any" min="0" name="output" value="<%= outputRaw %>" placeholder="Units produced in this period">
+  <div class="field" style="margin-bottom:0;">
+    <label>Operation Name</label>
+    <select name="operation_name" onchange="this.form.submit()">
+      <option value="">Select operation...</option>
+      <% operationNames.forEach(op => { %>
+      <option value="<%= op %>" <%= op === selectedOperationName ? 'selected' : '' %>><%= op %></option>
+      <% }) %>
+    </select>
   </div>
-  <button class="btn" type="submit">Calculate</button>
+  <% if (selectedOperationName) { %>
+  <div class="field" style="margin-bottom:0;">
+    <label>Serie *</label>
+    <% if (seriesOptions.length) { %>
+    <details class="serie-dropdown">
+      <summary><span class="serie-dropdown-label"><%= selectedSeries.length ? selectedSeries.length + ' series selected' : 'Select series...' %></span></summary>
+      <div class="serie-dropdown-panel">
+        <label class="checkbox-row serie-select-all"><input type="checkbox" class="serie-select-all-checkbox"> <strong>Select All</strong></label>
+        <div class="serie-checkboxes">
+          <% seriesOptions.forEach(s => { %>
+          <label class="checkbox-row"><input type="checkbox" name="serie" value="<%= s %>" <%= selectedSeries.includes(s) ? 'checked' : '' %>> <%= s %></label>
+          <% }) %>
+        </div>
+        <button class="btn secondary small" type="submit" style="margin-top:0.5rem; width:100%;">Apply</button>
+      </div>
+    </details>
+    <% } else { %>
+    <p style="color:var(--gray-600); margin:0;">No series found for this operation.</p>
+    <% } %>
+  </div>
+  <% } %>
+  <div class="field" style="margin-bottom:0; align-self:flex-end;">
+    <button class="btn" type="submit">Calculate</button>
+  </div>
 </form>
 
 <% if (result) { %>
@@ -50,13 +78,137 @@
     <div class="label">Product Output(kPcs)</div>
   </div>
   <div class="kpi">
-    <div class="value"><%= result.consumption != null ? fmtNum(result.consumption, 4) : '-' %></div>
+    <div class="value"><%= result.consumption != null ? fmtConsumption(result.consumption) : '-' %></div>
     <div class="label">Consumption (<%= result.material.unit %>/kPcs)</div>
+  </div>
+  <div class="kpi">
+    <div class="value"><%= result.material.std_consumption ? fmtConsumption(result.material.std_consumption) : '-' %></div>
+    <div class="label">Standard Consumption (<%= result.material.unit %>/kPcs)</div>
   </div>
 </div>
 <div class="card">
   <p><strong>Material:</strong> <%= result.material.prod_material_code %> - <%= result.material.name %> (<%= result.material.workshop %>)</p>
   <p><strong>Period:</strong> <%= from %> to <%= to %></p>
+  <p><a class="btn secondary small" href="/export/consumption.csv?<%= new URLSearchParams({ workshop: selectedWorkshop, material_id: selectedMaterialId, from, to, operation_name: selectedOperationName }).toString() %><%= selectedSeries.map(s => '&serie=' + encodeURIComponent(s)).join('') %>">Export CSV</a></p>
+</div>
+
+<% if (dailyChartData && dailyChartData.dates.length && dailyChartData.output) { %>
+<div class="card" style="margin-top:1rem;">
+  <h3>Daily Consumption</h3>
+  <canvas id="dailyConsumptionChart" height="90" role="img" aria-label="Daily output and consumption for the selected material and period"></canvas>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+  // Mirrors server.js's fmtConsumption: 3 significant figures, dropped to 2 when the
+  // 3rd would be a trailing zero (0.000420 -> "0.00042", 0.000362 stays "0.000362").
+  function formatConsumption(n) {
+    if (n === null || n === undefined || n === '' || isNaN(n)) return '-';
+    const num = Number(n);
+    if (num === 0) return '0';
+    const sign = num < 0 ? '-' : '';
+    const abs = Math.abs(num);
+    let exp = Math.floor(Math.log10(abs));
+    const roundToSig = (sig) => {
+      const factor = Math.pow(10, sig - 1 - exp);
+      return Math.round(abs * factor) / factor;
+    };
+    let rounded = roundToSig(3);
+    const newExp = Math.floor(Math.log10(rounded));
+    if (newExp !== exp) {
+      exp = newExp;
+      rounded = roundToSig(3);
+    }
+    let decimals = Math.max(0, 2 - exp);
+    let str = rounded.toFixed(decimals);
+    const digits = str.replace('.', '').replace(/^0+/, '') || '0';
+    if (digits.length >= 3 && digits[2] === '0') {
+      decimals = Math.max(0, 1 - exp);
+      rounded = roundToSig(2);
+      str = rounded.toFixed(decimals);
+    }
+    return sign + str;
+  }
+
+  const dailyConsumptionData = <%- JSON.stringify(dailyChartData) %>;
+  const stdConsumption = <%- JSON.stringify(result.material.std_consumption || 0) %>;
+  const dailyConsumptionCanvas = document.getElementById('dailyConsumptionChart');
+  if (dailyConsumptionCanvas) {
+    // Chart.js draws datasets with a lower 'order' value last, i.e. on top - so the bar
+    // needs the highest order value here to keep both line datasets in front of it.
+    const datasets = [
+      { type: 'bar', label: 'Output (kPcs)', data: dailyConsumptionData.output, backgroundColor: '#16a34a', borderRadius: 2, order: 2, yAxisID: 'y' },
+      { type: 'line', label: 'Consumption', data: dailyConsumptionData.consumption, borderColor: '#d97706', backgroundColor: '#d97706', tension: 0.25, spanGaps: true, order: 0, yAxisID: 'y1' },
+    ];
+    if (stdConsumption > 0) {
+      datasets.push({
+        type: 'line',
+        label: 'Standard Consumption',
+        data: dailyConsumptionData.dates.map(() => stdConsumption),
+        borderColor: '#dc2626',
+        backgroundColor: '#dc2626',
+        borderDash: [6, 4],
+        pointRadius: 0,
+        tension: 0,
+        order: 1,
+        yAxisID: 'y1',
+      });
+    }
+    new Chart(dailyConsumptionCanvas, {
+      data: { labels: dailyConsumptionData.dates, datasets },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: true, position: 'bottom' },
+          tooltip: {
+            callbacks: {
+              label(ctx) {
+                const value = ctx.dataset.yAxisID === 'y1' ? formatConsumption(ctx.parsed.y) : ctx.formattedValue;
+                return `${ctx.dataset.label}: ${value}`;
+              },
+            },
+          },
+        },
+        scales: {
+          y: { beginAtZero: true, position: 'left' },
+          y1: {
+            beginAtZero: true,
+            position: 'right',
+            grid: { drawOnChartArea: false },
+            ticks: { callback: (value) => formatConsumption(value) },
+          },
+        },
+      },
+    });
+  }
+</script>
+<% } else if (dailyChartData && dailyChartData.dates.length) { %>
+<div class="card" style="margin-top:1rem;">
+  <h3>Daily Consumption</h3>
+  <p style="color:var(--gray-600); font-size:0.85rem; margin:0;">Select an Operation and Series above to see the daily Output/Consumption chart.</p>
 </div>
 <% } %>
+<% } %>
+
+<script>
+  document.querySelectorAll('.serie-dropdown').forEach((dropdown) => {
+    const label = dropdown.querySelector('.serie-dropdown-label');
+    const selectAll = dropdown.querySelector('.serie-select-all-checkbox');
+    const boxes = dropdown.querySelectorAll('.serie-checkboxes input[type="checkbox"]');
+
+    const updateLabel = () => {
+      const checked = Array.from(boxes).filter((c) => c.checked).length;
+      label.textContent = checked ? checked + ' series selected' : 'Select series...';
+      if (selectAll) selectAll.checked = checked === boxes.length;
+    };
+
+    boxes.forEach((b) => b.addEventListener('change', updateLabel));
+    if (selectAll) {
+      selectAll.addEventListener('change', () => {
+        boxes.forEach((b) => { b.checked = selectAll.checked; });
+        updateLabel();
+      });
+    }
+    updateLabel();
+  });
+</script>
 <%- include('partials/foot') %>
