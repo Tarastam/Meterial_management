@@ -3,8 +3,9 @@ const crypto = require('node:crypto');
 const path = require('node:path');
 const express = require('express');
 const multer = require('multer');
+const XLSX = require('xlsx');
 const db = require('./src/db');
-const { KNOWN_UNITS, KNOWN_WORKSHOPS } = require('./src/constants');
+const { KNOWN_UNITS, KNOWN_WORKSHOPS, KNOWN_SERIES } = require('./src/constants');
 
 const app = express();
 app.set('view engine', 'ejs');
@@ -41,11 +42,24 @@ const ticketUpload = multer({
   },
 });
 
-// ---------- admin auth ----------
+// ---------- user auth ----------
 
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
-const ADMIN_COOKIE = 'admin_session';
-const ADMIN_TOKEN = crypto.randomBytes(32).toString('hex');
+const SESSION_COOKIE = 'user_session';
+const SESSION_MAX_AGE_MS = 12 * 60 * 60 * 1000;
+
+// Every permission a master admin can grant to a user. Keys are checked with req.can(key).
+const PERMISSIONS = [
+  { key: 'materials_manage', label: 'Materials Manage (add/edit/delete materials)' },
+  { key: 'process_map', label: 'Process Mapping' },
+  { key: 'transactions_manage', label: 'Transactions Manage (void/edit)' },
+  { key: 'tickets_manage', label: 'Tickets Manage (resolve/delete)' },
+  { key: 'dashboard_anomalies', label: 'Dashboard Anomalies' },
+  { key: 'issue_backdate', label: 'Backdate Entry (Record Data)' },
+];
+const PERMISSION_KEYS = new Set(PERMISSIONS.map((p) => p.key));
+
+// token -> { id, username, is_master, permissions: Set<string> }, cleared on server restart.
+const sessions = new Map();
 
 function parseCookies(req) {
   const header = req.headers.cookie;
@@ -59,9 +73,48 @@ function parseCookies(req) {
   return cookies;
 }
 
+function hashPassword(password) {
+  const salt = crypto.randomBytes(16).toString('hex');
+  const hash = crypto.scryptSync(password, salt, 64).toString('hex');
+  return `${salt}:${hash}`;
+}
+
+function verifyPassword(password, stored) {
+  const [salt, hash] = (stored || '').split(':');
+  if (!salt || !hash) return false;
+  const candidate = crypto.scryptSync(password, salt, 64);
+  const expected = Buffer.from(hash, 'hex');
+  return candidate.length === expected.length && crypto.timingSafeEqual(candidate, expected);
+}
+
+function parsePermissions(json) {
+  try {
+    const arr = JSON.parse(json || '[]');
+    return new Set(Array.isArray(arr) ? arr.filter((k) => PERMISSION_KEYS.has(k)) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+async function seedMasterAdmin() {
+  const existing = await db.get('SELECT id FROM users WHERE is_master = 1');
+  if (existing) return;
+  await db.run(
+    'INSERT INTO users (username, password_hash, is_master, permissions) VALUES (?, ?, 1, ?)',
+    ['admin', hashPassword(process.env.ADMIN_PASSWORD), JSON.stringify(PERMISSIONS.map((p) => p.key))]
+  );
+}
+
 app.use((req, res, next) => {
-  req.isAdmin = parseCookies(req)[ADMIN_COOKIE] === ADMIN_TOKEN;
+  const token = parseCookies(req)[SESSION_COOKIE];
+  const session = token ? sessions.get(token) : null;
+  req.user = session || null;
+  req.isAdmin = !!(session && (session.is_master || session.permissions.size > 0));
+  req.can = (key) => !!(session && (session.is_master || session.permissions.has(key)));
   res.locals.isAdmin = req.isAdmin;
+  res.locals.isMaster = !!(session && session.is_master);
+  res.locals.currentUser = session;
+  res.locals.can = req.can;
   res.locals.fmtNum = fmtNum;
   res.locals.fmtConsumption = fmtConsumption;
   res.locals.fmtDateOnly = fmtDateOnly;
@@ -73,21 +126,44 @@ function requireAdmin(req, res, next) {
   next();
 }
 
+function requirePermission(key) {
+  return (req, res, next) => {
+    if (!req.user) return res.redirect(`/admin/login?next=${encodeURIComponent(req.originalUrl)}`);
+    if (!req.can(key)) return res.status(403).send('You do not have permission to access this page.');
+    next();
+  };
+}
+
+function requireMaster(req, res, next) {
+  if (!req.user) return res.redirect(`/admin/login?next=${encodeURIComponent(req.originalUrl)}`);
+  if (!req.user.is_master) return res.status(403).send('Master admin only.');
+  next();
+}
+
 app.get('/admin/login', (req, res) => {
   res.render('admin_login', { error: null, next: req.query.next || '/transactions' });
 });
 
 app.post('/admin/login', async (req, res) => {
+  const username = (req.body.username || '').trim();
   const password = req.body.password || '';
   const next = req.body.next || '/transactions';
-  if (password !== ADMIN_PASSWORD) {
-    return res.status(400).render('admin_login', { error: 'Incorrect password.', next });
+  const user = await db.get('SELECT * FROM users WHERE username = ?', [username]);
+  if (!user || !verifyPassword(password, user.password_hash)) {
+    return res.status(400).render('admin_login', { error: 'Incorrect username or password.', next });
   }
-  res.cookie(ADMIN_COOKIE, ADMIN_TOKEN, {
+  const token = crypto.randomBytes(32).toString('hex');
+  sessions.set(token, {
+    id: user.id,
+    username: user.username,
+    is_master: !!user.is_master,
+    permissions: parsePermissions(user.permissions),
+  });
+  res.cookie(SESSION_COOKIE, token, {
     httpOnly: true,
     sameSite: 'lax',
     secure: process.env.COOKIE_SECURE === 'true',
-    maxAge: 12 * 60 * 60 * 1000,
+    maxAge: SESSION_MAX_AGE_MS,
   });
   const openCount = (await db.get("SELECT COUNT(*) c FROM tickets WHERE status = 'OPEN'")).c;
   res.cookie('admin_login_popup', String(openCount), { sameSite: 'lax', maxAge: 30 * 1000 });
@@ -95,8 +171,78 @@ app.post('/admin/login', async (req, res) => {
 });
 
 app.post('/admin/logout', (req, res) => {
-  res.clearCookie(ADMIN_COOKIE);
+  const token = parseCookies(req)[SESSION_COOKIE];
+  if (token) sessions.delete(token);
+  res.clearCookie(SESSION_COOKIE);
   res.redirect('/');
+});
+
+// ---------- user management (master admin only) ----------
+
+app.get('/admin/users', requireMaster, async (req, res) => {
+  const users = await db.all('SELECT id, username, is_master, permissions, created_at FROM users ORDER BY is_master DESC, username ASC');
+  res.render('user_management', {
+    users: users.map((u) => ({ ...u, permissions: parsePermissions(u.permissions) })),
+    permissionList: PERMISSIONS,
+    error: null,
+  });
+});
+
+app.post('/admin/users/new', requireMaster, async (req, res) => {
+  const username = (req.body.username || '').trim();
+  const password = req.body.password || '';
+  const permissions = PERMISSIONS.map((p) => p.key).filter((k) => req.body[`perm_${k}`] === 'on');
+  if (!username || !password) {
+    const users = await db.all('SELECT id, username, is_master, permissions, created_at FROM users ORDER BY is_master DESC, username ASC');
+    return res.status(400).render('user_management', {
+      users: users.map((u) => ({ ...u, permissions: parsePermissions(u.permissions) })),
+      permissionList: PERMISSIONS,
+      error: 'Username and password are required.',
+    });
+  }
+  try {
+    await db.run(
+      'INSERT INTO users (username, password_hash, is_master, permissions) VALUES (?, ?, 0, ?)',
+      [username, hashPassword(password), JSON.stringify(permissions)]
+    );
+  } catch {
+    const users = await db.all('SELECT id, username, is_master, permissions, created_at FROM users ORDER BY is_master DESC, username ASC');
+    return res.status(400).render('user_management', {
+      users: users.map((u) => ({ ...u, permissions: parsePermissions(u.permissions) })),
+      permissionList: PERMISSIONS,
+      error: 'That username is already taken.',
+    });
+  }
+  res.redirect('/admin/users');
+});
+
+app.post('/admin/users/:id/permissions', requireMaster, async (req, res) => {
+  const user = await db.get('SELECT * FROM users WHERE id = ?', [req.params.id]);
+  if (!user || user.is_master) return res.redirect('/admin/users');
+  const permissions = PERMISSIONS.map((p) => p.key).filter((k) => req.body[`perm_${k}`] === 'on');
+  await db.run('UPDATE users SET permissions = ? WHERE id = ?', [JSON.stringify(permissions), user.id]);
+  for (const session of sessions.values()) {
+    if (session.id === user.id) session.permissions = new Set(permissions);
+  }
+  res.redirect('/admin/users');
+});
+
+app.post('/admin/users/:id/reset-password', requireMaster, async (req, res) => {
+  const password = req.body.password || '';
+  const user = await db.get('SELECT * FROM users WHERE id = ?', [req.params.id]);
+  if (!user || !password) return res.redirect('/admin/users');
+  await db.run('UPDATE users SET password_hash = ? WHERE id = ?', [hashPassword(password), user.id]);
+  res.redirect('/admin/users');
+});
+
+app.post('/admin/users/:id/delete', requireMaster, async (req, res) => {
+  const user = await db.get('SELECT * FROM users WHERE id = ?', [req.params.id]);
+  if (!user || user.is_master) return res.redirect('/admin/users');
+  await db.run('DELETE FROM users WHERE id = ?', [user.id]);
+  for (const [token, session] of sessions) {
+    if (session.id === user.id) sessions.delete(token);
+  }
+  res.redirect('/admin/users');
 });
 
 // ---------- helpers ----------
@@ -626,7 +772,7 @@ app.get('/', async (req, res) => {
   const prevMonth = prevMonthRange(today);
   const prevMonthTotals = sumDaily(await getDailyIssueUsage(prevMonth.start, prevMonth.end, workshop, shift, materialIds));
 
-  const usageAnomalies = req.isAdmin ? (
+  const usageAnomalies = req.can('dashboard_anomalies') ? (
     await computeUsageAnomalies(from, to, workshop, shift, materialIds, materials)
   ).slice(0, 5) : [];
 
@@ -754,7 +900,7 @@ async function getNextMaterialCode() {
   return MATERIAL_CODE_PREFIX + String(max + 1).padStart(MATERIAL_CODE_DIGITS, '0');
 }
 
-app.get('/materials/new', requireAdmin, async (req, res) => {
+app.get('/materials/new', requirePermission('materials_manage'), async (req, res) => {
   res.render('material_form', {
     material: { prod_material_code: await getNextMaterialCode(), decimal_places: 3 },
     units: KNOWN_UNITS,
@@ -765,7 +911,7 @@ app.get('/materials/new', requireAdmin, async (req, res) => {
   });
 });
 
-app.post('/materials/new', requireAdmin, async (req, res) => {
+app.post('/materials/new', requirePermission('materials_manage'), async (req, res) => {
   const { material_code = '', name, unit, workshop, min_stock, decimal_places, cost, std_consumption } = req.body;
   const minStock = parseFloat(min_stock) || 0;
   const unitCost = parseFloat(cost) || 0;
@@ -810,7 +956,7 @@ app.post('/materials/new', requireAdmin, async (req, res) => {
   }
 });
 
-app.get('/materials/:id/edit', requireAdmin, async (req, res) => {
+app.get('/materials/:id/edit', requirePermission('materials_manage'), async (req, res) => {
   const material = await db.get('SELECT * FROM materials WHERE id = ?', [req.params.id]);
   res.render('material_form', {
     material,
@@ -822,7 +968,7 @@ app.get('/materials/:id/edit', requireAdmin, async (req, res) => {
   });
 });
 
-app.post('/materials/:id/edit', requireAdmin, async (req, res) => {
+app.post('/materials/:id/edit', requirePermission('materials_manage'), async (req, res) => {
   const materialId = req.params.id;
   const { material_code = '', name, unit, workshop, min_stock, decimal_places, cost, std_consumption } = req.body;
   const prodMaterialCode = (req.body.prod_material_code || '').trim();
@@ -881,7 +1027,7 @@ app.post('/materials/:id/edit', requireAdmin, async (req, res) => {
 const INLINE_EDITABLE_FIELDS = new Set(['cost', 'std_consumption']);
 
 app.post('/materials/:id/inline-update', async (req, res) => {
-  if (!req.isAdmin) return res.status(403).json({ error: 'Admin only.' });
+  if (!req.can('materials_manage')) return res.status(403).json({ error: 'Admin only.' });
   const { field, value } = req.body;
   if (!INLINE_EDITABLE_FIELDS.has(field)) return res.status(400).json({ error: 'Invalid field.' });
   const num = parseFloat(value);
@@ -894,7 +1040,7 @@ app.post('/materials/:id/inline-update', async (req, res) => {
   res.json({ ok: true, value: num });
 });
 
-app.post('/materials/:id/delete', requireAdmin, async (req, res) => {
+app.post('/materials/:id/delete', requirePermission('materials_manage'), async (req, res) => {
   await db.run('DELETE FROM issue_entries WHERE material_id = ?', [req.params.id]);
   await db.run('DELETE FROM materials WHERE id = ?', [req.params.id]);
   const qs = req.body.return_qs || '';
@@ -940,7 +1086,7 @@ async function renderIssueForm(req, res, status, extra) {
 }
 
 app.get('/issue', async (req, res) => {
-  const entryDate = req.isAdmin && DATE_RE.test(req.query.date) ? req.query.date : entryDayStr();
+  const entryDate = req.can('issue_backdate') && DATE_RE.test(req.query.date) ? req.query.date : entryDayStr();
   await renderIssueForm(req, res, 200, { success: req.query.success, workshop: req.query.workshop || '', entryDate });
 });
 
@@ -949,7 +1095,7 @@ app.post('/issue', async (req, res) => {
   const materials = await getIssueMaterials(workshop);
   const employeeId = (req.body.employee_id || '').trim();
   const shift = req.body.shift || '';
-  const entryDate = req.isAdmin && DATE_RE.test(req.body.entry_date) ? req.body.entry_date : entryDayStr();
+  const entryDate = req.can('issue_backdate') && DATE_RE.test(req.body.entry_date) ? req.body.entry_date : entryDayStr();
 
   let error = null;
   if (!EMPLOYEE_ID_RE.test(employeeId)) {
@@ -1008,7 +1154,7 @@ app.post('/issue', async (req, res) => {
 
   // Block accidental double-entry of the same material on the same day. Admins are exempt
   // since they intentionally re-enter/backdate records to correct mistakes.
-  if (!error && rowsToInsert.length && !req.isAdmin) {
+  if (!error && rowsToInsert.length && !req.can('issue_backdate')) {
     const rowMaterialIds = rowsToInsert.map((r) => r.materialId);
     const dupFilter = materialIdsFilter('material_id', rowMaterialIds);
     const dupRows = await db.all(
@@ -1205,6 +1351,543 @@ app.get('/export/consumption.csv', async (req, res) => {
   res.setHeader('Content-Type', 'text/csv');
   res.setHeader('Content-Disposition', 'attachment; filename=consumption.csv');
   res.send(lines.join('\r\n'));
+});
+
+// ---------- process map (admin: material <-> MES operation/serie/part number) ----------
+// Two linked views: Material<->Operation (one Operation per material), and, once an
+// Operation is set, Material<->Serie (many series per material) with an optional
+// Part Number subset per material-serie link.
+
+app.get('/process-map', requirePermission('process_map'), async (req, res) => {
+  const workshop = req.query.workshop || '';
+  const materials = await getIssueMaterials(workshop);
+  const workshops = (await db.all('SELECT DISTINCT workshop FROM materials ORDER BY workshop')).map((r) => r.workshop);
+  const operationNames = (
+    await db.mes.all('SELECT DISTINCT OperationName FROM DashboardWipProcessDaily WHERE OperationName IS NOT NULL ORDER BY OperationName')
+  ).map((r) => r.OperationName);
+
+  const mapRows = await db.all('SELECT * FROM material_process_map');
+  const operationByMaterialId = {};
+  mapRows.forEach((r) => { operationByMaterialId[r.material_id] = r.operation_name; });
+
+  res.render('process_map', {
+    materials,
+    workshops,
+    selectedWorkshop: workshop,
+    operationNames,
+    operationByMaterialId,
+    saved: req.query.saved === '1',
+  });
+});
+
+app.post('/process-map/operation', requirePermission('process_map'), async (req, res) => {
+  const materialId = Number(req.body.material_id);
+  const operationName = req.body.operation_name || '';
+  const returnQs = req.body.return_qs || '';
+  const sep = returnQs ? '&' : '?';
+  const redirectTo = returnQs ? `/process-map?${returnQs}${sep}saved=1` : '/process-map?saved=1';
+
+  const material = await db.get('SELECT id FROM materials WHERE id = ?', [materialId]);
+  if (!material || !operationName) return res.redirect(redirectTo);
+
+  const existing = await db.get('SELECT id, operation_name FROM material_process_map WHERE material_id = ?', [materialId]);
+  if (existing) {
+    if (existing.operation_name !== operationName) {
+      // Changing the operation invalidates any series chosen under the old one.
+      await db.run('DELETE FROM material_process_series WHERE material_process_map_id = ?', [existing.id]);
+      await db.run('UPDATE material_process_map SET operation_name = ?, updated_at = SYSDATETIME() WHERE id = ?', [operationName, existing.id]);
+    }
+  } else {
+    await db.run('INSERT INTO material_process_map (material_id, operation_name) VALUES (?, ?)', [materialId, operationName]);
+  }
+  res.redirect(redirectTo);
+});
+
+app.post('/process-map/operation/clear', requirePermission('process_map'), async (req, res) => {
+  const materialId = Number(req.body.material_id);
+  const returnQs = req.body.return_qs || '';
+  await db.run('DELETE FROM material_process_map WHERE material_id = ?', [materialId]);
+  res.redirect(returnQs ? `/process-map?${returnQs}` : '/process-map');
+});
+
+// Batch save for the Material <-> Process diagram: applies every pending set/clear picked
+// in the browser in one request, so the user can select many pairs before a single reload.
+app.post('/process-map/operation/batch', requirePermission('process_map'), async (req, res) => {
+  let changes = [];
+  try {
+    changes = JSON.parse(req.body.changes || '[]');
+  } catch (e) {
+    return res.status(400).json({ error: 'Invalid changes payload' });
+  }
+
+  for (const change of changes) {
+    const materialId = Number(change.material_id);
+    const operationName = (change.operation_name || '').trim();
+    if (!materialId) continue;
+
+    const existing = await db.get('SELECT id, operation_name FROM material_process_map WHERE material_id = ?', [materialId]);
+
+    if (!operationName) {
+      if (existing) await db.run('DELETE FROM material_process_map WHERE material_id = ?', [materialId]);
+      continue;
+    }
+
+    const material = await db.get('SELECT id FROM materials WHERE id = ?', [materialId]);
+    if (!material) continue;
+
+    if (existing) {
+      if (existing.operation_name !== operationName) {
+        await db.run('DELETE FROM material_process_series WHERE material_process_map_id = ?', [existing.id]);
+        await db.run('UPDATE material_process_map SET operation_name = ?, updated_at = SYSDATETIME() WHERE id = ?', [operationName, existing.id]);
+      }
+    } else {
+      await db.run('INSERT INTO material_process_map (material_id, operation_name) VALUES (?, ?)', [materialId, operationName]);
+    }
+  }
+
+  res.json({ ok: true });
+});
+
+// Series options for a given OperationName - used to populate the Serie choices once an
+// Operation is set, without a full page reload.
+app.get('/process-map/series', requirePermission('process_map'), async (req, res) => {
+  const operationName = req.query.operation_name || '';
+  if (!operationName) return res.json({ series: [] });
+  const rows = await db.mes.all(
+    'SELECT DISTINCT Serie FROM DashboardWipProcessDaily WHERE OperationName = ? AND Serie IS NOT NULL ORDER BY Serie',
+    [operationName]
+  );
+  res.json({ series: rows.map((r) => r.Serie) });
+});
+
+// ---------- process map: material <-> serie (+ part number) view ----------
+
+app.get('/process-map/series-view', requirePermission('process_map'), async (req, res) => {
+  const workshop = req.query.workshop || '';
+  const search = (req.query.q || '').trim();
+
+  let materials = workshop ? await getIssueMaterials(workshop) : [];
+  if (search) {
+    const like = `%${search}%`;
+    materials = (workshop ? materials : await getIssueMaterials(''))
+      .filter((m) => m.prod_material_code.toLowerCase().includes(search.toLowerCase()) || m.name.toLowerCase().includes(search.toLowerCase()));
+  }
+  // Require at least one filter before loading materials, to keep the diagram from
+  // rendering hundreds of nodes at once.
+  const showDiagram = Boolean(workshop || search);
+
+  const workshops = (await db.all('SELECT DISTINCT workshop FROM materials ORDER BY workshop')).map((r) => r.workshop);
+
+  let materialData = [];
+  if (showDiagram && materials.length) {
+    const materialIds = materials.map((m) => m.id);
+    const placeholders = materialIds.map(() => '?').join(', ');
+    const mapRows = materialIds.length
+      ? await db.all(`SELECT * FROM material_process_map WHERE material_id IN (${placeholders})`, materialIds)
+      : [];
+    const mapByMaterialId = {};
+    mapRows.forEach((r) => { mapByMaterialId[r.material_id] = r; });
+
+    const mapIds = mapRows.map((r) => r.id);
+    const seriesRows = mapIds.length
+      ? await db.all(`SELECT * FROM material_process_series WHERE material_process_map_id IN (${mapIds.map(() => '?').join(', ')})`, mapIds)
+      : [];
+    const seriesByMapId = {};
+    seriesRows.forEach((r) => {
+      if (!seriesByMapId[r.material_process_map_id]) seriesByMapId[r.material_process_map_id] = [];
+      seriesByMapId[r.material_process_map_id].push(r);
+    });
+
+    const seriesIds = seriesRows.map((r) => r.id);
+    const pnRows = seriesIds.length
+      ? await db.all(
+          `SELECT * FROM material_process_series_part_numbers WHERE material_process_series_id IN (${seriesIds.map(() => '?').join(', ')})`,
+          seriesIds
+        )
+      : [];
+    const pnByseriesId = {};
+    pnRows.forEach((r) => {
+      if (!pnByseriesId[r.material_process_series_id]) pnByseriesId[r.material_process_series_id] = [];
+      pnByseriesId[r.material_process_series_id].push(r.part_number);
+    });
+
+    materialData = materials.map((m) => {
+      const mapping = mapByMaterialId[m.id];
+      const series = mapping
+        ? (seriesByMapId[mapping.id] || []).map((s) => ({ id: s.id, serie: s.serie, partNumbers: pnByseriesId[s.id] || [] }))
+        : [];
+      return { material: m, operationName: mapping ? mapping.operation_name : null, series };
+    });
+  }
+
+  let allSeries = KNOWN_SERIES;
+
+  if (workshop) {
+    const serieWorkshopRows = await db.all('SELECT serie FROM serie_workshop_map WHERE workshop = ?', [workshop]);
+    const allowedSeries = new Set(serieWorkshopRows.map((r) => r.serie));
+    allSeries = allSeries.filter((s) => allowedSeries.has(s));
+  }
+
+  res.render('process_map_series', {
+    materialData,
+    workshops,
+    selectedWorkshop: workshop,
+    search,
+    showDiagram,
+    allSeries,
+    saved: req.query.saved === '1',
+  });
+});
+
+app.post('/process-map/series-view/toggle', requirePermission('process_map'), async (req, res) => {
+  const materialId = Number(req.body.material_id);
+  const serie = req.body.serie || '';
+  const returnQs = req.body.return_qs || '';
+  const redirectTo = returnQs ? `/process-map/series-view?${returnQs}` : '/process-map/series-view';
+
+  const mapping = await db.get('SELECT id, operation_name FROM material_process_map WHERE material_id = ?', [materialId]);
+  if (!mapping || !serie) return res.redirect(redirectTo);
+
+  const existing = await db.get(
+    'SELECT id FROM material_process_series WHERE material_process_map_id = ? AND serie = ?',
+    [mapping.id, serie]
+  );
+  if (existing) {
+    await db.run('DELETE FROM material_process_series WHERE id = ?', [existing.id]);
+    return res.redirect(redirectTo);
+  }
+
+  const validSerie = await db.mes.get(
+    'SELECT TOP 1 1 AS ok FROM DashboardWipProcessDaily WHERE OperationName = ? AND Serie = ?',
+    [mapping.operation_name, serie]
+  );
+  if (!validSerie) return res.redirect(redirectTo);
+
+  await db.run('INSERT INTO material_process_series (material_process_map_id, serie) VALUES (?, ?)', [mapping.id, serie]);
+  res.redirect(redirectTo);
+});
+
+// Batch save for the Material <-> Serie diagram: applies every pending connect/disconnect
+// picked in the browser in one request, so the user can select many pairs before a single reload.
+app.post('/process-map/series-view/toggle/batch', requirePermission('process_map'), async (req, res) => {
+  let changes = [];
+  try {
+    changes = JSON.parse(req.body.changes || '[]');
+  } catch (e) {
+    return res.status(400).json({ error: 'Invalid changes payload' });
+  }
+
+  for (const change of changes) {
+    const materialId = Number(change.material_id);
+    const serie = (change.serie || '').trim();
+    const action = change.action === 'remove' ? 'remove' : 'add';
+    if (!materialId || !serie) continue;
+
+    const mapping = await db.get('SELECT id, operation_name FROM material_process_map WHERE material_id = ?', [materialId]);
+    if (!mapping) continue;
+
+    const existing = await db.get(
+      'SELECT id FROM material_process_series WHERE material_process_map_id = ? AND serie = ?',
+      [mapping.id, serie]
+    );
+
+    if (action === 'remove') {
+      if (existing) await db.run('DELETE FROM material_process_series WHERE id = ?', [existing.id]);
+      continue;
+    }
+
+    if (existing) continue;
+
+    const validSerie = await db.mes.get(
+      'SELECT TOP 1 1 AS ok FROM DashboardWipProcessDaily WHERE OperationName = ? AND Serie = ?',
+      [mapping.operation_name, serie]
+    );
+    if (!validSerie) continue;
+
+    await db.run('INSERT INTO material_process_series (material_process_map_id, serie) VALUES (?, ?)', [mapping.id, serie]);
+  }
+
+  res.json({ ok: true });
+});
+
+// Part Numbers imported for a given serie, for the expand-to-select UI.
+app.get('/process-map/part-numbers', requirePermission('process_map'), async (req, res) => {
+  const serie = req.query.serie || '';
+  if (!serie) return res.json({ partNumbers: [] });
+  const rows = await db.all(
+    'SELECT part_number FROM serie_part_numbers WHERE serie = ? ORDER BY part_number',
+    [serie]
+  );
+  res.json({ partNumbers: rows.map((r) => r.part_number) });
+});
+
+// ---------- process map: part number matching (admin data entry) ----------
+
+app.get('/process-map/part-numbers/list', requirePermission('process_map'), async (req, res) => {
+  const series = KNOWN_SERIES;
+
+  res.render('process_map_part_numbers', {
+    series,
+    saved: req.query.saved === '1',
+  });
+});
+
+app.post('/process-map/part-numbers', requirePermission('process_map'), async (req, res) => {
+  const serie = req.body.serie || '';
+  const returnQs = req.body.return_qs || '';
+  const redirectTo = returnQs ? `/process-map/part-numbers/list?${returnQs}&saved=1` : '/process-map/part-numbers/list?saved=1';
+
+  if (!serie) return res.redirect(redirectTo);
+
+  const partNumbers = [...new Set(
+    [].concat(req.body.part_number || []).map((v) => (v || '').trim()).filter(Boolean)
+  )];
+
+  const existing = await db.all('SELECT part_number FROM serie_part_numbers WHERE serie = ?', [serie]);
+  const existingSet = new Set(existing.map((r) => r.part_number));
+  const newSet = new Set(partNumbers);
+
+  const toDelete = [...existingSet].filter((pn) => !newSet.has(pn));
+  const toInsert = partNumbers.filter((pn) => !existingSet.has(pn));
+
+  for (const pn of toDelete) {
+    await db.run('DELETE FROM serie_part_numbers WHERE serie = ? AND part_number = ?', [serie, pn]);
+  }
+  for (const pn of toInsert) {
+    await db.run('INSERT INTO serie_part_numbers (serie, part_number) VALUES (?, ?)', [serie, pn]);
+  }
+
+  res.redirect(redirectTo);
+});
+
+app.post('/process-map/series-view/part-numbers', requirePermission('process_map'), async (req, res) => {
+  const materialProcessSeriesId = Number(req.body.material_process_series_id);
+  const partNumbers = [].concat(req.body.part_number || []).filter(Boolean);
+  const returnQs = req.body.return_qs || '';
+  const redirectTo = returnQs ? `/process-map/series-view?${returnQs}` : '/process-map/series-view';
+  const isAjax = req.body.ajax === '1';
+
+  const seriesRow = await db.get('SELECT id FROM material_process_series WHERE id = ?', [materialProcessSeriesId]);
+  if (!seriesRow) return isAjax ? res.status(404).end() : res.redirect(redirectTo);
+
+  await db.run('DELETE FROM material_process_series_part_numbers WHERE material_process_series_id = ?', [materialProcessSeriesId]);
+  for (const pn of partNumbers) {
+    await db.run(
+      'INSERT INTO material_process_series_part_numbers (material_process_series_id, part_number) VALUES (?, ?)',
+      [materialProcessSeriesId, pn]
+    );
+  }
+
+  if (isAjax) return res.status(204).end();
+  res.redirect(redirectTo);
+});
+
+// ---------- process map: serie <-> workshop mapping (used to filter the Serie tab) ----------
+
+app.get('/process-map/serie-workshop/list', requirePermission('process_map'), async (req, res) => {
+  const series = KNOWN_SERIES;
+
+  const mapRows = await db.all('SELECT serie, workshop FROM serie_workshop_map');
+  const workshopBySerie = {};
+  mapRows.forEach((r) => { workshopBySerie[r.serie] = r.workshop; });
+
+  res.render('process_map_serie_workshop', {
+    series,
+    workshopBySerie,
+    workshops: KNOWN_WORKSHOPS,
+    saved: req.query.saved === '1',
+  });
+});
+
+app.post('/process-map/serie-workshop', requirePermission('process_map'), async (req, res) => {
+  const seriesIn = [].concat(req.body.serie || []);
+  const workshopsIn = [].concat(req.body.workshop || []);
+
+  const existing = await db.all('SELECT serie FROM serie_workshop_map');
+  const existingSet = new Set(existing.map((r) => r.serie));
+  const keepSet = new Set();
+
+  for (let i = 0; i < seriesIn.length; i++) {
+    const serie = (seriesIn[i] || '').trim();
+    const workshop = (workshopsIn[i] || '').trim();
+    if (!serie || !workshop) continue;
+    keepSet.add(serie);
+    if (existingSet.has(serie)) {
+      await db.run('UPDATE serie_workshop_map SET workshop = ?, updated_at = SYSDATETIME() WHERE serie = ?', [workshop, serie]);
+    } else {
+      await db.run('INSERT INTO serie_workshop_map (serie, workshop) VALUES (?, ?)', [serie, workshop]);
+    }
+  }
+
+  for (const serie of existingSet) {
+    if (!keepSet.has(serie)) await db.run('DELETE FROM serie_workshop_map WHERE serie = ?', [serie]);
+  }
+
+  res.redirect('/process-map/serie-workshop/list?saved=1');
+});
+
+// ---------- monthly consumption report ----------
+
+const MONTH_RE = /^\d{4}-\d{2}$/;
+
+async function computeMonthlyConsumptionReport(query) {
+  const workshop = query.workshop || '';
+  const today = todayStr();
+  const currentMonth = today.slice(0, 7);
+  const month = MONTH_RE.test(query.month) ? query.month : currentMonth;
+
+  const workshops = (await db.all('SELECT DISTINCT workshop FROM materials ORDER BY workshop')).map((r) => r.workshop);
+  const materials = await getIssueMaterials(workshop);
+
+  const { start, end: monthEnd } = monthRange(`${month}-01`);
+  const end = month === currentMonth && monthEnd > today ? today : monthEnd;
+
+  const stockPrevMap = await getStockAsOfMap(addDays(start, -1));
+  const stockToMap = await getStockAsOfMap(end);
+  const issueSumMap = await getIssueSumMap(start, end);
+  const ncnSumMap = await getNcnSumMap(start, end);
+
+  const mapRows = await db.all('SELECT * FROM material_process_map');
+  const mapByMaterialId = {};
+  mapRows.forEach((r) => { mapByMaterialId[r.material_id] = { operation_name: r.operation_name, series: [] }; });
+  const mapIdToMaterialId = {};
+  mapRows.forEach((r) => { mapIdToMaterialId[r.id] = r.material_id; });
+  const seriesRows = mapRows.length
+    ? await db.all(
+        `SELECT * FROM material_process_series WHERE material_process_map_id IN (${mapRows.map(() => '?').join(', ')}) ORDER BY serie`,
+        mapRows.map((r) => r.id)
+      )
+    : [];
+  seriesRows.forEach((r) => {
+    const materialId = mapIdToMaterialId[r.material_process_map_id];
+    if (mapByMaterialId[materialId]) mapByMaterialId[materialId].series.push(r.serie);
+  });
+  // A material with an Operation but no series chosen yet has nothing to compute against.
+  Object.keys(mapByMaterialId).forEach((materialId) => {
+    if (!mapByMaterialId[materialId].series.length) delete mapByMaterialId[materialId];
+  });
+
+  // Group mapped materials by (operation_name, series set) so each distinct combination is
+  // only queried against MES once, even if several materials share it.
+  const outputByPairKey = {};
+  const pairsNeeded = new Map();
+  materials.forEach((m) => {
+    const mapping = mapByMaterialId[m.id];
+    if (!mapping) return;
+    const key = mapping.operation_name + '|' + mapping.series.join(',');
+    pairsNeeded.set(key, { operationName: mapping.operation_name, series: mapping.series });
+  });
+  for (const [key, { operationName, series }] of pairsNeeded) {
+    const dailyOutput = await getMesDailyOutputMap(operationName, series, start, end);
+    outputByPairKey[key] = Object.values(dailyOutput).reduce((sum, v) => sum + v, 0);
+  }
+
+  // Previous month totals (usage cost only) for the month-over-month comparison tile.
+  const prevMonth = prevMonthRange(`${month}-01`);
+  const prevStockPrevMap = await getStockAsOfMap(addDays(prevMonth.start, -1));
+  const prevStockToMap = await getStockAsOfMap(prevMonth.end);
+  const prevIssueSumMap = await getIssueSumMap(prevMonth.start, prevMonth.end);
+  const prevNcnSumMap = await getNcnSumMap(prevMonth.start, prevMonth.end);
+
+  let prevMonthCost = 0;
+  materials.forEach((m) => {
+    const stock = prevStockToMap[m.id] || 0;
+    const issue = prevIssueSumMap[m.id] || 0;
+    const ncn = prevNcnSumMap[m.id] || { issueNcn: 0, returnNcn: 0 };
+    const usage = (prevStockPrevMap[m.id] || 0) + issue - stock - ncn.issueNcn + ncn.returnNcn;
+    prevMonthCost += usage * (m.cost || 0);
+  });
+
+  const rows = materials.map((m) => {
+    const stock = stockToMap[m.id] || 0;
+    const issue = issueSumMap[m.id] || 0;
+    const ncn = ncnSumMap[m.id] || { issueNcn: 0, returnNcn: 0 };
+    const usage = (stockPrevMap[m.id] || 0) + issue - stock - ncn.issueNcn + ncn.returnNcn;
+    const cost = usage * (m.cost || 0);
+
+    const mapping = mapByMaterialId[m.id];
+    let output = null;
+    let actualConsumption = null;
+    if (mapping) {
+      const key = mapping.operation_name + '|' + mapping.series.join(',');
+      output = outputByPairKey[key] || 0;
+      if (output > 0) actualConsumption = usage / output;
+    }
+
+    const stdConsumption = m.std_consumption || 0;
+    const variance = actualConsumption != null && stdConsumption > 0 ? actualConsumption - stdConsumption : null;
+    const variancePct = variance != null && stdConsumption > 0 ? (variance / stdConsumption) * 100 : null;
+
+    return { material: m, usage, cost, mapping, output, actualConsumption, stdConsumption, variance, variancePct };
+  });
+
+  const totals = rows.reduce(
+    (acc, r) => ({ usage: acc.usage + r.usage, cost: acc.cost + r.cost }),
+    { usage: 0, cost: 0 }
+  );
+  const overStdCount = rows.filter((r) => r.variance != null && r.variance > 0).length;
+
+  const isPartialMonth = month === currentMonth && end < monthEnd;
+
+  return { workshops, selectedWorkshop: workshop, month, start, end, rows, totals, prevMonthCost, overStdCount, isPartialMonth };
+}
+
+app.get('/reports/monthly-consumption', async (req, res) => {
+  const data = await computeMonthlyConsumptionReport(req.query);
+  res.render('monthly_consumption', data);
+});
+
+app.get('/export/monthly-consumption.csv', async (req, res) => {
+  const data = await computeMonthlyConsumptionReport(req.query);
+  const lines = ['Code,Name,Workshop,Unit,Usage,UsageCost,ActualConsumption(unit/kp),StdConsumption(unit/kp),Variance,VariancePct'];
+  data.rows.forEach((r) => {
+    lines.push(
+      [
+        r.material.prod_material_code,
+        r.material.name,
+        r.material.workshop,
+        r.material.unit,
+        r.usage,
+        r.cost,
+        r.actualConsumption != null ? r.actualConsumption : '',
+        r.stdConsumption || '',
+        r.variance != null ? r.variance : '',
+        r.variancePct != null ? r.variancePct : '',
+      ]
+        .map(csvEscape)
+        .join(',')
+    );
+  });
+
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', `attachment; filename=monthly-consumption-${data.month}.csv`);
+  res.send(lines.join('\r\n'));
+});
+
+app.get('/export/monthly-consumption.xlsx', async (req, res) => {
+  const data = await computeMonthlyConsumptionReport(req.query);
+
+  const sheetRows = data.rows.map((r) => ({
+    Code: r.material.prod_material_code,
+    Name: r.material.name,
+    Workshop: r.material.workshop,
+    Unit: r.material.unit,
+    Usage: r.usage,
+    'Usage Cost': r.cost,
+    'Actual Consumption (unit/kp)': r.actualConsumption != null ? r.actualConsumption : null,
+    'STD Consumption (unit/kp)': r.stdConsumption || null,
+    Variance: r.variance != null ? r.variance : null,
+    'Variance %': r.variancePct != null ? r.variancePct : null,
+  }));
+
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.json_to_sheet(sheetRows);
+  XLSX.utils.book_append_sheet(wb, ws, 'Monthly Consumption');
+  const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', `attachment; filename=monthly-consumption-${data.month}.xlsx`);
+  res.send(buffer);
 });
 
 // ---------- material request (coming soon) ----------
@@ -1496,7 +2179,7 @@ app.post('/transactions/undo', async (req, res) => {
   res.redirect(`/transactions/undo?success=1&mode=${encodeURIComponent(mode)}&date_choice=${encodeURIComponent(dateChoice)}&workshop=${encodeURIComponent(workshop)}`);
 });
 
-app.post('/transactions/:id/void', requireAdmin, async (req, res) => {
+app.post('/transactions/:id/void', requirePermission('transactions_manage'), async (req, res) => {
   const entry = await db.get('SELECT * FROM issue_entries WHERE id = ?', [req.params.id]);
   if (entry && !entry.voided) {
     const reason = (req.body.voided_reason || '').trim() || 'No reason given';
@@ -1506,7 +2189,7 @@ app.post('/transactions/:id/void', requireAdmin, async (req, res) => {
   res.redirect(qs ? `/transactions?${qs}` : '/transactions');
 });
 
-app.post('/transactions/bulk-void', requireAdmin, async (req, res) => {
+app.post('/transactions/bulk-void', requirePermission('transactions_manage'), async (req, res) => {
   const ids = [].concat(req.body.ids || []).map((id) => parseInt(id, 10)).filter(Number.isInteger);
   const reason = (req.body.voided_reason || '').trim() || 'No reason given';
   for (const id of ids) {
@@ -1516,7 +2199,7 @@ app.post('/transactions/bulk-void', requireAdmin, async (req, res) => {
   res.redirect(qs ? `/transactions?${qs}` : '/transactions');
 });
 
-app.get('/transactions/:id/edit', requireAdmin, async (req, res) => {
+app.get('/transactions/:id/edit', requirePermission('transactions_manage'), async (req, res) => {
   const entry = await db.get(
     `SELECT e.*, m.prod_material_code, m.name AS material_name, m.unit AS material_unit
      FROM issue_entries e JOIN materials m ON m.id = e.material_id
@@ -1529,7 +2212,7 @@ app.get('/transactions/:id/edit', requireAdmin, async (req, res) => {
   res.render('transaction_edit', { entry, materials, shifts: SHIFTS, error: null, fmtDate, returnQs });
 });
 
-app.post('/transactions/:id/edit', requireAdmin, async (req, res) => {
+app.post('/transactions/:id/edit', requirePermission('transactions_manage'), async (req, res) => {
   const entry = await db.get('SELECT * FROM issue_entries WHERE id = ?', [req.params.id]);
   if (!entry) return res.redirect('/transactions');
   const materials = await db.all('SELECT * FROM materials ORDER BY prod_material_code');
@@ -1722,7 +2405,7 @@ app.get('/tickets/:id/attachment', async (req, res) => {
   res.download(filePath, ticket.attachment_name || path.basename(filePath));
 });
 
-app.post('/tickets/:id/resolve', requireAdmin, async (req, res) => {
+app.post('/tickets/:id/resolve', requirePermission('tickets_manage'), async (req, res) => {
   const note = (req.body.resolved_note || '').trim();
   await db.run(
     `UPDATE tickets SET status = 'RESOLVED', resolved_at = SYSDATETIME(), resolved_note = ? WHERE id = ?`,
@@ -1732,7 +2415,7 @@ app.post('/tickets/:id/resolve', requireAdmin, async (req, res) => {
   res.redirect(qs ? `/tickets?${qs}` : '/tickets');
 });
 
-app.post('/tickets/:id/delete', requireAdmin, async (req, res) => {
+app.post('/tickets/:id/delete', requirePermission('tickets_manage'), async (req, res) => {
   const ticket = await db.get('SELECT attachment_path FROM tickets WHERE id = ?', [req.params.id]);
   await db.run('DELETE FROM tickets WHERE id = ?', [req.params.id]);
   if (ticket && ticket.attachment_path) {
@@ -1866,13 +2549,14 @@ app.get('/export/transactions.csv', async (req, res) => {
       to,
     });
 
-    const lines = ['Date,MaterialCode,MaterialName,Workshop,CurrentStock,Issue,Usage,IssueNCN,ReturnNCN,EmployeeId,Shift,HasEntry'];
+    const lines = ['Date,MaterialCode,MaterialName,Unit,Workshop,CurrentStock,Issue,Usage,IssueNCN,ReturnNCN,EmployeeId,Shift,HasEntry'];
     for (const r of rows) {
       lines.push(
         [
           r.date,
           r.material.prod_material_code,
           r.material.name,
+          r.material.unit,
           r.material.workshop,
           r.currentStock,
           r.issueQty,
@@ -1907,7 +2591,7 @@ app.get('/export/transactions.csv', async (req, res) => {
        FROM issue_entries
        WHERE voided = 0 AND current_stock IS NOT NULL
      )
-     SELECT e.*, m.prod_material_code, m.name AS material_name, m.workshop AS material_workshop,
+     SELECT e.*, m.prod_material_code, m.name AS material_name, m.workshop AS material_workshop, m.unit AS material_unit,
             CASE WHEN e.voided = 0 AND e.current_stock IS NOT NULL
                  THEN COALESCE(sr.prev_stock, e.current_stock) + COALESCE(e.issue_qty, 0) - e.current_stock
                       - COALESCE(e.issue_ncn, 0) + COALESCE(e.return_ncn, 0)
@@ -1920,13 +2604,14 @@ app.get('/export/transactions.csv', async (req, res) => {
     params
   );
 
-  const lines = ['Date,MaterialCode,MaterialName,Workshop,CurrentStock,Issue,Usage,IssueNCN,ReturnNCN,EmployeeId,Shift,Voided,VoidedReason'];
+  const lines = ['Date,MaterialCode,MaterialName,Unit,Workshop,CurrentStock,Issue,Usage,IssueNCN,ReturnNCN,EmployeeId,Shift,Voided,VoidedReason'];
   for (const t of transactions) {
     lines.push(
       [
         fmtDateOnly(t.entry_date),
         t.prod_material_code,
         t.material_name,
+        t.material_unit,
         t.material_workshop,
         t.current_stock,
         t.issue_qty,
@@ -1997,6 +2682,7 @@ async function main() {
     throw new Error(`Missing required environment settings: ${missingSettings.join(', ')}`);
   }
   await db.ensureSchema();
+  await seedMasterAdmin();
   app.listen(PORT, HOST, () => {
     console.log(`Material Management running on port ${PORT}`);
     console.log(`  Local:   http://localhost:${PORT}`);

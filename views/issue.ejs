@@ -25,7 +25,7 @@
         <% }) %>
       </select>
     </div>
-    <% if (isAdmin) { %>
+    <% if (can('issue_backdate')) { %>
     <div class="field" style="margin-bottom:0;">
       <label>Date</label>
       <input type="date" name="date" value="<%= entryDate %>" onchange="this.form.submit()">
@@ -37,7 +37,7 @@
     <input type="text" id="materialSearch" placeholder="Filter by code or name" oninput="filterIssueRows(this.value)">
   </div>
 </div>
-<% if (isAdmin && entryDate !== today) { %>
+<% if (can('issue_backdate') && entryDate !== today) { %>
 <div class="alert error">Backdating entries to <%= entryDate %> (admin mode).</div>
 <% } %>
 

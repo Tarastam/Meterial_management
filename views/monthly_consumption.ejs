@@ -1,0 +1,92 @@
+<%- include('partials/head', { title: 'Monthly Consumption Report - Material Management' }) %>
+<% const costDelta = totals.cost - prevMonthCost; %>
+<div class="actions-row">
+  <h1>Monthly Consumption Report</h1>
+  <div>
+    <a class="btn secondary" href="/export/monthly-consumption.csv?<%= new URLSearchParams({ workshop: selectedWorkshop, month }).toString() %>">Export CSV</a>
+    <a class="btn secondary" href="/export/monthly-consumption.xlsx?<%= new URLSearchParams({ workshop: selectedWorkshop, month }).toString() %>">Export Excel</a>
+  </div>
+</div>
+
+<form class="filters" method="get" action="/reports/monthly-consumption">
+  <div class="field" style="margin-bottom:0;">
+    <label>Workshop</label>
+    <select name="workshop" onchange="this.form.submit()">
+      <option value="">All Workshops</option>
+      <% workshops.forEach(w => { %>
+      <option value="<%= w %>" <%= w === selectedWorkshop ? 'selected' : '' %>><%= w %></option>
+      <% }) %>
+    </select>
+  </div>
+  <div class="field" style="margin-bottom:0;">
+    <label>Month</label>
+    <input type="month" name="month" value="<%= month %>" onchange="this.form.submit()">
+  </div>
+  <div class="field" style="margin-bottom:0; align-self:flex-end;">
+    <button class="btn" type="submit">Filter</button>
+  </div>
+</form>
+
+<div class="kpi-row">
+  <div class="kpi">
+    <div class="value"><%= fmtNum(totals.usage) %></div>
+    <div class="label">Total Usage</div>
+  </div>
+  <div class="kpi">
+    <div class="value"><%= fmtNum(totals.cost) %></div>
+    <div class="label">Total Usage Cost</div>
+  </div>
+  <div class="kpi">
+    <div class="value"><%= fmtNum(prevMonthCost) %></div>
+    <div class="label">Last Month Usage Cost</div>
+  </div>
+  <div class="kpi <%= costDelta > 0 ? 'warn' : '' %>">
+    <div class="value"><%= costDelta > 0 ? '+' : '' %><%= fmtNum(costDelta) %></div>
+    <div class="label">Change vs. Last Month</div>
+  </div>
+  <div class="kpi <%= overStdCount > 0 ? 'danger' : '' %>">
+    <div class="value"><%= overStdCount %></div>
+    <div class="label">Materials Over STD Consumption</div>
+  </div>
+</div>
+
+<p style="color:var(--gray-600); font-size:0.85rem;">Period: <%= start %> to <%= end %><% if (isPartialMonth) { %> (month in progress, data as of today)<% } %></p>
+
+<div class="table-wrap">
+  <table class="compact-table">
+    <thead>
+      <tr>
+        <th>Code</th>
+        <th class="col-name">Name</th>
+        <th class="col-center">Workshop</th>
+        <th class="col-center">Unit</th>
+        <th class="col-num">Usage</th>
+        <th class="col-num">Usage Cost</th>
+        <th class="col-num">Actual Consumption (unit/kp)</th>
+        <th class="col-num">STD Consumption (unit/kp)</th>
+        <th class="col-num">Variance</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% rows.forEach(row => { const m = row.material; const dp = m.decimal_places != null ? m.decimal_places : 3; %>
+      <tr>
+        <td><%= m.prod_material_code %></td>
+        <td class="col-name"><%= m.name %></td>
+        <td class="col-center"><%= m.workshop %></td>
+        <td class="col-center"><%= m.unit %></td>
+        <td class="col-num"><%= fmtNum(row.usage, dp) %></td>
+        <td class="col-num"><%= fmtNum(row.cost) %></td>
+        <td class="col-num"><%= row.actualConsumption != null ? fmtConsumption(row.actualConsumption) : 'N/A' %></td>
+        <td class="col-num"><%= row.stdConsumption ? fmtConsumption(row.stdConsumption) : '-' %></td>
+        <td class="col-num" <% if (row.variancePct != null) { %>style="color:<%= row.variancePct > 0 ? 'var(--red)' : (row.variancePct < 0 ? 'var(--green)' : 'inherit') %>"<% } %>>
+          <%= row.variancePct != null ? (row.variancePct > 0 ? '+' : '') + row.variancePct.toFixed(1) + '%' : '-' %>
+        </td>
+      </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+<% if (!rows.length) { %>
+<div class="card empty-state">No materials found for this workshop.</div>
+<% } %>
+<%- include('partials/foot') %>

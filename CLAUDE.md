@@ -20,6 +20,26 @@ entry to the **Change Log** section below **before** ending your turn.
 
 <!-- Newest entries go on top. -->
 
+### 2026-09-02 — feature/process-maps-consumption-user-management
+- Branched off `main` (`c69af33`) and pushed `fc8300f` (`gh` CLI still
+  unavailable in this environment, so the PR to `main` needs to be opened
+  manually from the compare link). The prior working branch
+  (`feature/ticket-attachments-and-transaction-improvements`) had no net
+  diff vs. `main` at HEAD — all the real new work below was sitting
+  uncommitted in the working tree, so it was committed fresh onto this
+  new branch instead, leaving unrelated untracked files (pptx decks,
+  xlsx exports, desktop.ini, mes_deck_* dirs) out of the commit.
+- Added a `/process-map` suite (operation-to-workshop mapping, series
+  view with batch toggles, part-number assignment, serie-workshop
+  linking) gated behind a new `process_map` permission.
+- Added `/admin/users`, a master-only page for creating users, editing
+  per-page permissions, resetting passwords, and deleting accounts.
+- Added `/reports/monthly-consumption` with CSV/XLSX export.
+- Materials gained standalone create/edit/delete routes and pages under
+  `materials_manage` permission (previously inline-edit-only).
+- Transactions gained an edit route alongside the existing
+  void/bulk-void actions.
+
 ### 2026-08-21 — main
 - Merged `feature/ticket-attachments-and-transaction-improvements` into
   `main` locally (`gh` CLI unavailable, so via `git merge --no-ff` +

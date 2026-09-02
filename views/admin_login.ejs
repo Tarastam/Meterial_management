@@ -6,8 +6,12 @@
 <form class="card form-card login-card" method="post" action="/admin/login">
   <input type="hidden" name="next" value="<%= next %>">
   <div class="field">
+    <label>Username *</label>
+    <input type="text" name="username" required autofocus>
+  </div>
+  <div class="field">
     <label>Password *</label>
-    <input type="password" name="password" required autofocus>
+    <input type="password" name="password" required>
   </div>
   <button class="btn" type="submit">Log In</button>
 </form>

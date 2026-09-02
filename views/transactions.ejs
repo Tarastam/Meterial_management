@@ -76,7 +76,7 @@ function sortLink(col, label) {
 <p class="hint">Showing the last 3 days. Use the date filters above to see more.</p>
 <% } %>
 
-<% if (isAdmin) { %>
+<% if (can('transactions_manage')) { %>
 <form id="bulkVoidForm" method="post" action="/transactions/bulk-void">
   <input type="hidden" name="return_qs" value="<%= returnQs %>">
 </form>
@@ -89,9 +89,9 @@ function sortLink(col, label) {
   <table class="compact-table transactions-table">
     <thead>
       <tr>
-        <% if (isAdmin) { %><th><input type="checkbox" id="selectAllTx" title="Select all"></th><% } %>
+        <% if (can('transactions_manage')) { %><th><input type="checkbox" id="selectAllTx" title="Select all"></th><% } %>
         <th class="col-date"><%- sortLink('entry_date', 'Entry Date') %></th>
-        <% if (isAdmin) { %><th><%- sortLink('id', 'ID') %></th><% } %>
+        <% if (can('transactions_manage')) { %><th><%- sortLink('id', 'ID') %></th><% } %>
         <th class="col-left"><%- sortLink('material', 'Material') %></th>
         <th><%- sortLink('workshop', 'Workshop') %></th>
         <th><%- sortLink('unit', 'Unit') %></th>
@@ -101,15 +101,15 @@ function sortLink(col, label) {
         <th><%- sortLink('issue_ncn', 'Issue NCN') %></th>
         <th><%- sortLink('return_ncn', 'Return NCN') %></th>
         <th><%- sortLink('shift', 'Shift') %></th>
-        <% if (isAdmin) { %><th><%- sortLink('date', 'Created At') %></th><% } %>
-        <% if (isAdmin) { %><th>Voided Reason</th><% } %>
+        <% if (can('transactions_manage')) { %><th><%- sortLink('date', 'Created At') %></th><% } %>
+        <% if (can('transactions_manage')) { %><th>Voided Reason</th><% } %>
         <th></th>
       </tr>
     </thead>
     <tbody>
       <% transactions.forEach(t => { %>
       <tr>
-        <% if (isAdmin) { %>
+        <% if (can('transactions_manage')) { %>
         <td>
           <% if (!t.voided) { %>
           <input type="checkbox" class="tx-select" name="ids" value="<%= t.id %>" form="bulkVoidForm">
@@ -117,7 +117,7 @@ function sortLink(col, label) {
         </td>
         <% } %>
         <td class="col-date"><%= fmtDateOnly(t.entry_date) %></td>
-        <% if (isAdmin) { %><td><%= t.id %></td><% } %>
+        <% if (can('transactions_manage')) { %><td><%= t.id %></td><% } %>
         <td class="col-left"><%= t.prod_material_code %> - <%= t.material_name %></td>
         <td><%= t.material_workshop %></td>
         <td><%= t.material_unit %></td>
@@ -127,18 +127,18 @@ function sortLink(col, label) {
         <td><%= t.issue_ncn != null ? fmtNum(t.issue_ncn) : '' %></td>
         <td><%= t.return_ncn != null ? fmtNum(t.return_ncn) : '' %></td>
         <td><%= t.shift %></td>
-        <% if (isAdmin) { %><td><%= fmtDate(t.created_at) %></td><% } %>
-        <% if (isAdmin) { %><td><%= t.voided ? t.voided_reason : '' %></td><% } %>
+        <% if (can('transactions_manage')) { %><td><%= fmtDate(t.created_at) %></td><% } %>
+        <% if (can('transactions_manage')) { %><td><%= t.voided ? t.voided_reason : '' %></td><% } %>
         <td>
           <% if (t.voided) { %>
           <span class="badge voided" title="<%= t.voided_reason %>">VOIDED</span>
-          <% } else if (isAdmin) { %>
+          <% } else if (can('transactions_manage')) { %>
           <form class="inline" method="post" action="/transactions/<%= t.id %>/void" onsubmit="return handleVoid(event, this);">
             <input type="hidden" name="return_qs" value="<%= returnQs %>">
             <button class="btn small secondary" type="submit">Void</button>
           </form>
           <% } %>
-          <% if (isAdmin) { %>
+          <% if (can('transactions_manage')) { %>
           <a class="btn small secondary" href="/transactions/<%= t.id %>/edit?return_qs=<%= encodeURIComponent(returnQs) %>">Edit</a>
           <% } %>
         </td>

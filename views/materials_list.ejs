@@ -23,7 +23,7 @@ function fmtRaw(n) {
   <h1>Summary</h1>
   <div>
     <a class="btn secondary" href="/export/materials.csv?<%= new URLSearchParams({ q, workshop: selectedWorkshop, from, to }).toString() %>">Export CSV</a>
-    <% if (isAdmin) { %>
+    <% if (can('materials_manage')) { %>
     <a class="btn" href="/materials/new?return_qs=<%= encodeURIComponent(returnQs) %>">+ Add Material</a>
     <% } %>
   </div>
@@ -73,7 +73,7 @@ function fmtRaw(n) {
         <th class="col-num"><%- sortLink('hold', 'Hold') %></th>
         <th class="col-num"><%- sortLink('cost', 'Unit Cost') %></th>
         <th class="col-num"><%- sortLink('usage_cost', 'Usage Cost') %></th>
-        <% if (isAdmin) { %>
+        <% if (can('materials_manage')) { %>
         <th class="col-num"><%- sortLink('std_consumption', 'STD Consumption') %></th>
         <% } %>
         <th></th>
@@ -91,7 +91,7 @@ function fmtRaw(n) {
         <td class="col-num"><%= fmtNum(row.usage, dp) %></td>
         <td class="col-num"><%= fmtNum(row.stock, dp) %></td>
         <td class="col-num"><%= fmtNum(row.hold, dp) %></td>
-        <% if (isAdmin) { %>
+        <% if (can('materials_manage')) { %>
         <td class="col-num editable-cell" data-material-id="<%= m.id %>" data-field="cost" data-value="<%= unitCost %>" data-decimals="2"><span class="cell-value"><%= fmtMoney(unitCost) %></span></td>
         <td class="col-num" data-usage-cost-for="<%= m.id %>" data-usage="<%= row.usage %>"><%= fmtMoney(usageCost) %></td>
         <td class="col-num editable-cell" data-material-id="<%= m.id %>" data-field="std_consumption" data-value="<%= row.stdConsumption %>" data-decimals="raw"><span class="cell-value"><%= fmtRaw(row.stdConsumption) %></span></td>
@@ -100,7 +100,7 @@ function fmtRaw(n) {
         <td class="col-num"><%= fmtMoney(usageCost) %></td>
         <% } %>
         <td>
-          <% if (isAdmin) { %>
+          <% if (can('materials_manage')) { %>
           <a class="btn small secondary" href="/materials/<%= m.id %>/edit?return_qs=<%= encodeURIComponent(returnQs) %>">Edit</a>
           <form class="inline" method="post" action="/materials/<%= m.id %>/delete" onsubmit="return confirm('Delete <%= m.prod_material_code %>? This also deletes its issue history.');">
             <input type="hidden" name="return_qs" value="<%= returnQs %>">
@@ -116,7 +116,7 @@ function fmtRaw(n) {
 <% if (!rows.length) { %>
 <div class="card empty-state">No materials found.</div>
 <% } %>
-<% if (isAdmin) { %>
+<% if (can('materials_manage')) { %>
 <script>
   (function () {
     function fmtMoney(n) {

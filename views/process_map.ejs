@@ -1,0 +1,231 @@
+<%- include('partials/head', { title: 'Process Mapping - Material Management' }) %>
+<h1>Process Mapping</h1>
+<p style="color:var(--gray-600); margin-top:-0.5rem;">Link each material to the MES Operation used to compute its Actual Consumption on the Monthly Consumption Report.</p>
+
+<div class="pm-tabs">
+  <a class="pm-tab active" href="/process-map">Material &harr; Process</a>
+  <a class="pm-tab" href="/process-map/series-view">Material &harr; Serie</a>
+  <a class="pm-tab" href="/process-map/part-numbers/list">Part Numbers</a>
+  <a class="pm-tab" href="/process-map/serie-workshop/list">Serie &harr; Workshop</a>
+</div>
+
+<% if (typeof saved !== 'undefined' && saved) { %><div id="processMapToast" class="toast toast-success">Saved.</div><% } %>
+
+<form class="filters" method="get" action="/process-map">
+  <div class="field" style="margin-bottom:0;">
+    <label>Workshop</label>
+    <select name="workshop" onchange="this.form.submit()">
+      <option value="">All Workshops</option>
+      <% workshops.forEach(w => { %>
+      <option value="<%= w %>" <%= w === selectedWorkshop ? 'selected' : '' %>><%= w %></option>
+      <% }) %>
+    </select>
+  </div>
+</form>
+
+<p class="pm-hint">Click a material, then click an Operation to connect them. Click a connected pair again to disconnect. Changes are kept locally &mdash; click <strong>Save</strong> when done.</p>
+
+<div class="pm-save-bar" id="pmSaveBar" hidden>
+  <span id="pmPendingCount">0 pending change(s)</span>
+  <button type="button" class="btn" id="pmSaveBtn">Save</button>
+  <button type="button" class="btn secondary" id="pmDiscardBtn">Discard</button>
+</div>
+
+<div class="pm-diagram" id="pmDiagram">
+  <svg class="pm-lines" id="pmLines"></svg>
+  <div class="pm-column pm-column-left">
+    <div class="pm-column-title">Material</div>
+    <div class="pm-column-scroll">
+    <% materials.forEach(m => { %>
+    <div class="pm-node pm-material-node" data-material-id="<%= m.id %>" data-operation="<%= operationByMaterialId[m.id] || '' %>">
+      <div class="pm-node-code"><%= m.prod_material_code %></div>
+      <div class="pm-node-name"><%= m.name %></div>
+      <div class="pm-node-workshop"><%= m.workshop %></div>
+    </div>
+    <% }) %>
+    <% if (!materials.length) { %><div class="empty-state">No materials found.</div><% } %>
+    </div>
+  </div>
+  <div class="pm-column pm-column-right">
+    <div class="pm-column-title">Operation</div>
+    <input type="text" id="pmOperationSearch" class="pm-search" placeholder="Search operation...">
+    <div id="pmOperationList" class="pm-column-list">
+      <% operationNames.forEach(op => { %>
+      <div class="pm-node pm-operation-node" data-operation="<%= op %>"><%= op %></div>
+      <% }) %>
+      <div class="empty-state pm-operation-empty" hidden>No operations match.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  var processMapToast = document.getElementById('processMapToast');
+  if (processMapToast) {
+    var url = new URL(window.location.href);
+    url.searchParams.delete('saved');
+    window.history.replaceState({}, '', url);
+    setTimeout(function () { processMapToast.remove(); }, 3000);
+  }
+
+  var diagram = document.getElementById('pmDiagram');
+  var svg = document.getElementById('pmLines');
+  var materialNodes = Array.from(document.querySelectorAll('.pm-material-node'));
+  var operationNodes = Array.from(document.querySelectorAll('.pm-operation-node'));
+  var selectedMaterial = null;
+
+  // originalOperation: what's saved in the DB right now (from server render).
+  // currentOperation: what's shown/pending in this session until Save is clicked.
+  var originalOperationByMaterialId = {};
+  materialNodes.forEach(function (node) {
+    originalOperationByMaterialId[node.dataset.materialId] = node.dataset.operation || '';
+  });
+  var pendingByMaterialId = {}; // materialId -> operationName ('' = clear)
+
+  function lineColorFor(key) {
+    var hash = 0;
+    for (var i = 0; i < key.length; i++) hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
+    var hue = hash % 360;
+    return 'hsl(' + hue + ', 70%, 50%)';
+  }
+
+  function drawLines() {
+    var rect = diagram.getBoundingClientRect();
+    svg.setAttribute('width', rect.width);
+    svg.setAttribute('height', rect.height);
+    svg.innerHTML = '';
+    materialNodes.forEach(function (mNode) {
+      var op = mNode.dataset.operation;
+      if (!op) return;
+      var opNode = operationNodes.find(function (n) { return n.dataset.operation === op; });
+      if (!opNode || opNode.hidden) return;
+      var mRect = mNode.getBoundingClientRect();
+      var oRect = opNode.getBoundingClientRect();
+      var x1 = mRect.right - rect.left;
+      var y1 = mRect.top + mRect.height / 2 - rect.top;
+      var x2 = oRect.left - rect.left;
+      var y2 = oRect.top + oRect.height / 2 - rect.top;
+      var midX = (x1 + x2) / 2;
+      var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', 'M ' + x1 + ' ' + y1 + ' C ' + midX + ' ' + y1 + ', ' + midX + ' ' + y2 + ', ' + x2 + ' ' + y2);
+      path.setAttribute('class', 'pm-line' + (mNode.classList.contains('pm-pending') ? ' pm-line-pending' : ''));
+      path.style.stroke = lineColorFor(mNode.dataset.materialId + '|' + op);
+      svg.appendChild(path);
+    });
+  }
+
+  var saveBar = document.getElementById('pmSaveBar');
+  var pendingCountEl = document.getElementById('pmPendingCount');
+
+  function updateSaveBar() {
+    var count = Object.keys(pendingByMaterialId).length;
+    saveBar.hidden = count === 0;
+    pendingCountEl.textContent = count + ' pending change(s)';
+  }
+
+  function setMaterialOperation(node, operationName) {
+    node.dataset.operation = operationName;
+    var materialId = node.dataset.materialId;
+    if (originalOperationByMaterialId[materialId] === operationName) {
+      delete pendingByMaterialId[materialId];
+      node.classList.remove('pm-pending');
+    } else {
+      pendingByMaterialId[materialId] = operationName;
+      node.classList.add('pm-pending');
+    }
+    updateSaveBar();
+    drawLines();
+  }
+
+  function clearSelection() {
+    if (selectedMaterial) selectedMaterial.classList.remove('selected');
+    selectedMaterial = null;
+  }
+
+  materialNodes.forEach(function (node) {
+    node.addEventListener('click', function () {
+      if (selectedMaterial === node) { clearSelection(); return; }
+      clearSelection();
+      selectedMaterial = node;
+      node.classList.add('selected');
+    });
+  });
+
+  operationNodes.forEach(function (node) {
+    node.addEventListener('click', function () {
+      if (!selectedMaterial) return;
+      var operationName = node.dataset.operation;
+      if (selectedMaterial.dataset.operation === operationName) {
+        setMaterialOperation(selectedMaterial, '');
+      } else {
+        setMaterialOperation(selectedMaterial, operationName);
+      }
+    });
+  });
+
+  document.getElementById('pmSaveBtn').addEventListener('click', function (e) {
+    var btn = e.currentTarget;
+    var changes = Object.keys(pendingByMaterialId).map(function (materialId) {
+      return { material_id: materialId, operation_name: pendingByMaterialId[materialId] };
+    });
+    if (!changes.length) return;
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
+    fetch('/process-map/operation/batch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'changes=' + encodeURIComponent(JSON.stringify(changes)),
+    })
+      .then(function (r) { if (!r.ok) throw new Error('save failed'); return r.json(); })
+      .then(function () {
+        var url = new URL(window.location.href);
+        url.searchParams.set('saved', '1');
+        window.location.href = url.toString();
+      })
+      .catch(function () {
+        btn.disabled = false;
+        btn.textContent = 'Save';
+        alert('Failed to save changes. Please try again.');
+      });
+  });
+
+  document.getElementById('pmDiscardBtn').addEventListener('click', function () {
+    Object.keys(pendingByMaterialId).forEach(function (materialId) {
+      var node = materialNodes.find(function (n) { return n.dataset.materialId === materialId; });
+      if (node) {
+        node.dataset.operation = originalOperationByMaterialId[materialId];
+        node.classList.remove('pm-pending');
+      }
+    });
+    pendingByMaterialId = {};
+    updateSaveBar();
+    drawLines();
+  });
+
+  window.addEventListener('beforeunload', function (e) {
+    if (Object.keys(pendingByMaterialId).length) {
+      e.preventDefault();
+      e.returnValue = '';
+    }
+  });
+
+  var operationSearch = document.getElementById('pmOperationSearch');
+  var operationEmpty = document.querySelector('.pm-operation-empty');
+  operationSearch.addEventListener('input', function () {
+    var q = operationSearch.value.trim().toLowerCase();
+    var visibleCount = 0;
+    operationNodes.forEach(function (node) {
+      var match = !q || node.dataset.operation.toLowerCase().includes(q);
+      node.hidden = !match;
+      if (match) visibleCount++;
+    });
+    operationEmpty.hidden = visibleCount > 0;
+    drawLines();
+  });
+
+  drawLines();
+  window.addEventListener('resize', drawLines);
+  document.querySelectorAll('.pm-column-list, .pm-column-scroll').forEach(function (el) {
+    el.addEventListener('scroll', drawLines);
+  });
+</script>
+<%- include('partials/foot') %>
