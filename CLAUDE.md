@@ -20,6 +20,12 @@ entry to the **Change Log** section below **before** ending your turn.
 
 <!-- Newest entries go on top. -->
 
+### 2026-09-02 — main
+- Merged `feature/process-maps-consumption-user-management` into `main`
+  locally (`gh` CLI unavailable, so via `git merge --no-ff` + `git push`,
+  at the user's explicit request) and pushed `a09b087`. Clean merge, no
+  conflicts.
+
 ### 2026-09-02 — feature/process-maps-consumption-user-management
 - Branched off `main` (`c69af33`) and pushed `fc8300f` (`gh` CLI still
   unavailable in this environment, so the PR to `main` needs to be opened
