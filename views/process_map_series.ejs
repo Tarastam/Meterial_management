@@ -1,0 +1,508 @@
+<%- include('partials/head', { title: 'Process Mapping - Material Management' }) %>
+<h1>Process Mapping</h1>
+<p style="color:var(--gray-600); margin-top:-0.5rem;">Link each material to a Serie. Expand a Serie to restrict it to specific Part Numbers.</p>
+
+<div class="pm-tabs">
+  <a class="pm-tab" href="/process-map">Material &harr; Process</a>
+  <a class="pm-tab active" href="/process-map/series-view">Material &harr; Serie</a>
+  <a class="pm-tab" href="/process-map/part-numbers/list">Part Numbers</a>
+  <a class="pm-tab" href="/process-map/serie-workshop/list">Serie &harr; Workshop</a>
+</div>
+
+<% if (typeof saved !== 'undefined' && saved) { %><div id="processMapToast" class="toast toast-success">Saved.</div><% } %>
+
+<form class="filters" method="get" action="/process-map/series-view">
+  <div class="field" style="margin-bottom:0;">
+    <label>Workshop</label>
+    <select name="workshop" onchange="this.form.submit()">
+      <option value="">All Workshops</option>
+      <% workshops.forEach(w => { %>
+      <option value="<%= w %>" <%= w === selectedWorkshop ? 'selected' : '' %>><%= w %></option>
+      <% }) %>
+    </select>
+  </div>
+  <div class="field" style="margin-bottom:0;">
+    <label>Search Material</label>
+    <input type="text" name="q" value="<%= search %>" placeholder="Code or name...">
+  </div>
+  <div class="field" style="margin-bottom:0; align-self:flex-end;">
+    <button class="btn" type="submit">Filter</button>
+  </div>
+</form>
+
+<% if (!showDiagram) { %>
+<div class="card empty-state">Choose a Workshop or search for a Material to load the diagram.</div>
+<% } else if (!materialData.length) { %>
+<div class="card empty-state">No materials match this filter.</div>
+<% } else { %>
+<p class="pm-hint">Click a material, then click a Serie to connect them (only materials with an Operation already set on the Process tab can connect; the Serie must be valid for that Operation in MES). Click a connected pair again to disconnect. Connections are kept locally &mdash; click <strong>Save</strong> when done. Click a Serie's <strong>+</strong> to restrict it to specific Part Numbers (saved immediately).</p>
+
+<div class="pm-save-bar" id="pmSaveBar" hidden>
+  <span id="pmPendingCount">0 pending change(s)</span>
+  <button type="button" class="btn" id="pmSaveBtn">Save</button>
+  <button type="button" class="btn secondary" id="pmDiscardBtn">Discard</button>
+</div>
+
+<div class="pm-diagram" id="pmDiagram">
+  <svg class="pm-lines" id="pmLines"></svg>
+  <div class="pm-column pm-column-left">
+    <div class="pm-column-title">Material</div>
+    <div class="pm-column-scroll">
+    <% materialData.forEach(d => { const m = d.material; %>
+    <div class="pm-node pm-material-node" data-material-id="<%= m.id %>" data-operation="<%= d.operationName || '' %>" <%= d.operationName ? '' : 'data-no-operation="1"' %>>
+      <div class="pm-node-code"><%= m.prod_material_code %></div>
+      <div class="pm-node-name"><%= m.name %></div>
+      <div class="pm-node-workshop"><%= m.workshop %><% if (!d.operationName) { %> &middot; no Operation set<% } %></div>
+    </div>
+    <% }) %>
+    </div>
+  </div>
+  <div class="pm-column pm-column-right" id="pmSerieColumn">
+    <div class="pm-column-title">Serie</div>
+    <input type="text" id="pmSerieSearch" class="pm-search" placeholder="Search serie...">
+    <div class="pm-column-list" id="pmSerieList">
+      <% allSeries.forEach(serie => { %>
+      <div class="pm-node pm-serie-node" data-serie="<%= serie %>">
+        <div class="pm-serie-name"><%= serie %></div>
+        <button type="button" class="pm-serie-expand" title="Restrict Part Numbers">+</button>
+        <div class="pm-serie-pn-panel" hidden></div>
+      </div>
+      <% }) %>
+      <div class="empty-state pm-serie-empty" hidden>No series match.</div>
+      <% if (!allSeries.length) { %>
+      <div class="empty-state" style="padding:1rem;">No series found in MES.</div>
+      <% } %>
+    </div>
+  </div>
+</div>
+
+<script>
+  var MATERIAL_DATA = <%- JSON.stringify(materialData.map(d => ({
+    id: d.material.id,
+    code: d.material.prod_material_code,
+    operationName: d.operationName,
+    series: d.series.map(s => ({ id: s.id, serie: s.serie, partNumbers: s.partNumbers })),
+  }))) %>;
+</script>
+<% } %>
+
+<script>
+  var processMapToast = document.getElementById('processMapToast');
+  if (processMapToast) {
+    var url = new URL(window.location.href);
+    url.searchParams.delete('saved');
+    window.history.replaceState({}, '', url);
+    setTimeout(function () { processMapToast.remove(); }, 3000);
+  }
+
+  if (typeof MATERIAL_DATA !== 'undefined') {
+    var diagram = document.getElementById('pmDiagram');
+    var svg = document.getElementById('pmLines');
+    var materialById = {};
+    MATERIAL_DATA.forEach(function (d) { materialById[d.id] = d; });
+
+    // Serie nodes are server-rendered as a flat list (all Series in MES); look them up by name.
+    var serieNodesBySerie = {}; // serie -> node element
+    document.querySelectorAll('.pm-serie-node').forEach(function (node) {
+      serieNodesBySerie[node.dataset.serie] = node;
+      wireSerieNode(node);
+    });
+
+    function lineColorFor(key) {
+      var hash = 0;
+      for (var i = 0; i < key.length; i++) hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
+      var hue = hash % 360;
+      return 'hsl(' + hue + ', 70%, 50%)';
+    }
+
+    function drawLines() {
+      var rect = diagram.getBoundingClientRect();
+      svg.setAttribute('width', rect.width);
+      svg.setAttribute('height', rect.height);
+      svg.innerHTML = '';
+      document.querySelectorAll('.pm-material-node').forEach(function (mNode) {
+        var d = materialById[mNode.dataset.materialId];
+        if (!d) return;
+        d.series.forEach(function (s) {
+          var serieNode = serieNodesBySerie[s.serie];
+          if (!serieNode || serieNode.offsetParent === null) return;
+          var mRect = mNode.getBoundingClientRect();
+          var oRect = serieNode.getBoundingClientRect();
+          var x1 = mRect.right - rect.left;
+          var y1 = mRect.top + mRect.height / 2 - rect.top;
+          var x2 = oRect.left - rect.left;
+          var y2 = oRect.top + oRect.height / 2 - rect.top;
+          var midX = (x1 + x2) / 2;
+          var isPending = Boolean(pendingByKey[mNode.dataset.materialId + '|' + s.serie]);
+          var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+          path.setAttribute('d', 'M ' + x1 + ' ' + y1 + ' C ' + midX + ' ' + y1 + ', ' + midX + ' ' + y2 + ', ' + x2 + ' ' + y2);
+          path.setAttribute('class', 'pm-line' + (isPending ? ' pm-line-pending' : ''));
+          path.style.stroke = lineColorFor(mNode.dataset.materialId + '|' + d.operationName + '|' + s.serie);
+          svg.appendChild(path);
+        });
+      });
+    }
+
+    var selectedMaterial = null;
+
+    function clearSelection() {
+      if (selectedMaterial) selectedMaterial.classList.remove('selected');
+      selectedMaterial = null;
+    }
+
+    // pendingByKey: "materialId|serie" -> 'add' | 'remove'. Applied to MATERIAL_DATA[].series
+    // immediately (so lines/highlighting/PN panel reflect it), but only sent to the server on Save.
+    var pendingByKey = {};
+
+    var saveBar = document.getElementById('pmSaveBar');
+    var pendingCountEl = document.getElementById('pmPendingCount');
+
+    function updateSaveBar() {
+      var count = Object.keys(pendingByKey).length;
+      saveBar.hidden = count === 0;
+      pendingCountEl.textContent = count + ' pending change(s)';
+    }
+
+    function updateMaterialPendingClass(materialId) {
+      var node = document.querySelector('.pm-material-node[data-material-id="' + materialId + '"]');
+      if (!node) return;
+      var hasPending = Object.keys(pendingByKey).some(function (key) { return key.indexOf(materialId + '|') === 0; });
+      node.classList.toggle('pm-pending', hasPending);
+    }
+
+    function toggleConnection(materialId, serie) {
+      var d = materialById[materialId];
+      var key = materialId + '|' + serie;
+      var idx = d.series.findIndex(function (s) { return s.serie === serie; });
+      var wasConnected = idx !== -1;
+
+      if (wasConnected) {
+        d.series.splice(idx, 1);
+      } else {
+        d.series.push({ id: 'pending:' + key, serie: serie, partNumbers: [] });
+      }
+
+      if (pendingByKey[key]) {
+        // Reverting back to the original state cancels the pending change.
+        delete pendingByKey[key];
+      } else {
+        pendingByKey[key] = wasConnected ? 'remove' : 'add';
+      }
+
+      updateMaterialPendingClass(materialId);
+      updateSaveBar();
+      refreshOpenPanel();
+      drawLines();
+    }
+
+    document.getElementById('pmSaveBtn').addEventListener('click', function (e) {
+      var btn = e.currentTarget;
+      var changes = Object.keys(pendingByKey).map(function (key) {
+        var sep = key.lastIndexOf('|');
+        return { material_id: key.slice(0, sep), serie: key.slice(sep + 1), action: pendingByKey[key] };
+      });
+      if (!changes.length) return;
+      btn.disabled = true;
+      btn.textContent = 'Saving...';
+      fetch('/process-map/series-view/toggle/batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'changes=' + encodeURIComponent(JSON.stringify(changes)),
+      })
+        .then(function (r) { if (!r.ok) throw new Error('save failed'); return r.json(); })
+        .then(function () {
+          var url = new URL(window.location.href);
+          url.searchParams.set('saved', '1');
+          window.location.href = url.toString();
+        })
+        .catch(function () {
+          btn.disabled = false;
+          btn.textContent = 'Save';
+          alert('Failed to save changes. Please try again.');
+        });
+    });
+
+    document.getElementById('pmDiscardBtn').addEventListener('click', function () {
+      var materialIds = {};
+      Object.keys(pendingByKey).forEach(function (key) {
+        var sep = key.lastIndexOf('|');
+        var materialId = key.slice(0, sep);
+        var serie = key.slice(sep + 1);
+        var action = pendingByKey[key];
+        materialIds[materialId] = true;
+        var d = materialById[materialId];
+        var idx = d.series.findIndex(function (s) { return s.serie === serie; });
+        if (action === 'add' && idx !== -1) d.series.splice(idx, 1);
+        if (action === 'remove' && idx === -1) d.series.push({ id: 'pending:' + key, serie: serie, partNumbers: [] });
+      });
+      pendingByKey = {};
+      Object.keys(materialIds).forEach(updateMaterialPendingClass);
+      updateSaveBar();
+      refreshOpenPanel();
+      drawLines();
+    });
+
+    window.addEventListener('beforeunload', function (e) {
+      if (Object.keys(pendingByKey).length) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    });
+
+    // If a Serie's Part Number panel is open, its content depends on which material is
+    // selected - re-render it whenever selection changes instead of leaving it stale.
+    function refreshOpenPanel() {
+      var openPanel = document.querySelector('.pm-serie-pn-panel:not([hidden])');
+      if (!openPanel) return;
+      var serieNode = openPanel.closest('.pm-serie-node');
+      loadPartNumbers(serieNode, openPanel);
+    }
+
+    document.querySelectorAll('.pm-material-node').forEach(function (node) {
+      node.addEventListener('click', function (e) {
+        if (e.target.closest('.pm-serie-expand')) return;
+        var d = materialById[node.dataset.materialId];
+        if (!d.operationName) return;
+        if (selectedMaterial === node) { clearSelection(); refreshOpenPanel(); return; }
+        clearSelection();
+        selectedMaterial = node;
+        node.classList.add('selected');
+        highlightAvailableSeries(d.operationName);
+        refreshOpenPanel();
+      });
+    });
+
+    function highlightAvailableSeries(op) {
+      loadOperationSeries(op).then(function (validSeries) {
+        if (selectedMaterial && materialById[selectedMaterial.dataset.materialId].operationName !== op) return;
+        document.querySelectorAll('.pm-serie-node').forEach(function (n) {
+          n.classList.toggle('pm-serie-dim', validSeries.indexOf(n.dataset.serie) === -1);
+        });
+      });
+    }
+
+    function clearHighlight() {
+      document.querySelectorAll('.pm-serie-node').forEach(function (n) { n.classList.remove('pm-serie-dim'); });
+    }
+
+    function onSerieClick(node) {
+      if (!selectedMaterial) return;
+      var materialId = selectedMaterial.dataset.materialId;
+      var d = materialById[materialId];
+      var serie = node.dataset.serie;
+      var alreadyConnected = d.series.some(function (s) { return s.serie === serie; });
+      if (alreadyConnected) {
+        toggleConnection(materialId, serie);
+        return;
+      }
+      loadOperationSeries(d.operationName).then(function (validSeries) {
+        if (validSeries.indexOf(serie) === -1) return;
+        toggleConnection(materialId, serie);
+      });
+    }
+
+    // Lazily fetches (and caches) the list of Series valid for a given Operation in MES,
+    // used to validate a material <-> serie connection and to dim unavailable series.
+    var seriesByOperation = {}; // op -> Promise<string[]>
+    function loadOperationSeries(op) {
+      if (!seriesByOperation[op]) {
+        seriesByOperation[op] = fetch('/process-map/series?operation_name=' + encodeURIComponent(op))
+          .then(function (r) { return r.json(); })
+          .then(function (data) { return data.series || []; })
+          .catch(function () { return []; });
+      }
+      return seriesByOperation[op];
+    }
+
+    function wireSerieNode(node) {
+      node.addEventListener('click', function (e) {
+        var expandBtn = e.target.closest('.pm-serie-expand');
+        if (expandBtn) {
+          e.preventDefault();
+          e.stopPropagation();
+          toggleExpand(node);
+          return;
+        }
+        if (e.target.closest('.pm-serie-pn-panel')) return;
+        onSerieClick(node);
+      });
+    }
+
+    function toggleExpand(node) {
+      var panel = node.querySelector('.pm-serie-pn-panel');
+      var isOpen = !panel.hidden;
+      document.querySelectorAll('.pm-serie-pn-panel').forEach(function (p) { p.hidden = true; });
+      document.querySelectorAll('.pm-serie-expand').forEach(function (b) { b.textContent = '+'; });
+      if (isOpen) { drawLines(); return; }
+      panel.hidden = false;
+      node.querySelector('.pm-serie-expand').textContent = '−';
+      loadPartNumbers(node, panel);
+      drawLines();
+    }
+
+    function loadPartNumbers(node, panel) {
+      var serie = node.dataset.serie;
+      panel.innerHTML = '<span class="process-map-serie-hint">Loading...</span>';
+      fetch('/process-map/part-numbers?serie=' + encodeURIComponent(serie))
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          var partNumbers = data.partNumbers || [];
+          if (!partNumbers.length) {
+            panel.innerHTML = '<span class="process-map-serie-hint">No Part Numbers imported for this Serie yet (defaults to all).</span>';
+            drawLines();
+            return;
+          }
+          renderPartNumberChecklist(node, panel, partNumbers);
+        })
+        .catch(function () {
+          panel.innerHTML = '<span class="process-map-serie-hint">Failed to load</span>';
+        });
+    }
+
+    function renderPartNumberChecklist(serieNode, panel, allPartNumbers) {
+      var serie = serieNode.dataset.serie;
+
+      // Restrict to the currently selected material, if any and if it's connected to this Serie.
+      var connectedMaterialIds = Object.keys(materialById).filter(function (id) {
+        var d = materialById[id];
+        return d.series.some(function (s) { return s.serie === serie; });
+      });
+      if (selectedMaterial) {
+        var selectedId = selectedMaterial.dataset.materialId;
+        connectedMaterialIds = connectedMaterialIds.indexOf(selectedId) !== -1 ? [selectedId] : [];
+      }
+
+      if (!connectedMaterialIds.length) {
+        panel.innerHTML = '<span class="process-map-serie-hint">' +
+          (selectedMaterial ? 'Selected material is not connected to this Serie.' : 'Select (or connect) a material to this Serie first.') +
+          '</span>';
+        return;
+      }
+
+      panel.innerHTML = '<div class="pm-pn-hint">Select Part Numbers, then click Save. Leave unchecked to use all Part Numbers.</div><div class="pm-pn-material-list"></div>';
+      var listEl = panel.querySelector('.pm-pn-material-list');
+
+      connectedMaterialIds.forEach(function (materialId) {
+        var d = materialById[materialId];
+        var seriesLink = d.series.find(function (s) { return s.serie === serie; });
+        var isPendingLink = typeof seriesLink.id === 'string' && seriesLink.id.indexOf('pending:') === 0;
+        var wrap = document.createElement('div');
+        wrap.className = 'pm-pn-material-block';
+        var materialLabel = document.createElement('div');
+        materialLabel.className = 'pm-pn-material-label';
+        materialLabel.textContent = d.code;
+        wrap.appendChild(materialLabel);
+
+        if (isPendingLink) {
+          var pendingNote = document.createElement('div');
+          pendingNote.className = 'process-map-serie-hint';
+          pendingNote.textContent = 'Save the connection first, then restrict Part Numbers.';
+          wrap.appendChild(pendingNote);
+          listEl.appendChild(wrap);
+          return;
+        }
+
+        var selectAllLabel = document.createElement('label');
+        selectAllLabel.className = 'checkbox-row pm-pn-select-all';
+        var selectAllCheckbox = document.createElement('input');
+        selectAllCheckbox.type = 'checkbox';
+        selectAllLabel.appendChild(selectAllCheckbox);
+        selectAllLabel.appendChild(document.createTextNode(' Select All'));
+        wrap.appendChild(selectAllLabel);
+
+        var checksWrap = document.createElement('div');
+        checksWrap.className = 'pm-pn-checks';
+        allPartNumbers.forEach(function (pn) {
+          var label = document.createElement('label');
+          label.className = 'checkbox-row';
+          var checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.value = pn;
+          checkbox.checked = seriesLink.partNumbers.indexOf(pn) !== -1;
+          checkbox.addEventListener('change', updateSelectAllState);
+          label.appendChild(checkbox);
+          label.appendChild(document.createTextNode(' ' + pn));
+          checksWrap.appendChild(label);
+        });
+        wrap.appendChild(checksWrap);
+
+        function updateSelectAllState() {
+          var boxes = Array.from(checksWrap.querySelectorAll('input[type="checkbox"]'));
+          var checkedCount = boxes.filter(function (c) { return c.checked; }).length;
+          selectAllCheckbox.checked = boxes.length > 0 && checkedCount === boxes.length;
+          selectAllCheckbox.indeterminate = checkedCount > 0 && checkedCount < boxes.length;
+        }
+        selectAllCheckbox.addEventListener('change', function () {
+          checksWrap.querySelectorAll('input[type="checkbox"]').forEach(function (c) {
+            c.checked = selectAllCheckbox.checked;
+          });
+          selectAllCheckbox.indeterminate = false;
+        });
+        updateSelectAllState();
+
+        var saveBtn = document.createElement('button');
+        saveBtn.type = 'button';
+        saveBtn.className = 'btn small secondary';
+        saveBtn.textContent = 'Save';
+        saveBtn.addEventListener('click', function () {
+          var checked = Array.from(checksWrap.querySelectorAll('input:checked')).map(function (c) { return c.value; });
+          saveBtn.disabled = true;
+          saveBtn.textContent = 'Saving...';
+          savePartNumbers(seriesLink.id, checked).then(function (ok) {
+            saveBtn.disabled = false;
+            saveBtn.textContent = ok ? 'Saved' : 'Failed';
+            if (ok) seriesLink.partNumbers = checked;
+            setTimeout(function () { saveBtn.textContent = 'Save'; }, 1500);
+          });
+        });
+        wrap.appendChild(saveBtn);
+
+        listEl.appendChild(wrap);
+      });
+    }
+
+    // Saves in the background (no page navigation) so checking boxes across multiple
+    // expand/collapse cycles never loses state until the user explicitly clicks Save.
+    function savePartNumbers(materialProcessSeriesId, partNumbers) {
+      var body = new URLSearchParams();
+      body.append('material_process_series_id', materialProcessSeriesId);
+      partNumbers.forEach(function (pn) { body.append('part_number', pn); });
+      body.append('ajax', '1');
+      return fetch('/process-map/series-view/part-numbers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: body.toString(),
+      }).then(function (r) { return r.ok; }).catch(function () { return false; });
+    }
+
+    document.addEventListener('click', function (e) {
+      if (!e.target.closest('.pm-material-node') && !e.target.closest('.pm-serie-node')) {
+        clearSelection();
+        clearHighlight();
+      }
+    });
+
+    var serieSearch = document.getElementById('pmSerieSearch');
+    var serieEmpty = document.querySelector('.pm-serie-empty');
+    if (serieSearch) {
+      serieSearch.addEventListener('input', function () {
+        var q = serieSearch.value.trim().toLowerCase();
+        var visibleCount = 0;
+        document.querySelectorAll('.pm-serie-node').forEach(function (node) {
+          var match = !q || node.dataset.serie.toLowerCase().includes(q);
+          node.hidden = !match;
+          if (match) visibleCount++;
+        });
+        serieEmpty.hidden = visibleCount > 0;
+        drawLines();
+      });
+    }
+
+    drawLines();
+    window.addEventListener('resize', drawLines);
+    document.querySelectorAll('.pm-column-scroll, .pm-column-list').forEach(function (el) {
+      el.addEventListener('scroll', drawLines);
+    });
+  }
+</script>
+<%- include('partials/foot') %>

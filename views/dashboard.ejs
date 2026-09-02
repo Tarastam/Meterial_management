@@ -72,7 +72,7 @@ function fmtMoney0(n) {
   <% } %>
 </div>
 
-<% if (isAdmin) { %>
+<% if (can('dashboard_anomalies')) { %>
 <h2>Abnormal Usage</h2>
 <% if (usageAnomalies.length) { %>
 <% const noEntryCount = usageAnomalies.filter(a => a.noEntry).length;

@@ -210,6 +210,143 @@ async function ensureSchema() {
       ALTER TABLE tickets ADD type NVARCHAR(20) NOT NULL DEFAULT 'MANUAL' CHECK(type IN ('MANUAL','CHANGE','CREATE'))
     END
   `);
+
+  // One material maps to exactly one MES Operation. Series (and their Part Numbers) are
+  // chosen underneath that Operation in material_process_series below.
+  await exec(`
+    IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'material_process_map')
+    BEGIN
+      CREATE TABLE material_process_map (
+        id INT IDENTITY(1,1) PRIMARY KEY,
+        material_id INT NOT NULL UNIQUE REFERENCES materials(id),
+        operation_name NVARCHAR(200) NOT NULL,
+        updated_at DATETIME2 NOT NULL DEFAULT SYSDATETIME()
+      )
+    END
+  `);
+
+  // Older installs stored (material, operation, serie) as one row per serie, with
+  // part_number as a spare unused column. Migrate any such rows into the new
+  // material_id-per-row shape (keeping just the operation) before the schema below
+  // takes over series as their own table.
+  await exec(`
+    IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('material_process_map') AND name = 'serie')
+    BEGIN
+      IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'material_process_map_legacy')
+        EXEC sp_rename 'material_process_map', 'material_process_map_legacy';
+    END
+  `);
+  await exec(`
+    IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'material_process_map')
+    BEGIN
+      CREATE TABLE material_process_map (
+        id INT IDENTITY(1,1) PRIMARY KEY,
+        material_id INT NOT NULL UNIQUE REFERENCES materials(id),
+        operation_name NVARCHAR(200) NOT NULL,
+        updated_at DATETIME2 NOT NULL DEFAULT SYSDATETIME()
+      )
+    END
+  `);
+  await exec(`
+    IF EXISTS (SELECT * FROM sys.tables WHERE name = 'material_process_map_legacy')
+    BEGIN
+      INSERT INTO material_process_map (material_id, operation_name, updated_at)
+      SELECT material_id, MIN(operation_name), MAX(updated_at)
+      FROM material_process_map_legacy
+      WHERE material_id NOT IN (SELECT material_id FROM material_process_map)
+      GROUP BY material_id
+    END
+  `);
+
+  // Series chosen for a material under its mapped Operation - a material can run multiple
+  // series of the same operation.
+  await exec(`
+    IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'material_process_series')
+    BEGIN
+      CREATE TABLE material_process_series (
+        id INT IDENTITY(1,1) PRIMARY KEY,
+        material_process_map_id INT NOT NULL REFERENCES material_process_map(id) ON DELETE CASCADE,
+        serie NVARCHAR(200) NOT NULL,
+        created_at DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+        CONSTRAINT UQ_material_process_series UNIQUE (material_process_map_id, serie)
+      )
+    END
+  `);
+  await exec(`
+    IF EXISTS (SELECT * FROM sys.tables WHERE name = 'material_process_map_legacy')
+    BEGIN
+      INSERT INTO material_process_series (material_process_map_id, serie)
+      SELECT pm.id, legacy.serie
+      FROM material_process_map_legacy legacy
+      JOIN material_process_map pm ON pm.material_id = legacy.material_id
+      WHERE NOT EXISTS (
+        SELECT 1 FROM material_process_series ps WHERE ps.material_process_map_id = pm.id AND ps.serie = legacy.serie
+      )
+    END
+  `);
+  await exec(`
+    IF EXISTS (SELECT * FROM sys.tables WHERE name = 'material_process_map_legacy')
+      DROP TABLE material_process_map_legacy
+  `);
+
+  // Master list of Part Numbers that run under a given serie, populated by admin data
+  // entry - independent of any material, since the same serie can be shared by several
+  // materials run under different Part Numbers.
+  await exec(`
+    IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'serie_part_numbers')
+    BEGIN
+      CREATE TABLE serie_part_numbers (
+        id INT IDENTITY(1,1) PRIMARY KEY,
+        serie NVARCHAR(200) NOT NULL,
+        part_number NVARCHAR(200) NOT NULL,
+        created_at DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+        CONSTRAINT UQ_serie_part_numbers UNIQUE (serie, part_number)
+      )
+    END
+  `);
+
+  // Which of the serie's Part Numbers apply to a specific material-serie link. No rows
+  // for a given material_process_series_id means "all Part Numbers of this serie" (the
+  // default, since most materials don't need to be restricted to a subset).
+  await exec(`
+    IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'material_process_series_part_numbers')
+    BEGIN
+      CREATE TABLE material_process_series_part_numbers (
+        id INT IDENTITY(1,1) PRIMARY KEY,
+        material_process_series_id INT NOT NULL REFERENCES material_process_series(id) ON DELETE CASCADE,
+        part_number NVARCHAR(200) NOT NULL,
+        CONSTRAINT UQ_series_part_numbers UNIQUE (material_process_series_id, part_number)
+      )
+    END
+  `);
+
+  // Which Workshop each MES Serie belongs to - independent of any material, used to
+  // filter the Serie list on the Material<->Serie tab down to one Workshop's series.
+  await exec(`
+    IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'serie_workshop_map')
+    BEGIN
+      CREATE TABLE serie_workshop_map (
+        id INT IDENTITY(1,1) PRIMARY KEY,
+        serie NVARCHAR(200) NOT NULL UNIQUE,
+        workshop NVARCHAR(100) NOT NULL,
+        updated_at DATETIME2 NOT NULL DEFAULT SYSDATETIME()
+      )
+    END
+  `);
+
+  await exec(`
+    IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'users')
+    BEGIN
+      CREATE TABLE users (
+        id INT IDENTITY(1,1) PRIMARY KEY,
+        username NVARCHAR(100) NOT NULL UNIQUE,
+        password_hash NVARCHAR(200) NOT NULL,
+        is_master BIT NOT NULL DEFAULT 0,
+        permissions NVARCHAR(MAX) NOT NULL DEFAULT '[]',
+        created_at DATETIME2 NOT NULL DEFAULT SYSDATETIME()
+      )
+    END
+  `);
 }
 
 module.exports = { all, get, run, exec, ensureSchema, getPool, mes };

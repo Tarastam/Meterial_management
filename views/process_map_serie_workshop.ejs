@@ -1,0 +1,71 @@
+<%- include('partials/head', { title: 'Process Mapping - Material Management' }) %>
+<h1>Process Mapping</h1>
+<p style="color:var(--gray-600); margin-top:-0.5rem;">Assign each Serie to the Workshop that runs it. Used to filter the Serie list on the Material &harr; Serie tab.</p>
+
+<div class="pm-tabs">
+  <a class="pm-tab" href="/process-map">Material &harr; Process</a>
+  <a class="pm-tab" href="/process-map/series-view">Material &harr; Serie</a>
+  <a class="pm-tab" href="/process-map/part-numbers/list">Part Numbers</a>
+  <a class="pm-tab active" href="/process-map/serie-workshop/list">Serie &harr; Workshop</a>
+</div>
+
+<% if (typeof saved !== 'undefined' && saved) { %><div id="processMapToast" class="toast toast-success">Saved.</div><% } %>
+
+<div class="filters" style="margin-bottom:0;">
+  <div class="field" style="margin-bottom:0;">
+    <label>Search Serie</label>
+    <input type="text" id="swSearch" placeholder="Serie...">
+  </div>
+</div>
+
+<form method="post" action="/process-map/serie-workshop" id="swForm">
+  <input type="hidden" name="return_qs" value="">
+  <table class="compact-table" id="swTable" style="margin-top:1rem;">
+    <thead>
+      <tr><th>Serie</th><th>Workshop</th></tr>
+    </thead>
+    <tbody>
+      <% series.forEach(s => { %>
+      <tr class="sw-row" data-serie="<%= s.toLowerCase() %>">
+        <td>
+          <%= s %>
+          <input type="hidden" name="serie" value="<%= s %>">
+        </td>
+        <td>
+          <select name="workshop">
+            <option value="">&mdash; Unassigned &mdash;</option>
+            <% workshops.forEach(w => { %>
+            <option value="<%= w %>" <%= workshopBySerie[s] === w ? 'selected' : '' %>><%= w %></option>
+            <% }) %>
+          </select>
+        </td>
+      </tr>
+      <% }) %>
+      <% if (!series.length) { %>
+      <tr><td colspan="2" class="empty-state">No series found in MES.</td></tr>
+      <% } %>
+    </tbody>
+  </table>
+  <div style="margin-top:0.75rem;">
+    <button class="btn" type="submit">Save</button>
+  </div>
+</form>
+
+<script>
+  var processMapToast = document.getElementById('processMapToast');
+  if (processMapToast) {
+    var url = new URL(window.location.href);
+    url.searchParams.delete('saved');
+    window.history.replaceState({}, '', url);
+    setTimeout(function () { processMapToast.remove(); }, 3000);
+  }
+
+  var swSearch = document.getElementById('swSearch');
+  swSearch.addEventListener('input', function () {
+    var q = swSearch.value.trim().toLowerCase();
+    document.querySelectorAll('.sw-row').forEach(function (row) {
+      row.hidden = Boolean(q) && row.dataset.serie.indexOf(q) === -1;
+    });
+  });
+</script>
+<%- include('partials/foot') %>

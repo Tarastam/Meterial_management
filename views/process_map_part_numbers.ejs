@@ -1,0 +1,168 @@
+<%- include('partials/head', { title: 'Process Mapping - Material Management' }) %>
+<h1>Process Mapping</h1>
+<p style="color:var(--gray-600); margin-top:-0.5rem;">Match Part Numbers to the Serie they run under. Paste a column of Part Numbers copied from Excel directly into the table below.</p>
+
+<div class="pm-tabs">
+  <a class="pm-tab" href="/process-map">Material &harr; Process</a>
+  <a class="pm-tab" href="/process-map/series-view">Material &harr; Serie</a>
+  <a class="pm-tab active" href="/process-map/part-numbers/list">Part Numbers</a>
+  <a class="pm-tab" href="/process-map/serie-workshop/list">Serie &harr; Workshop</a>
+</div>
+
+<% if (typeof saved !== 'undefined' && saved) { %><div id="processMapToast" class="toast toast-success">Saved.</div><% } %>
+
+<form class="filters" id="pnFilterForm" method="get" action="/process-map/part-numbers/list">
+  <div class="field" style="margin-bottom:0;">
+    <label>Serie</label>
+    <select name="serie" id="pnSerie">
+      <option value="">Select Serie...</option>
+      <% series.forEach(s => { %>
+      <option value="<%= s %>"><%= s %></option>
+      <% }) %>
+    </select>
+  </div>
+</form>
+
+<div id="pnTableWrap" style="margin-top:1rem;" hidden>
+  <table class="compact-table" id="pnTable">
+    <thead>
+      <tr><th>Part Number</th><th style="width:1%;"></th></tr>
+    </thead>
+    <tbody id="pnTableBody"></tbody>
+  </table>
+  <div style="margin-top:0.75rem; display:flex; gap:0.5rem;">
+    <button type="button" class="btn small secondary" id="pnAddRow">+ Add row</button>
+    <button type="button" class="btn" id="pnSave">Save</button>
+  </div>
+</div>
+
+<form id="pnSaveForm" method="post" action="/process-map/part-numbers" hidden>
+  <input type="hidden" name="serie" id="pnSaveSerie">
+  <input type="hidden" name="return_qs" id="pnSaveReturnQs">
+  <div id="pnSaveFields"></div>
+</form>
+
+<script>
+  var processMapToast = document.getElementById('processMapToast');
+  if (processMapToast) {
+    var toastUrl = new URL(window.location.href);
+    toastUrl.searchParams.delete('saved');
+    window.history.replaceState({}, '', toastUrl);
+    setTimeout(function () { processMapToast.remove(); }, 3000);
+  }
+
+  var serieSelect = document.getElementById('pnSerie');
+  var tableWrap = document.getElementById('pnTableWrap');
+  var tableBody = document.getElementById('pnTableBody');
+
+  function emptyRow(value) {
+    var tr = document.createElement('tr');
+    var td = document.createElement('td');
+    var input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'pn-cell';
+    input.value = value || '';
+    input.addEventListener('paste', onCellPaste);
+    input.addEventListener('keydown', onCellKeydown);
+    td.appendChild(input);
+    var actionTd = document.createElement('td');
+    var removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'btn small danger';
+    removeBtn.textContent = 'Remove';
+    removeBtn.addEventListener('click', function () {
+      tr.remove();
+      if (!tableBody.children.length) addRow('');
+    });
+    actionTd.appendChild(removeBtn);
+    tr.appendChild(td);
+    tr.appendChild(actionTd);
+    return tr;
+  }
+
+  function addRow(value) {
+    var tr = emptyRow(value);
+    tableBody.appendChild(tr);
+    return tr;
+  }
+
+  function onCellKeydown(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      var tr = e.target.closest('tr');
+      if (tr.nextElementSibling) {
+        tr.nextElementSibling.querySelector('.pn-cell').focus();
+      } else {
+        addRow('').querySelector('.pn-cell').focus();
+      }
+    }
+  }
+
+  function onCellPaste(e) {
+    var text = (e.clipboardData || window.clipboardData).getData('text');
+    if (!text) return;
+    var lines = text.split(/\r\n|\r|\n/).map(function (l) { return l.trim(); }).filter(function (l) { return l.length; });
+    if (lines.length <= 1) return; // let the default single-value paste happen
+    e.preventDefault();
+    var startTr = e.target.closest('tr');
+    startTr.querySelector('.pn-cell').value = lines[0];
+    var afterTr = startTr;
+    for (var i = 1; i < lines.length; i++) {
+      var newTr = emptyRow(lines[i]);
+      afterTr.after(newTr);
+      afterTr = newTr;
+    }
+  }
+
+  function loadTable(partNumbers) {
+    tableBody.innerHTML = '';
+    if (partNumbers.length) {
+      partNumbers.forEach(function (pn) { addRow(pn); });
+    } else {
+      addRow('');
+    }
+    tableWrap.hidden = false;
+  }
+
+  function loadPartNumbers(serie) {
+    if (!serie) { tableWrap.hidden = true; return; }
+    fetch('/process-map/part-numbers?serie=' + encodeURIComponent(serie))
+      .then(function (r) { return r.json(); })
+      .then(function (data) { loadTable(data.partNumbers || []); });
+  }
+
+  serieSelect.addEventListener('change', function () {
+    loadPartNumbers(serieSelect.value);
+  });
+
+  document.getElementById('pnAddRow').addEventListener('click', function () {
+    addRow('').querySelector('.pn-cell').focus();
+  });
+
+  document.getElementById('pnSave').addEventListener('click', function () {
+    if (!serieSelect.value) return;
+    var fieldsWrap = document.getElementById('pnSaveFields');
+    fieldsWrap.innerHTML = '';
+    document.querySelectorAll('.pn-cell').forEach(function (input) {
+      var value = input.value.trim();
+      if (!value) return;
+      var hidden = document.createElement('input');
+      hidden.type = 'hidden';
+      hidden.name = 'part_number';
+      hidden.value = value;
+      fieldsWrap.appendChild(hidden);
+    });
+    document.getElementById('pnSaveSerie').value = serieSelect.value;
+    document.getElementById('pnSaveReturnQs').value = 'serie=' + encodeURIComponent(serieSelect.value);
+    document.getElementById('pnSaveForm').submit();
+  });
+
+  (function initFromQuery() {
+    var params = new URLSearchParams(window.location.search);
+    var serie = params.get('serie');
+    if (!serie) return;
+    serieSelect.value = serie;
+    loadPartNumbers(serie);
+  })();
+</script>
+<%- include('partials/foot') %>

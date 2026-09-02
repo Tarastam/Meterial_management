@@ -90,13 +90,13 @@
             data-attachment-name="<%= t.attachment_name || '' %>"
             data-attachment-url="<%= t.attachment_path ? ('/tickets/' + t.id + '/attachment') : '' %>"
           >Detail</button>
-          <% if (isAdmin && t.status === 'OPEN') { %>
+          <% if (can('tickets_manage') && t.status === 'OPEN') { %>
           <form class="inline" method="post" action="/tickets/<%= t.id %>/resolve" onsubmit="return handleResolve(event, this);">
             <input type="hidden" name="return_qs" value="<%= returnQs %>">
             <button class="btn small secondary" type="submit">Resolve</button>
           </form>
           <% } %>
-          <% if (isAdmin) { %>
+          <% if (can('tickets_manage')) { %>
           <form class="inline" method="post" action="/tickets/<%= t.id %>/delete" onsubmit="return confirm('Delete this ticket permanently? This cannot be undone.');">
             <input type="hidden" name="return_qs" value="<%= returnQs %>">
             <button class="btn small danger" type="submit">Delete</button>

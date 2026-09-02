@@ -1,0 +1,77 @@
+<%- include('partials/head', { title: 'User Management - Material Management' }) %>
+<h1>User Management</h1>
+
+<% if (error) { %><div class="alert error"><%= error %></div><% } %>
+
+<div class="table-wrap">
+  <table class="compact-table">
+    <thead>
+      <tr>
+        <th class="col-left">Username</th>
+        <th>Role</th>
+        <th>Permissions</th>
+        <th>Reset Password</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% users.forEach(u => { %>
+      <tr>
+        <td class="col-left"><%= u.username %></td>
+        <td><%= u.is_master ? 'Master Admin' : 'User' %></td>
+        <td>
+          <% if (u.is_master) { %>
+          <span class="hint">All permissions</span>
+          <% } else { %>
+          <form class="inline permissions-form" method="post" action="/admin/users/<%= u.id %>/permissions">
+            <% permissionList.forEach(p => { %>
+            <label class="checkbox-label">
+              <input type="checkbox" name="perm_<%= p.key %>" <%= u.permissions.has(p.key) ? 'checked' : '' %>>
+              <%= p.label %>
+            </label>
+            <% }) %>
+            <button class="btn small secondary" type="submit">Save</button>
+          </form>
+          <% } %>
+        </td>
+        <td>
+          <form class="inline" method="post" action="/admin/users/<%= u.id %>/reset-password">
+            <input type="password" name="password" placeholder="New password" required minlength="4">
+            <button class="btn small secondary" type="submit">Reset</button>
+          </form>
+        </td>
+        <td>
+          <% if (!u.is_master) { %>
+          <form class="inline" method="post" action="/admin/users/<%= u.id %>/delete" onsubmit="return confirm('Delete user <%= u.username %>?');">
+            <button class="btn small danger" type="submit">Delete</button>
+          </form>
+          <% } %>
+        </td>
+      </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+
+<h2>Add User</h2>
+<form class="card form-card" method="post" action="/admin/users/new">
+  <div class="field">
+    <label>Username *</label>
+    <input type="text" name="username" required autocomplete="off">
+  </div>
+  <div class="field">
+    <label>Password *</label>
+    <input type="password" name="password" required minlength="4">
+  </div>
+  <div class="field">
+    <label>Permissions</label>
+    <% permissionList.forEach(p => { %>
+    <label class="checkbox-label">
+      <input type="checkbox" name="perm_<%= p.key %>">
+      <%= p.label %>
+    </label>
+    <% }) %>
+  </div>
+  <button class="btn" type="submit">Create User</button>
+</form>
+<%- include('partials/foot') %>

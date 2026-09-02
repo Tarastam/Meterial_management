@@ -26,6 +26,10 @@
           </div>
         </div>
         <a href="/consumption">Consumption</a>
+        <a href="/reports/monthly-consumption">Monthly Report</a>
+        <% if (can('process_map')) { %>
+        <a href="/process-map">Process Mapping</a>
+        <% } %>
       </div>
     </div>
     <div class="nav-dropdown">
@@ -42,10 +46,13 @@
         <a href="/tickets">Ticket Log</a>
       </div>
     </div>
+    <% if (isMaster) { %>
+    <a href="/admin/users">User Management</a>
+    <% } %>
     <div class="nav-right">
-      <% if (isAdmin) { %>
+      <% if (currentUser) { %>
       <form class="inline nav-logout" method="post" action="/admin/logout">
-        <span class="nav-admin-badge">Admin</span>
+        <span class="nav-admin-badge"><%= currentUser.username %></span>
         <button class="nav-link-btn" type="submit">Logout</button>
       </form>
       <% } else { %>
