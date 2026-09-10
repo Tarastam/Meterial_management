@@ -31,40 +31,14 @@
     <label>To *</label>
     <input type="date" name="to" value="<%= to %>" required>
   </div>
-  <div class="field" style="margin-bottom:0;">
-    <label>Operation Name</label>
-    <select name="operation_name" onchange="this.form.submit()">
-      <option value="">Select operation...</option>
-      <% operationNames.forEach(op => { %>
-      <option value="<%= op %>" <%= op === selectedOperationName ? 'selected' : '' %>><%= op %></option>
-      <% }) %>
-    </select>
-  </div>
-  <% if (selectedOperationName) { %>
-  <div class="field" style="margin-bottom:0;">
-    <label>Serie *</label>
-    <% if (seriesOptions.length) { %>
-    <details class="serie-dropdown">
-      <summary><span class="serie-dropdown-label"><%= selectedSeries.length ? selectedSeries.length + ' series selected' : 'Select series...' %></span></summary>
-      <div class="serie-dropdown-panel">
-        <label class="checkbox-row serie-select-all"><input type="checkbox" class="serie-select-all-checkbox"> <strong>Select All</strong></label>
-        <div class="serie-checkboxes">
-          <% seriesOptions.forEach(s => { %>
-          <label class="checkbox-row"><input type="checkbox" name="serie" value="<%= s %>" <%= selectedSeries.includes(s) ? 'checked' : '' %>> <%= s %></label>
-          <% }) %>
-        </div>
-        <button class="btn secondary small" type="submit" style="margin-top:0.5rem; width:100%;">Apply</button>
-      </div>
-    </details>
-    <% } else { %>
-    <p style="color:var(--gray-600); margin:0;">No series found for this operation.</p>
-    <% } %>
-  </div>
-  <% } %>
   <div class="field" style="margin-bottom:0; align-self:flex-end;">
     <button class="btn" type="submit">Calculate</button>
   </div>
 </form>
+
+<% if (selectedMaterialId && selectedOperationName) { %>
+<p style="color:var(--gray-600); font-size:0.85rem; margin:0.5rem 0 0;">Mapped to Operation <strong><%= selectedOperationName %></strong>, Series: <strong><%= selectedSeries.join(', ') %></strong></p>
+<% } %>
 
 <% if (result) { %>
 <h2>Result</h2>
@@ -89,7 +63,7 @@
 <div class="card">
   <p><strong>Material:</strong> <%= result.material.prod_material_code %> - <%= result.material.name %> (<%= result.material.workshop %>)</p>
   <p><strong>Period:</strong> <%= from %> to <%= to %></p>
-  <p><a class="btn secondary small" href="/export/consumption.csv?<%= new URLSearchParams({ workshop: selectedWorkshop, material_id: selectedMaterialId, from, to, operation_name: selectedOperationName }).toString() %><%= selectedSeries.map(s => '&serie=' + encodeURIComponent(s)).join('') %>">Export CSV</a></p>
+  <p><a class="btn secondary small" href="/export/consumption.csv?<%= new URLSearchParams({ workshop: selectedWorkshop, material_id: selectedMaterialId, from, to }).toString() %>">Export CSV</a></p>
 </div>
 
 <% if (dailyChartData && dailyChartData.dates.length && dailyChartData.output) { %>
@@ -184,31 +158,9 @@
 <% } else if (dailyChartData && dailyChartData.dates.length) { %>
 <div class="card" style="margin-top:1rem;">
   <h3>Daily Consumption</h3>
-  <p style="color:var(--gray-600); font-size:0.85rem; margin:0;">Select an Operation and Series above to see the daily Output/Consumption chart.</p>
+  <p style="color:var(--gray-600); font-size:0.85rem; margin:0;">This material has no process mapping, so no Output/Consumption chart is available.</p>
 </div>
 <% } %>
 <% } %>
 
-<script>
-  document.querySelectorAll('.serie-dropdown').forEach((dropdown) => {
-    const label = dropdown.querySelector('.serie-dropdown-label');
-    const selectAll = dropdown.querySelector('.serie-select-all-checkbox');
-    const boxes = dropdown.querySelectorAll('.serie-checkboxes input[type="checkbox"]');
-
-    const updateLabel = () => {
-      const checked = Array.from(boxes).filter((c) => c.checked).length;
-      label.textContent = checked ? checked + ' series selected' : 'Select series...';
-      if (selectAll) selectAll.checked = checked === boxes.length;
-    };
-
-    boxes.forEach((b) => b.addEventListener('change', updateLabel));
-    if (selectAll) {
-      selectAll.addEventListener('change', () => {
-        boxes.forEach((b) => { b.checked = selectAll.checked; });
-        updateLabel();
-      });
-    }
-    updateLabel();
-  });
-</script>
 <%- include('partials/foot') %>

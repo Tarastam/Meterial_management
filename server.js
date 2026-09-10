@@ -745,14 +745,44 @@ app.get('/', async (req, res) => {
     )
   ).c;
 
-  const recentFilter = materialIdsFilter('e.material_id', materialIds);
+  // Recent Transactions respects the same workshop/shift/date-range/material filters as the
+  // rest of the dashboard, so switching a filter updates this table too.
+  let recentFilterSql = '';
+  const recentFilterParams = [];
+  if (workshop) {
+    recentFilterSql += ' AND m.workshop = ?';
+    recentFilterParams.push(workshop);
+  }
+  if (shift) {
+    recentFilterSql += ' AND e.shift = ?';
+    recentFilterParams.push(shift);
+  }
+  recentFilterSql += ' AND e.entry_date BETWEEN ? AND ?';
+  recentFilterParams.push(from, to);
+  const recentMaterialFilter = materialIdsFilter('e.material_id', materialIds);
+  recentFilterSql += recentMaterialFilter.sql;
+  recentFilterParams.push(...recentMaterialFilter.params);
+
+  // Per-entry usage = previous stock reading + this entry's issue - this entry's stock
+  // - this entry's issue NCN + this entry's return NCN, mirroring /transactions and the CSV export.
   const recentTransactions = await db.all(
-    `SELECT TOP 10 e.*, m.prod_material_code, m.name AS material_name, m.unit AS material_unit
+    `WITH stock_readings AS (
+       SELECT id, current_stock,
+              LAG(current_stock) OVER (PARTITION BY material_id ORDER BY entry_date, id) AS prev_stock
+       FROM issue_entries
+       WHERE voided = 0 AND current_stock IS NOT NULL
+     )
+     SELECT TOP 10 e.*, m.prod_material_code, m.name AS material_name, m.unit AS material_unit,
+                    CASE WHEN e.voided = 0 AND e.current_stock IS NOT NULL
+                         THEN COALESCE(sr.prev_stock, e.current_stock) + COALESCE(e.issue_qty, 0) - e.current_stock
+                              - COALESCE(e.issue_ncn, 0) + COALESCE(e.return_ncn, 0)
+                         ELSE NULL END AS usage
      FROM issue_entries e
      JOIN materials m ON m.id = e.material_id
-     WHERE 1=1${recentFilter.sql}
+     LEFT JOIN stock_readings sr ON sr.id = e.id
+     WHERE 1=1${recentFilterSql}
      ORDER BY e.created_at DESC, e.id DESC`,
-    recentFilter.params
+    recentFilterParams
   );
 
   const materialSeries = await getDailyMaterialSeries(from, to, workshop, shift, materialIds);
@@ -1215,17 +1245,76 @@ app.post('/issue', async (req, res) => {
 // kPcs unit the Product Output field is expressed in.
 const MES_OUTPUT_UNIT_DIVISOR = 1000;
 
-// Per-day QuantityMoved (in kPcs) for the given operation/series, keyed by date string.
-async function getMesDailyOutputMap(operationName, series, fromDate, toDate) {
-  const placeholders = series.map(() => '?').join(', ');
-  const rows = await db.mes.all(
-    `SELECT ReportingDate, SUM(QuantityMoved) AS total FROM DashboardWipProcessDaily
-     WHERE OperationName = ? AND Serie IN (${placeholders}) AND ReportingDate BETWEEN ? AND ?
-     GROUP BY ReportingDate`,
-    [operationName, ...series, fromDate, toDate]
+// Fetches the part numbers mapped to a material's process-map series (via
+// material_process_series_part_numbers). Returns { serie: [partNumbers] }; a serie absent
+// from the result (or mapped to an empty array) has no part-number-level mapping, meaning
+// output should be taken for the whole serie rather than filtered down to specific parts.
+async function getMaterialSeriesPartNumbers(materialProcessMapId) {
+  const seriesRows = await db.all(
+    'SELECT id, serie FROM material_process_series WHERE material_process_map_id = ?',
+    [materialProcessMapId]
   );
+  if (!seriesRows.length) return {};
+  const seriesIds = seriesRows.map((r) => r.id);
+  const pnRows = await db.all(
+    `SELECT material_process_series_id, part_number FROM material_process_series_part_numbers
+     WHERE material_process_series_id IN (${seriesIds.map(() => '?').join(', ')})`,
+    seriesIds
+  );
+  const pnBySeriesId = {};
+  pnRows.forEach((r) => {
+    if (!pnBySeriesId[r.material_process_series_id]) pnBySeriesId[r.material_process_series_id] = [];
+    pnBySeriesId[r.material_process_series_id].push(r.part_number);
+  });
+  const result = {};
+  seriesRows.forEach((r) => { result[r.serie] = pnBySeriesId[r.id] || []; });
+  return result;
+}
+
+// Per-day QuantityMoved (in kPcs) for the given operation/series, keyed by date string.
+// partNumbersBySerie, if given, restricts each serie to its mapped part numbers (a serie
+// with no part numbers mapped falls back to its full, unfiltered output).
+async function getMesDailyOutputMap(operationName, series, fromDate, toDate, partNumbersBySerie) {
+  const seriesWithoutPn = partNumbersBySerie
+    ? series.filter((s) => !(partNumbersBySerie[s] || []).length)
+    : series;
+  const seriesWithPn = partNumbersBySerie
+    ? series.filter((s) => (partNumbersBySerie[s] || []).length)
+    : [];
+
   const map = {};
-  rows.forEach((r) => { map[dateKey(r.ReportingDate)] = Number(r.total) / MES_OUTPUT_UNIT_DIVISOR; });
+  const addRows = (rows) => {
+    rows.forEach((r) => {
+      const key = dateKey(r.ReportingDate);
+      map[key] = (map[key] || 0) + Number(r.total) / MES_OUTPUT_UNIT_DIVISOR;
+    });
+  };
+
+  if (seriesWithoutPn.length) {
+    const placeholders = seriesWithoutPn.map(() => '?').join(', ');
+    addRows(
+      await db.mes.all(
+        `SELECT ReportingDate, SUM(QuantityMoved) AS total FROM DashboardWipProcessDaily
+         WHERE OperationName = ? AND Serie IN (${placeholders}) AND ReportingDate BETWEEN ? AND ?
+         GROUP BY ReportingDate`,
+        [operationName, ...seriesWithoutPn, fromDate, toDate]
+      )
+    );
+  }
+
+  for (const serie of seriesWithPn) {
+    const partNumbers = partNumbersBySerie[serie];
+    const pnPlaceholders = partNumbers.map(() => '?').join(', ');
+    addRows(
+      await db.mes.all(
+        `SELECT ReportingDate, SUM(QuantityMoved) AS total FROM DashboardWipProcessDaily
+         WHERE OperationName = ? AND Serie = ? AND PartNumber IN (${pnPlaceholders}) AND ReportingDate BETWEEN ? AND ?
+         GROUP BY ReportingDate`,
+        [operationName, serie, ...partNumbers, fromDate, toDate]
+      )
+    );
+  }
+
   return map;
 }
 
@@ -1235,32 +1324,14 @@ async function computeConsumption(query) {
   const today = todayStr();
   const from = query.from || today;
   const to = query.to || today;
-  const operationName = query.operation_name || '';
-  const selectedSeries = [].concat(query.serie || []).filter(Boolean);
 
   const materials = await getIssueMaterials(workshop);
   const workshops = (await db.all('SELECT DISTINCT workshop FROM materials ORDER BY workshop')).map((r) => r.workshop);
 
-  const operationNames = (
-    await db.mes.all('SELECT DISTINCT OperationName FROM DashboardWipProcessDaily WHERE OperationName IS NOT NULL ORDER BY OperationName')
-  ).map((r) => r.OperationName);
-
-  let seriesOptions = [];
-  if (operationName) {
-    seriesOptions = (
-      await db.mes.all(
-        'SELECT DISTINCT Serie FROM DashboardWipProcessDaily WHERE OperationName = ? AND Serie IS NOT NULL ORDER BY Serie',
-        [operationName]
-      )
-    ).map((r) => r.Serie);
-  }
-
+  let operationName = '';
+  let selectedSeries = [];
   let mesOutput = null;
   let mesDailyOutput = null;
-  if (operationName && selectedSeries.length) {
-    mesDailyOutput = await getMesDailyOutputMap(operationName, selectedSeries, from, to);
-    mesOutput = Object.values(mesDailyOutput).reduce((sum, v) => sum + v, 0);
-  }
 
   let result = null;
   let error = null;
@@ -1270,6 +1341,22 @@ async function computeConsumption(query) {
     if (!material) {
       error = 'Material not found.';
     } else {
+      const mapRow = await db.get('SELECT id, operation_name FROM material_process_map WHERE material_id = ?', [material.id]);
+      let partNumbersBySerie = {};
+      if (mapRow) {
+        operationName = mapRow.operation_name;
+        selectedSeries = (
+          await db.all('SELECT serie FROM material_process_series WHERE material_process_map_id = ? ORDER BY serie', [mapRow.id])
+        ).map((r) => r.serie);
+        partNumbersBySerie = await getMaterialSeriesPartNumbers(mapRow.id);
+      }
+      if (operationName && selectedSeries.length) {
+        mesDailyOutput = await getMesDailyOutputMap(operationName, selectedSeries, from, to, partNumbersBySerie);
+        mesOutput = Object.values(mesDailyOutput).reduce((sum, v) => sum + v, 0);
+      } else {
+        error = 'This material has no process mapping (Operation/Series) set up yet.';
+      }
+
       const stockYesterday = (await getStockAsOfMap(addDays(from, -1)))[material.id] || 0;
       const stockToday = (await getStockAsOfMap(to))[material.id] || 0;
       const issueSum = (await getIssueSumMap(from, to))[material.id] || 0;
@@ -1308,9 +1395,7 @@ async function computeConsumption(query) {
     selectedMaterialId: materialId,
     from,
     to,
-    operationNames,
     selectedOperationName: operationName,
-    seriesOptions,
     selectedSeries,
     mesOutput,
     dailyChartData,
@@ -1749,7 +1834,7 @@ async function computeMonthlyConsumptionReport(query) {
 
   const mapRows = await db.all('SELECT * FROM material_process_map');
   const mapByMaterialId = {};
-  mapRows.forEach((r) => { mapByMaterialId[r.material_id] = { operation_name: r.operation_name, series: [] }; });
+  mapRows.forEach((r) => { mapByMaterialId[r.material_id] = { mapId: r.id, operation_name: r.operation_name, series: [] }; });
   const mapIdToMaterialId = {};
   mapRows.forEach((r) => { mapIdToMaterialId[r.id] = r.material_id; });
   const seriesRows = mapRows.length
@@ -1767,19 +1852,15 @@ async function computeMonthlyConsumptionReport(query) {
     if (!mapByMaterialId[materialId].series.length) delete mapByMaterialId[materialId];
   });
 
-  // Group mapped materials by (operation_name, series set) so each distinct combination is
-  // only queried against MES once, even if several materials share it.
-  const outputByPairKey = {};
-  const pairsNeeded = new Map();
-  materials.forEach((m) => {
+  // Part numbers are mapped per material (via its series), so distinct materials can share an
+  // (operation, series) pair yet need different output totals - key the cache by material id.
+  const outputByMaterialId = {};
+  for (const m of materials) {
     const mapping = mapByMaterialId[m.id];
-    if (!mapping) return;
-    const key = mapping.operation_name + '|' + mapping.series.join(',');
-    pairsNeeded.set(key, { operationName: mapping.operation_name, series: mapping.series });
-  });
-  for (const [key, { operationName, series }] of pairsNeeded) {
-    const dailyOutput = await getMesDailyOutputMap(operationName, series, start, end);
-    outputByPairKey[key] = Object.values(dailyOutput).reduce((sum, v) => sum + v, 0);
+    if (!mapping) continue;
+    const partNumbersBySerie = await getMaterialSeriesPartNumbers(mapping.mapId);
+    const dailyOutput = await getMesDailyOutputMap(mapping.operation_name, mapping.series, start, end, partNumbersBySerie);
+    outputByMaterialId[m.id] = Object.values(dailyOutput).reduce((sum, v) => sum + v, 0);
   }
 
   // Previous month totals (usage cost only) for the month-over-month comparison tile.
@@ -1809,8 +1890,7 @@ async function computeMonthlyConsumptionReport(query) {
     let output = null;
     let actualConsumption = null;
     if (mapping) {
-      const key = mapping.operation_name + '|' + mapping.series.join(',');
-      output = outputByPairKey[key] || 0;
+      output = outputByMaterialId[m.id] || 0;
       if (output > 0) actualConsumption = usage / output;
     }
 

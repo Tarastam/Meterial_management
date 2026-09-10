@@ -53,6 +53,7 @@
         <tr>
           <th>Code</th><th class="col-erp">ERP Code</th><th class="col-name">Name</th><th class="col-center">Unit</th><th class="col-center">Workshop</th>
           <th class="col-input" title="If left blank, the previous day's value is saved automatically">Current Stock</th><th class="col-input">Issue</th><th class="col-input">Issue NCN</th><th class="col-input">Return NCN</th>
+          <th class="col-num" title="Live preview: stock yesterday + issue - current stock - issue NCN + return NCN">Usage</th>
         </tr>
       </thead>
       <tbody>
@@ -64,10 +65,11 @@
           <td class="col-name"><%= m.name %></td>
           <td class="col-center"><%= m.unit %></td>
           <td class="col-center"><%= m.workshop %></td>
-          <td class="col-input"><input type="number" step="any" min="0" name="current_stock_<%= m.id %>" value="<%= v.current_stock || '' %>" placeholder="<%= stockMap[m.id] != null ? fmtNum(stockMap[m.id]) : '' %>"></td>
-          <td class="col-input"><input type="number" step="any" min="0" name="issue_qty_<%= m.id %>" value="<%= v.issue_qty || '' %>"></td>
-          <td class="col-input"><input type="number" step="any" min="0" name="issue_ncn_<%= m.id %>" value="<%= v.issue_ncn || '' %>"></td>
-          <td class="col-input"><input type="number" step="any" min="0" name="return_ncn_<%= m.id %>" value="<%= v.return_ncn || '' %>"></td>
+          <td class="col-input"><input class="usage-input" type="number" step="any" min="0" name="current_stock_<%= m.id %>" value="<%= v.current_stock || '' %>" placeholder="<%= stockMap[m.id] != null ? fmtNum(stockMap[m.id]) : '' %>" data-stock-yesterday="<%= stockMap[m.id] != null ? stockMap[m.id] : 0 %>"></td>
+          <td class="col-input"><input class="usage-input" type="number" step="any" min="0" name="issue_qty_<%= m.id %>" value="<%= v.issue_qty || '' %>"></td>
+          <td class="col-input"><input class="usage-input" type="number" step="any" min="0" name="issue_ncn_<%= m.id %>" value="<%= v.issue_ncn || '' %>"></td>
+          <td class="col-input"><input class="usage-input" type="number" step="any" min="0" name="return_ncn_<%= m.id %>" value="<%= v.return_ncn || '' %>"></td>
+          <td class="col-num usage-cell" data-usage-for="<%= m.id %>" data-decimals="<%= m.decimal_places != null ? m.decimal_places : 3 %>">-</td>
         </tr>
         <% }) %>
       </tbody>
@@ -98,6 +100,81 @@ function filterIssueRows(query) {
     row.style.display = !q || row.dataset.search.includes(q) ? '' : 'none';
   });
 }
+
+// Live Usage preview. Mirrors the server formula
+// (usage = stockYesterday + issue - stockToday - issueNcn + returnNcn) and the
+// carry-forward default applied in POST /issue when Current Stock is left blank.
+// Preview only: the server's guard also adds in any existing same-day rows, which this
+// can't see. That only differs on the admin/backdate path, since the duplicate guard
+// blocks same-day re-entry for everyone else. The server stays the authority.
+(function () {
+  var FIELDS = ['current_stock', 'issue_qty', 'issue_ncn', 'return_ncn'];
+  var form = document.querySelector('form[action="/issue"][method="post"]');
+  if (!form) return;
+  var submitBtn = form.querySelector('.issue-footer button[type="submit"]');
+
+  // Mirrors server.js's fmtNum.
+  function fmtUsage(n, decimals) {
+    return Number(n).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: decimals });
+  }
+
+  function numOf(input) {
+    var n = parseFloat(input.value);
+    return isNaN(n) ? 0 : n;
+  }
+
+  function recalcRow(tr) {
+    var cell = tr.querySelector('.usage-cell');
+    if (!cell) return;
+    var inputs = {};
+    for (var i = 0; i < FIELDS.length; i++) {
+      inputs[FIELDS[i]] = tr.querySelector('input[name^="' + FIELDS[i] + '_"]');
+    }
+    if (!inputs.current_stock) return;
+
+    // An untouched row is skipped entirely on submit, so it has no usage to show.
+    var touched = FIELDS.some(function (f) {
+      return inputs[f] && inputs[f].value.trim() !== '';
+    });
+    if (!touched) {
+      cell.textContent = '-';
+      cell.classList.remove('usage-negative');
+      return;
+    }
+
+    var stockYesterday = parseFloat(inputs.current_stock.dataset.stockYesterday) || 0;
+    var stockToday = inputs.current_stock.value.trim() === '' ? stockYesterday : numOf(inputs.current_stock);
+    var usage = stockYesterday + numOf(inputs.issue_qty) - stockToday
+      - numOf(inputs.issue_ncn) + numOf(inputs.return_ncn);
+
+    var decimals = parseInt(cell.dataset.decimals, 10);
+    if (isNaN(decimals)) decimals = 3;
+    cell.textContent = fmtUsage(usage, decimals);
+    cell.classList.toggle('usage-negative', usage < 0);
+  }
+
+  function refreshSubmit() {
+    if (!submitBtn) return;
+    var bad = form.querySelectorAll('.usage-cell.usage-negative').length;
+    submitBtn.disabled = bad > 0;
+    submitBtn.title = bad > 0
+      ? 'Usage is negative for ' + bad + ' material(s). Correct the values before submitting.'
+      : '';
+  }
+
+  form.addEventListener('input', function (e) {
+    if (!e.target.classList.contains('usage-input')) return;
+    var tr = e.target.closest('tr');
+    if (!tr) return;
+    recalcRow(tr);
+    refreshSubmit();
+  });
+
+  // The page re-renders with the submitted values after a validation error, so the
+  // column and the disabled state have to be right before any typing happens.
+  form.querySelectorAll('.issue-table tbody tr').forEach(recalcRow);
+  refreshSubmit();
+})();
 </script>
 <% } %>
 <%- include('partials/foot') %>
