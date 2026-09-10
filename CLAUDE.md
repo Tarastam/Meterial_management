@@ -20,6 +20,12 @@ entry to the **Change Log** section below **before** ending your turn.
 
 <!-- Newest entries go on top. -->
 
+### 2026-09-10 — main
+- Merged `feature/mes-partnumber-mapping-usage-preview` into `main`
+  locally (`gh` CLI unavailable, so via `git merge --no-ff` + `git push`,
+  at the user's explicit request) and pushed `3cd9942`. Clean merge, no
+  conflicts.
+
 ### 2026-09-10 — feature/mes-partnumber-mapping-usage-preview
 - Branched off `main` (`e926583`) and pushed `42b8422` (`gh` CLI still
   unavailable in this environment, so the PR to `main` needs to be opened
