@@ -20,6 +20,31 @@ entry to the **Change Log** section below **before** ending your turn.
 
 <!-- Newest entries go on top. -->
 
+### 2026-09-10 — feature/mes-partnumber-mapping-usage-preview
+- Branched off `main` (`e926583`) and pushed `42b8422` (`gh` CLI still
+  unavailable in this environment, so the PR to `main` needs to be opened
+  manually from the compare link). The changes had accumulated
+  uncommitted directly on `main`'s working tree; unrelated untracked
+  files (pptx decks, xlsx exports, desktop.ini, mes_deck_* dirs) were
+  left out of the commit, matching prior practice on this repo.
+- `/consumption` no longer exposes manual Operation/Series pickers —
+  the mapping is now derived server-side from the material's process
+  map, and materials without one show a clear "no process mapping"
+  message instead of a blank chart.
+- `getMesDailyOutputMap` can now restrict a serie's MES output to
+  specific part numbers (via `material_process_series_part_numbers`),
+  so a serie shared across materials can be split by part number;
+  the monthly consumption report's MES-output cache was switched from
+  keying by (operation, series) pair to keying by material id to
+  support this.
+- Dashboard's Recent Transactions table now shows a computed per-row
+  Usage column and respects the dashboard's workshop/shift/date-range
+  filters (previously only the material filter applied to that table).
+- Record Data (`/issue`) gained a live Usage column that recalculates
+  as operators type, mirroring the server's formula and blank-stock
+  carry-forward default; the submit button disables while any row
+  would go negative.
+
 ### 2026-09-02 — main
 - Merged `feature/process-maps-consumption-user-management` into `main`
   locally (`gh` CLI unavailable, so via `git merge --no-ff` + `git push`,
