@@ -193,7 +193,7 @@ function fmtMoney0(n) {
 <div class="table-wrap">
   <table>
     <thead>
-      <tr><th>Date</th><th>Material</th><th>Current Stock</th><th>Issue</th><th>Employee ID</th></tr>
+      <tr><th>Date</th><th>Material</th><th>Current Stock</th><th>Issue</th><th>Usage</th><th>Employee ID</th></tr>
     </thead>
     <tbody>
       <% recentTransactions.forEach(t => { %>
@@ -202,6 +202,7 @@ function fmtMoney0(n) {
         <td><%= t.prod_material_code %> - <%= t.material_name %></td>
         <td><%= t.current_stock != null ? fmtNum(t.current_stock) + ' ' + t.material_unit : '-' %></td>
         <td><%= t.issue_qty != null ? fmtNum(t.issue_qty) + ' ' + t.material_unit : '-' %></td>
+        <td><%= t.usage != null ? fmtNum(t.usage) + ' ' + t.material_unit : '-' %></td>
         <td><%= t.employee_id %></td>
       </tr>
       <% }) %>

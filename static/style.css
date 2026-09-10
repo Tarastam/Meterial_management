@@ -411,6 +411,7 @@ tr:last-child td { border-bottom: none; }
   font-weight: 600;
 }
 .btn:hover { background: var(--blue-dark); }
+.btn:disabled, .btn:disabled:hover { background: var(--gray-400); color: white; cursor: not-allowed; }
 .btn.secondary { background: white; color: var(--gray-900); border: 1px solid var(--gray-200); }
 .btn.secondary:hover { background: var(--gray-100); }
 .btn.danger { background: var(--red); }
@@ -662,6 +663,8 @@ input:focus, select:focus, textarea:focus {
 .transactions-table th { font-size: 0.68rem; }
 .issue-table input[type="number"] { min-width: 0; width: 100%; padding: 0.3rem 0.4rem; font-size: 0.85rem; text-align: right; }
 .col-input { width: 140px; text-align: center; }
+.issue-table .usage-cell { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.issue-table .usage-cell.usage-negative { color: var(--red); font-weight: 600; }
 .issue-footer {
   display: flex;
   gap: 1.5rem;
