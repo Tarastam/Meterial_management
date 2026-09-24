@@ -152,6 +152,10 @@ app.post('/admin/login', async (req, res) => {
   if (!user || !verifyPassword(password, user.password_hash)) {
     return res.status(400).render('admin_login', { error: 'Incorrect username or password.', next });
   }
+  if (user.expires_at && new Date(user.expires_at) <= new Date()) {
+    await db.run('DELETE FROM users WHERE id = ?', [user.id]);
+    return res.status(400).render('admin_login', { error: 'Incorrect username or password.', next });
+  }
   const token = crypto.randomBytes(32).toString('hex');
   sessions.set(token, {
     id: user.id,
@@ -179,8 +183,11 @@ app.post('/admin/logout', (req, res) => {
 
 // ---------- user management (master admin only) ----------
 
+const USERS_LIST_SQL = 'SELECT id, username, is_master, permissions, created_at, expires_at FROM users ORDER BY is_master DESC, username ASC';
+const TEMP_USER_LIFETIME_MS = 24 * 60 * 60 * 1000;
+
 app.get('/admin/users', requireMaster, async (req, res) => {
-  const users = await db.all('SELECT id, username, is_master, permissions, created_at FROM users ORDER BY is_master DESC, username ASC');
+  const users = await db.all(USERS_LIST_SQL);
   res.render('user_management', {
     users: users.map((u) => ({ ...u, permissions: parsePermissions(u.permissions) })),
     permissionList: PERMISSIONS,
@@ -192,8 +199,10 @@ app.post('/admin/users/new', requireMaster, async (req, res) => {
   const username = (req.body.username || '').trim();
   const password = req.body.password || '';
   const permissions = PERMISSIONS.map((p) => p.key).filter((k) => req.body[`perm_${k}`] === 'on');
+  const temporary = req.body.temporary === 'on';
+  const expiresAt = temporary ? new Date(Date.now() + TEMP_USER_LIFETIME_MS) : null;
   if (!username || !password) {
-    const users = await db.all('SELECT id, username, is_master, permissions, created_at FROM users ORDER BY is_master DESC, username ASC');
+    const users = await db.all(USERS_LIST_SQL);
     return res.status(400).render('user_management', {
       users: users.map((u) => ({ ...u, permissions: parsePermissions(u.permissions) })),
       permissionList: PERMISSIONS,
@@ -202,11 +211,11 @@ app.post('/admin/users/new', requireMaster, async (req, res) => {
   }
   try {
     await db.run(
-      'INSERT INTO users (username, password_hash, is_master, permissions) VALUES (?, ?, 0, ?)',
-      [username, hashPassword(password), JSON.stringify(permissions)]
+      'INSERT INTO users (username, password_hash, is_master, permissions, expires_at) VALUES (?, ?, 0, ?, ?)',
+      [username, hashPassword(password), JSON.stringify(permissions), expiresAt]
     );
   } catch {
-    const users = await db.all('SELECT id, username, is_master, permissions, created_at FROM users ORDER BY is_master DESC, username ASC');
+    const users = await db.all(USERS_LIST_SQL);
     return res.status(400).render('user_management', {
       users: users.map((u) => ({ ...u, permissions: parsePermissions(u.permissions) })),
       permissionList: PERMISSIONS,
@@ -215,6 +224,20 @@ app.post('/admin/users/new', requireMaster, async (req, res) => {
   }
   res.redirect('/admin/users');
 });
+
+// Sweep expired temporary users - runs on an interval since the server process is
+// long-lived and never auto-reloads (see CLAUDE.md); also invalidates their sessions.
+async function sweepExpiredUsers() {
+  const expired = await db.all('SELECT id FROM users WHERE expires_at IS NOT NULL AND expires_at <= ?', [new Date()]);
+  if (expired.length === 0) return;
+  for (const { id } of expired) {
+    await db.run('DELETE FROM users WHERE id = ?', [id]);
+    for (const [token, session] of sessions) {
+      if (session.id === id) sessions.delete(token);
+    }
+  }
+}
+setInterval(() => { sweepExpiredUsers().catch((err) => console.error('sweepExpiredUsers failed:', err)); }, 2 * 60 * 1000);
 
 app.post('/admin/users/:id/permissions', requireMaster, async (req, res) => {
   const user = await db.get('SELECT * FROM users WHERE id = ?', [req.params.id]);
@@ -1116,7 +1139,7 @@ async function renderIssueForm(req, res, status, extra) {
 }
 
 app.get('/issue', async (req, res) => {
-  const entryDate = req.can('issue_backdate') && DATE_RE.test(req.query.date) ? req.query.date : entryDayStr();
+  const entryDate = DATE_RE.test(req.query.date) && req.query.date <= entryDayStr() ? req.query.date : entryDayStr();
   await renderIssueForm(req, res, 200, { success: req.query.success, workshop: req.query.workshop || '', entryDate });
 });
 
@@ -1125,7 +1148,7 @@ app.post('/issue', async (req, res) => {
   const materials = await getIssueMaterials(workshop);
   const employeeId = (req.body.employee_id || '').trim();
   const shift = req.body.shift || '';
-  const entryDate = req.can('issue_backdate') && DATE_RE.test(req.body.entry_date) ? req.body.entry_date : entryDayStr();
+  const entryDate = DATE_RE.test(req.body.entry_date) && req.body.entry_date <= entryDayStr() ? req.body.entry_date : entryDayStr();
 
   let error = null;
   if (!EMPLOYEE_ID_RE.test(employeeId)) {
@@ -1318,6 +1341,25 @@ async function getMesDailyOutputMap(operationName, series, fromDate, toDate, par
   return map;
 }
 
+// Sums per-day MES output across every material_process_map row a material has (a material
+// can now be mapped to more than one Operation, e.g. UV mark spans both FPSA and PSLA).
+// mapRows: [{ id, operation_name }]. Returns { date: totalKPcs }.
+async function getMesOutputForMaterial(mapRows, fromDate, toDate) {
+  const combined = {};
+  for (const row of mapRows) {
+    const series = (
+      await db.all('SELECT serie FROM material_process_series WHERE material_process_map_id = ? ORDER BY serie', [row.id])
+    ).map((r) => r.serie);
+    if (!series.length) continue;
+    const partNumbersBySerie = await getMaterialSeriesPartNumbers(row.id);
+    const dailyOutput = await getMesDailyOutputMap(row.operation_name, series, fromDate, toDate, partNumbersBySerie);
+    Object.keys(dailyOutput).forEach((date) => {
+      combined[date] = (combined[date] || 0) + dailyOutput[date];
+    });
+  }
+  return combined;
+}
+
 async function computeConsumption(query) {
   const workshop = query.workshop || '';
   const materialId = query.material_id || '';
@@ -1328,7 +1370,7 @@ async function computeConsumption(query) {
   const materials = await getIssueMaterials(workshop);
   const workshops = (await db.all('SELECT DISTINCT workshop FROM materials ORDER BY workshop')).map((r) => r.workshop);
 
-  let operationName = '';
+  let operationNames = [];
   let selectedSeries = [];
   let mesOutput = null;
   let mesDailyOutput = null;
@@ -1341,17 +1383,18 @@ async function computeConsumption(query) {
     if (!material) {
       error = 'Material not found.';
     } else {
-      const mapRow = await db.get('SELECT id, operation_name FROM material_process_map WHERE material_id = ?', [material.id]);
-      let partNumbersBySerie = {};
-      if (mapRow) {
-        operationName = mapRow.operation_name;
+      const mapRows = await db.all('SELECT id, operation_name FROM material_process_map WHERE material_id = ? ORDER BY operation_name', [material.id]);
+      operationNames = mapRows.map((r) => r.operation_name);
+      if (mapRows.length) {
         selectedSeries = (
-          await db.all('SELECT serie FROM material_process_series WHERE material_process_map_id = ? ORDER BY serie', [mapRow.id])
+          await db.all(
+            `SELECT serie FROM material_process_series WHERE material_process_map_id IN (${mapRows.map(() => '?').join(', ')}) ORDER BY serie`,
+            mapRows.map((r) => r.id)
+          )
         ).map((r) => r.serie);
-        partNumbersBySerie = await getMaterialSeriesPartNumbers(mapRow.id);
       }
-      if (operationName && selectedSeries.length) {
-        mesDailyOutput = await getMesDailyOutputMap(operationName, selectedSeries, from, to, partNumbersBySerie);
+      if (mapRows.length && selectedSeries.length) {
+        mesDailyOutput = await getMesOutputForMaterial(mapRows, from, to);
         mesOutput = Object.values(mesDailyOutput).reduce((sum, v) => sum + v, 0);
       } else {
         error = 'This material has no process mapping (Operation/Series) set up yet.';
@@ -1395,7 +1438,7 @@ async function computeConsumption(query) {
     selectedMaterialId: materialId,
     from,
     to,
-    selectedOperationName: operationName,
+    selectedOperationNames: operationNames,
     selectedSeries,
     mesOutput,
     dailyChartData,
@@ -1421,7 +1464,7 @@ app.get('/export/consumption.csv', async (req, res) => {
         [
           d,
           material.workshop,
-          data.selectedOperationName,
+          data.selectedOperationNames.join(' + '),
           `${material.prod_material_code} - ${material.name}`,
           output ? output[i] : '',
           consumption && consumption[i] != null ? consumption[i] : '',
@@ -1439,9 +1482,10 @@ app.get('/export/consumption.csv', async (req, res) => {
 });
 
 // ---------- process map (admin: material <-> MES operation/serie/part number) ----------
-// Two linked views: Material<->Operation (one Operation per material), and, once an
-// Operation is set, Material<->Serie (many series per material) with an optional
-// Part Number subset per material-serie link.
+// Two linked views: Material<->Operation (a material can connect to more than one
+// Operation, e.g. a material genuinely produced across two workshops), and, once an
+// Operation is set, Material<->Serie (many series per material-operation link) with an
+// optional Part Number subset per material-serie link.
 
 app.get('/process-map', requirePermission('process_map'), async (req, res) => {
   const workshop = req.query.workshop || '';
@@ -1452,40 +1496,20 @@ app.get('/process-map', requirePermission('process_map'), async (req, res) => {
   ).map((r) => r.OperationName);
 
   const mapRows = await db.all('SELECT * FROM material_process_map');
-  const operationByMaterialId = {};
-  mapRows.forEach((r) => { operationByMaterialId[r.material_id] = r.operation_name; });
+  const operationsByMaterialId = {};
+  mapRows.forEach((r) => {
+    if (!operationsByMaterialId[r.material_id]) operationsByMaterialId[r.material_id] = [];
+    operationsByMaterialId[r.material_id].push(r.operation_name);
+  });
 
   res.render('process_map', {
     materials,
     workshops,
     selectedWorkshop: workshop,
     operationNames,
-    operationByMaterialId,
+    operationsByMaterialId,
     saved: req.query.saved === '1',
   });
-});
-
-app.post('/process-map/operation', requirePermission('process_map'), async (req, res) => {
-  const materialId = Number(req.body.material_id);
-  const operationName = req.body.operation_name || '';
-  const returnQs = req.body.return_qs || '';
-  const sep = returnQs ? '&' : '?';
-  const redirectTo = returnQs ? `/process-map?${returnQs}${sep}saved=1` : '/process-map?saved=1';
-
-  const material = await db.get('SELECT id FROM materials WHERE id = ?', [materialId]);
-  if (!material || !operationName) return res.redirect(redirectTo);
-
-  const existing = await db.get('SELECT id, operation_name FROM material_process_map WHERE material_id = ?', [materialId]);
-  if (existing) {
-    if (existing.operation_name !== operationName) {
-      // Changing the operation invalidates any series chosen under the old one.
-      await db.run('DELETE FROM material_process_series WHERE material_process_map_id = ?', [existing.id]);
-      await db.run('UPDATE material_process_map SET operation_name = ?, updated_at = SYSDATETIME() WHERE id = ?', [operationName, existing.id]);
-    }
-  } else {
-    await db.run('INSERT INTO material_process_map (material_id, operation_name) VALUES (?, ?)', [materialId, operationName]);
-  }
-  res.redirect(redirectTo);
 });
 
 app.post('/process-map/operation/clear', requirePermission('process_map'), async (req, res) => {
@@ -1495,8 +1519,10 @@ app.post('/process-map/operation/clear', requirePermission('process_map'), async
   res.redirect(returnQs ? `/process-map?${returnQs}` : '/process-map');
 });
 
-// Batch save for the Material <-> Process diagram: applies every pending set/clear picked
+// Batch save for the Material <-> Process diagram: applies every pending add/remove picked
 // in the browser in one request, so the user can select many pairs before a single reload.
+// Each change toggles one (material, operation) link independently - a material can end up
+// connected to several operations at once.
 app.post('/process-map/operation/batch', requirePermission('process_map'), async (req, res) => {
   let changes = [];
   try {
@@ -1508,26 +1534,23 @@ app.post('/process-map/operation/batch', requirePermission('process_map'), async
   for (const change of changes) {
     const materialId = Number(change.material_id);
     const operationName = (change.operation_name || '').trim();
-    if (!materialId) continue;
+    const action = change.action === 'remove' ? 'remove' : 'add';
+    if (!materialId || !operationName) continue;
 
-    const existing = await db.get('SELECT id, operation_name FROM material_process_map WHERE material_id = ?', [materialId]);
+    const existing = await db.get(
+      'SELECT id FROM material_process_map WHERE material_id = ? AND operation_name = ?',
+      [materialId, operationName]
+    );
 
-    if (!operationName) {
-      if (existing) await db.run('DELETE FROM material_process_map WHERE material_id = ?', [materialId]);
+    if (action === 'remove') {
+      if (existing) await db.run('DELETE FROM material_process_map WHERE id = ?', [existing.id]);
       continue;
     }
 
+    if (existing) continue;
     const material = await db.get('SELECT id FROM materials WHERE id = ?', [materialId]);
     if (!material) continue;
-
-    if (existing) {
-      if (existing.operation_name !== operationName) {
-        await db.run('DELETE FROM material_process_series WHERE material_process_map_id = ?', [existing.id]);
-        await db.run('UPDATE material_process_map SET operation_name = ?, updated_at = SYSDATETIME() WHERE id = ?', [operationName, existing.id]);
-      }
-    } else {
-      await db.run('INSERT INTO material_process_map (material_id, operation_name) VALUES (?, ?)', [materialId, operationName]);
-    }
+    await db.run('INSERT INTO material_process_map (material_id, operation_name) VALUES (?, ?)', [materialId, operationName]);
   }
 
   res.json({ ok: true });
@@ -1563,15 +1586,21 @@ app.get('/process-map/series-view', requirePermission('process_map'), async (req
 
   const workshops = (await db.all('SELECT DISTINCT workshop FROM materials ORDER BY workshop')).map((r) => r.workshop);
 
+  // Each material can now have multiple Operations mapped (material_process_map is no
+  // longer unique per material_id), so materialData carries a `mappings` array - one entry
+  // per (material, operation) link, each with its own independent series/part-number set.
   let materialData = [];
   if (showDiagram && materials.length) {
     const materialIds = materials.map((m) => m.id);
     const placeholders = materialIds.map(() => '?').join(', ');
     const mapRows = materialIds.length
-      ? await db.all(`SELECT * FROM material_process_map WHERE material_id IN (${placeholders})`, materialIds)
+      ? await db.all(`SELECT * FROM material_process_map WHERE material_id IN (${placeholders}) ORDER BY operation_name`, materialIds)
       : [];
-    const mapByMaterialId = {};
-    mapRows.forEach((r) => { mapByMaterialId[r.material_id] = r; });
+    const mapRowsByMaterialId = {};
+    mapRows.forEach((r) => {
+      if (!mapRowsByMaterialId[r.material_id]) mapRowsByMaterialId[r.material_id] = [];
+      mapRowsByMaterialId[r.material_id].push(r);
+    });
 
     const mapIds = mapRows.map((r) => r.id);
     const seriesRows = mapIds.length
@@ -1597,11 +1626,12 @@ app.get('/process-map/series-view', requirePermission('process_map'), async (req
     });
 
     materialData = materials.map((m) => {
-      const mapping = mapByMaterialId[m.id];
-      const series = mapping
-        ? (seriesByMapId[mapping.id] || []).map((s) => ({ id: s.id, serie: s.serie, partNumbers: pnByseriesId[s.id] || [] }))
-        : [];
-      return { material: m, operationName: mapping ? mapping.operation_name : null, series };
+      const mappings = (mapRowsByMaterialId[m.id] || []).map((mapping) => ({
+        mapId: mapping.id,
+        operationName: mapping.operation_name,
+        series: (seriesByMapId[mapping.id] || []).map((s) => ({ id: s.id, serie: s.serie, partNumbers: pnByseriesId[s.id] || [] })),
+      }));
+      return { material: m, mappings };
     });
   }
 
@@ -1624,36 +1654,10 @@ app.get('/process-map/series-view', requirePermission('process_map'), async (req
   });
 });
 
-app.post('/process-map/series-view/toggle', requirePermission('process_map'), async (req, res) => {
-  const materialId = Number(req.body.material_id);
-  const serie = req.body.serie || '';
-  const returnQs = req.body.return_qs || '';
-  const redirectTo = returnQs ? `/process-map/series-view?${returnQs}` : '/process-map/series-view';
-
-  const mapping = await db.get('SELECT id, operation_name FROM material_process_map WHERE material_id = ?', [materialId]);
-  if (!mapping || !serie) return res.redirect(redirectTo);
-
-  const existing = await db.get(
-    'SELECT id FROM material_process_series WHERE material_process_map_id = ? AND serie = ?',
-    [mapping.id, serie]
-  );
-  if (existing) {
-    await db.run('DELETE FROM material_process_series WHERE id = ?', [existing.id]);
-    return res.redirect(redirectTo);
-  }
-
-  const validSerie = await db.mes.get(
-    'SELECT TOP 1 1 AS ok FROM DashboardWipProcessDaily WHERE OperationName = ? AND Serie = ?',
-    [mapping.operation_name, serie]
-  );
-  if (!validSerie) return res.redirect(redirectTo);
-
-  await db.run('INSERT INTO material_process_series (material_process_map_id, serie) VALUES (?, ?)', [mapping.id, serie]);
-  res.redirect(redirectTo);
-});
-
 // Batch save for the Material <-> Serie diagram: applies every pending connect/disconnect
-// picked in the browser in one request, so the user can select many pairs before a single reload.
+// picked in the browser in one request, so the user can select many pairs before a single
+// reload. Scoped by material_process_map_id (one per material-operation link) rather than
+// material_id, since a material can now have more than one Operation mapping.
 app.post('/process-map/series-view/toggle/batch', requirePermission('process_map'), async (req, res) => {
   let changes = [];
   try {
@@ -1663,12 +1667,12 @@ app.post('/process-map/series-view/toggle/batch', requirePermission('process_map
   }
 
   for (const change of changes) {
-    const materialId = Number(change.material_id);
+    const mapId = Number(change.map_id);
     const serie = (change.serie || '').trim();
     const action = change.action === 'remove' ? 'remove' : 'add';
-    if (!materialId || !serie) continue;
+    if (!mapId || !serie) continue;
 
-    const mapping = await db.get('SELECT id, operation_name FROM material_process_map WHERE material_id = ?', [materialId]);
+    const mapping = await db.get('SELECT id, operation_name FROM material_process_map WHERE id = ?', [mapId]);
     if (!mapping) continue;
 
     const existing = await db.get(
@@ -1832,11 +1836,16 @@ async function computeMonthlyConsumptionReport(query) {
   const issueSumMap = await getIssueSumMap(start, end);
   const ncnSumMap = await getNcnSumMap(start, end);
 
+  // A material can now have more than one material_process_map row (one per Operation), so
+  // each material id maps to an ARRAY of { mapId, operation_name, series } entries.
   const mapRows = await db.all('SELECT * FROM material_process_map');
   const mapByMaterialId = {};
-  mapRows.forEach((r) => { mapByMaterialId[r.material_id] = { mapId: r.id, operation_name: r.operation_name, series: [] }; });
-  const mapIdToMaterialId = {};
-  mapRows.forEach((r) => { mapIdToMaterialId[r.id] = r.material_id; });
+  mapRows.forEach((r) => {
+    if (!mapByMaterialId[r.material_id]) mapByMaterialId[r.material_id] = [];
+    mapByMaterialId[r.material_id].push({ mapId: r.id, operation_name: r.operation_name, series: [] });
+  });
+  const mapIdToEntry = {};
+  mapRows.forEach((r) => { mapIdToEntry[r.id] = mapByMaterialId[r.material_id].find((e) => e.mapId === r.id); });
   const seriesRows = mapRows.length
     ? await db.all(
         `SELECT * FROM material_process_series WHERE material_process_map_id IN (${mapRows.map(() => '?').join(', ')}) ORDER BY serie`,
@@ -1844,12 +1853,13 @@ async function computeMonthlyConsumptionReport(query) {
       )
     : [];
   seriesRows.forEach((r) => {
-    const materialId = mapIdToMaterialId[r.material_process_map_id];
-    if (mapByMaterialId[materialId]) mapByMaterialId[materialId].series.push(r.serie);
+    const entry = mapIdToEntry[r.material_process_map_id];
+    if (entry) entry.series.push(r.serie);
   });
-  // A material with an Operation but no series chosen yet has nothing to compute against.
+  // A material whose mapping rows have no series chosen yet has nothing to compute against.
   Object.keys(mapByMaterialId).forEach((materialId) => {
-    if (!mapByMaterialId[materialId].series.length) delete mapByMaterialId[materialId];
+    mapByMaterialId[materialId] = mapByMaterialId[materialId].filter((e) => e.series.length);
+    if (!mapByMaterialId[materialId].length) delete mapByMaterialId[materialId];
   });
 
   // Part numbers are mapped per material (via its series), so distinct materials can share an
@@ -1858,8 +1868,11 @@ async function computeMonthlyConsumptionReport(query) {
   for (const m of materials) {
     const mapping = mapByMaterialId[m.id];
     if (!mapping) continue;
-    const partNumbersBySerie = await getMaterialSeriesPartNumbers(mapping.mapId);
-    const dailyOutput = await getMesDailyOutputMap(mapping.operation_name, mapping.series, start, end, partNumbersBySerie);
+    const dailyOutput = await getMesOutputForMaterial(
+      mapping.map((e) => ({ id: e.mapId, operation_name: e.operation_name })),
+      start,
+      end
+    );
     outputByMaterialId[m.id] = Object.values(dailyOutput).reduce((sum, v) => sum + v, 0);
   }
 
@@ -2094,17 +2107,17 @@ app.get('/transactions', async (req, res) => {
 
 // ---------- transactions undo/change (self-service backdated entry) ----------
 
-// Non-admin backdating is allowed for the two days before "today" only — yesterday or the day
-// before that (the factory runs every day, so no weekend-skipping is needed here, unlike a
-// business-day calendar). "Today" itself is not selectable; use /issue for same-day entry.
+// Change-only correction of an existing entry on any date up to "today" (no day lock).
+// New entries go through /issue.
+function parseUndoDate(raw, todayBiz) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(raw || '') && raw <= todayBiz ? raw : todayBiz;
+}
+
 async function renderUndoForm(req, res, status, extra) {
-  const mode = extra.mode === 'CHANGE' ? 'CHANGE' : (req.query.mode === 'CHANGE' ? 'CHANGE' : 'CREATE');
-  const dateChoice = extra.dateChoice || (req.query.date_choice === 'day_before' ? 'day_before' : 'yesterday');
+  const mode = 'CHANGE';
   const workshop = extra.workshop !== undefined ? extra.workshop : (req.query.workshop || '');
   const todayBiz = entryDayStr();
-  const allowedDate = addDays(todayBiz, -1);
-  const dayBeforeDate = addDays(todayBiz, -2);
-  const entryDate = dateChoice === 'day_before' ? dayBeforeDate : allowedDate;
+  const entryDate = parseUndoDate(extra.entryDate || req.query.entry_date, todayBiz);
   const materialIdRaw = extra.materialId !== undefined ? extra.materialId : req.query.material_id;
   const materialId = materialIdRaw ? parseInt(materialIdRaw, 10) : null;
 
@@ -2116,19 +2129,16 @@ async function renderUndoForm(req, res, status, extra) {
   const existingByMaterial = {};
   existingRows.forEach((r) => { existingByMaterial[r.material_id] = r; });
 
-  const selectableMaterials = workshopMaterials.filter((m) => (mode === 'CHANGE' ? existingByMaterial[m.id] : !existingByMaterial[m.id]));
-  const selectedEntry = materialId && mode === 'CHANGE' ? existingByMaterial[materialId] || null : null;
+  const selectableMaterials = workshopMaterials.filter((m) => existingByMaterial[m.id]);
+  const selectedEntry = materialId ? existingByMaterial[materialId] || null : null;
   const selectedMaterial = materialId ? workshopMaterials.find((m) => m.id === materialId) || null : null;
   const stockMap = await getStockAsOfMap(entryDate);
   const workshops = (await db.all('SELECT DISTINCT workshop FROM materials ORDER BY workshop')).map((r) => r.workshop);
 
   res.status(status).render('transactions_undo', {
     mode,
-    dateChoice,
     entryDate,
     todayBiz,
-    allowedDate,
-    dayBeforeDate,
     workshop,
     workshops,
     materials: selectableMaterials,
@@ -2152,13 +2162,11 @@ app.get('/transactions/undo', async (req, res) => {
 });
 
 app.post('/transactions/undo', async (req, res) => {
-  const mode = req.body.mode === 'CHANGE' ? 'CHANGE' : 'CREATE';
-  const dateChoice = req.body.date_choice === 'day_before' ? 'day_before' : 'yesterday';
+  const mode = 'CHANGE';
   const workshop = req.body.workshop || '';
   const todayBiz = entryDayStr();
-  const allowedDate = addDays(todayBiz, -1);
-  const dayBeforeDate = addDays(todayBiz, -2);
-  const entryDate = dateChoice === 'day_before' ? dayBeforeDate : allowedDate;
+  const rawDate = req.body.entry_date || '';
+  const entryDate = parseUndoDate(rawDate, todayBiz);
   const materialId = parseInt(req.body.material_id, 10);
   const employeeId = (req.body.employee_id || '').trim();
   const shift = req.body.shift || '';
@@ -2166,7 +2174,8 @@ app.post('/transactions/undo', async (req, res) => {
   const material = Number.isInteger(materialId) ? await db.get('SELECT * FROM materials WHERE id = ?', [materialId]) : null;
 
   let error = null;
-  if (!KNOWN_WORKSHOPS.includes(workshop)) error = 'Please select a valid workshop.';
+  if (rawDate !== entryDate) error = 'Please select a valid date (today or earlier).';
+  else if (!KNOWN_WORKSHOPS.includes(workshop)) error = 'Please select a valid workshop.';
   else if (!material || material.workshop !== workshop) error = 'Please select a valid material.';
   else if (!EMPLOYEE_ID_RE.test(employeeId)) error = 'Employee ID must be exactly 7 digits.';
   else if (!SHIFTS.includes(shift)) error = 'Please select a valid shift (A, B, or C).';
@@ -2188,17 +2197,13 @@ app.post('/transactions/undo', async (req, res) => {
     ? await db.get('SELECT * FROM issue_entries WHERE material_id = ? AND entry_date = ? AND voided = 0', [materialId, entryDate])
     : null;
 
-  if (!error) {
-    if (mode === 'CREATE' && existing) {
-      error = `An entry already exists for ${material.prod_material_code} on ${entryDate}. Use Change instead.`;
-    } else if (mode === 'CHANGE' && !existing) {
-      error = `No existing entry found for ${material.prod_material_code} on ${entryDate}. Use Create instead.`;
-    }
+  if (!error && !existing) {
+    error = `No existing entry found for ${material.prod_material_code} on ${entryDate}. New entries go through Record Data.`;
   }
 
   if (error) {
     return renderUndoForm(req, res, 400, {
-      mode, dateChoice, workshop, materialId: req.body.material_id, error,
+      entryDate, workshop, materialId: req.body.material_id, error,
       values: { [materialId]: raw }, employeeId, shift,
     });
   }
@@ -2223,40 +2228,34 @@ app.post('/transactions/undo', async (req, res) => {
 
   if (usage < 0) {
     return renderUndoForm(req, res, 400, {
-      mode, dateChoice, workshop, materialId: req.body.material_id,
+      entryDate, workshop, materialId: req.body.material_id,
       negativeUsage: [{ code: material.prod_material_code, name: material.name, usage }],
       values: { [materialId]: raw }, employeeId, shift,
     });
   }
 
-  if (mode === 'CHANGE') {
-    await db.run(
-      'UPDATE issue_entries SET voided = 1, voided_reason = ? WHERE id = ?',
-      [`Superseded by Undo/Change (emp ${employeeId})`, existing.id]
-    );
-  }
+  await db.run(
+    'UPDATE issue_entries SET voided = 1, voided_reason = ? WHERE id = ?',
+    [`Superseded by Undo/Change (emp ${employeeId})`, existing.id]
+  );
   await db.run(
     `INSERT INTO issue_entries (material_id, entry_date, current_stock, issue_qty, issue_ncn, return_ncn, employee_id, shift) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     [materialId, entryDate, parsed.current_stock, parsed.issue_qty, parsed.issue_ncn, parsed.return_ncn, employeeId, shift]
   );
 
   const fv = (v) => (v == null ? '—' : v);
-  const detail = mode === 'CHANGE'
-    ? `${material.prod_material_code} (${material.name}) on ${entryDate}: `
-      + `stock ${fv(existing.current_stock)}→${fv(parsed.current_stock)}, `
-      + `issue ${fv(existing.issue_qty)}→${fv(parsed.issue_qty)}, `
-      + `issue NCN ${fv(existing.issue_ncn)}→${fv(parsed.issue_ncn)}, `
-      + `return NCN ${fv(existing.return_ncn)}→${fv(parsed.return_ncn)}`
-    : `${material.prod_material_code} (${material.name}) on ${entryDate}: `
-      + `stock=${fv(parsed.current_stock)}, issue=${fv(parsed.issue_qty)}, `
-      + `issue NCN=${fv(parsed.issue_ncn)}, return NCN=${fv(parsed.return_ncn)}`;
+  const detail = `${material.prod_material_code} (${material.name}) on ${entryDate}: `
+    + `stock ${fv(existing.current_stock)}→${fv(parsed.current_stock)}, `
+    + `issue ${fv(existing.issue_qty)}→${fv(parsed.issue_qty)}, `
+    + `issue NCN ${fv(existing.issue_ncn)}→${fv(parsed.issue_ncn)}, `
+    + `return NCN ${fv(existing.return_ncn)}→${fv(parsed.return_ncn)}`;
 
   await db.run(
     `INSERT INTO tickets (emp_no, shift, workshop, detail, type) VALUES (?, ?, ?, ?, ?)`,
     [employeeId, shift, workshop, detail, mode]
   );
 
-  res.redirect(`/transactions/undo?success=1&mode=${encodeURIComponent(mode)}&date_choice=${encodeURIComponent(dateChoice)}&workshop=${encodeURIComponent(workshop)}`);
+  res.redirect(`/transactions/undo?success=1&entry_date=${encodeURIComponent(entryDate)}&workshop=${encodeURIComponent(workshop)}`);
 });
 
 app.post('/transactions/:id/void', requirePermission('transactions_manage'), async (req, res) => {
@@ -2491,6 +2490,19 @@ app.post('/tickets/:id/resolve', requirePermission('tickets_manage'), async (req
     `UPDATE tickets SET status = 'RESOLVED', resolved_at = SYSDATETIME(), resolved_note = ? WHERE id = ?`,
     [note, req.params.id]
   );
+  const qs = req.body.return_qs || '';
+  res.redirect(qs ? `/tickets?${qs}` : '/tickets');
+});
+
+app.post('/tickets/bulk-resolve', requirePermission('tickets_manage'), async (req, res) => {
+  const ids = [].concat(req.body.ids || []).map((id) => parseInt(id, 10)).filter(Number.isInteger);
+  const note = (req.body.resolved_note || '').trim();
+  for (const id of ids) {
+    await db.run(
+      `UPDATE tickets SET status = 'RESOLVED', resolved_at = SYSDATETIME(), resolved_note = ? WHERE id = ? AND status = 'OPEN'`,
+      [note, id]
+    );
+  }
   const qs = req.body.return_qs || '';
   res.redirect(qs ? `/tickets?${qs}` : '/tickets');
 });
@@ -2763,6 +2775,7 @@ async function main() {
   }
   await db.ensureSchema();
   await seedMasterAdmin();
+  await sweepExpiredUsers();
   app.listen(PORT, HOST, () => {
     console.log(`Material Management running on port ${PORT}`);
     console.log(`  Local:   http://localhost:${PORT}`);

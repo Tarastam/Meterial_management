@@ -45,10 +45,20 @@
   </div>
 </form>
 
+<% if (can('tickets_manage')) { %>
+<form id="bulkResolveForm" method="post" action="/tickets/bulk-resolve">
+  <input type="hidden" name="return_qs" value="<%= returnQs %>">
+</form>
+<div id="bulkBar" class="bulk-actions-bar" style="display:none;">
+  <span id="bulkCount">0 selected</span>
+  <button type="submit" form="bulkResolveForm" class="btn small secondary">Resolve Selected</button>
+</div>
+<% } %>
 <div class="table-wrap">
   <table>
     <thead>
       <tr>
+        <% if (can('tickets_manage')) { %><th><input type="checkbox" id="selectAllTickets" title="Select all"></th><% } %>
         <th>Date</th><th>Type</th><th>Emp No.</th><th>Shift</th><th>Workshop</th>
         <th>Detail</th><th>Attachment</th><th>Status</th><th></th>
       </tr>
@@ -56,6 +66,13 @@
     <tbody>
       <% tickets.forEach(t => { %>
       <tr>
+        <% if (can('tickets_manage')) { %>
+        <td>
+          <% if (t.status === 'OPEN') { %>
+          <input type="checkbox" class="ticket-select" name="ids" value="<%= t.id %>" form="bulkResolveForm">
+          <% } %>
+        </td>
+        <% } %>
         <td><%= fmtDate(t.created_at) %></td>
         <td><span class="badge type-<%= t.type.toLowerCase() %>"><%= t.type %></span></td>
         <td><%= t.emp_no %></td>
@@ -212,6 +229,45 @@ function showTicketDetail(event, link) {
 function closeTicketDetail() {
   document.getElementById('ticketDetailOverlay').classList.remove('show');
 }
+
+(function () {
+  const selectAll = document.getElementById('selectAllTickets');
+  const bulkForm = document.getElementById('bulkResolveForm');
+  if (!selectAll || !bulkForm) return;
+  const bulkBar = document.getElementById('bulkBar');
+  const bulkCount = document.getElementById('bulkCount');
+  const checkboxes = Array.from(document.querySelectorAll('.ticket-select'));
+
+  function updateBulkBar() {
+    const checked = checkboxes.filter((c) => c.checked);
+    bulkBar.style.display = checked.length ? 'flex' : 'none';
+    bulkCount.textContent = checked.length + ' selected';
+    selectAll.checked = checked.length > 0 && checked.length === checkboxes.length;
+  }
+
+  selectAll.addEventListener('change', () => {
+    checkboxes.forEach((c) => { c.checked = selectAll.checked; });
+    updateBulkBar();
+  });
+  checkboxes.forEach((c) => c.addEventListener('change', updateBulkBar));
+
+  bulkForm.addEventListener('submit', (event) => {
+    const checked = checkboxes.filter((c) => c.checked);
+    if (!checked.length) { event.preventDefault(); return; }
+    const note = prompt(`Resolution note for ${checked.length} selected ticket(s) (optional):`);
+    if (note === null) { event.preventDefault(); return; }
+    let noteInput = bulkForm.querySelector('input[name="resolved_note"]');
+    if (!noteInput) {
+      noteInput = document.createElement('input');
+      noteInput.type = 'hidden';
+      noteInput.name = 'resolved_note';
+      bulkForm.appendChild(noteInput);
+    }
+    noteInput.value = note;
+  });
+
+  updateBulkBar();
+})();
 </script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script>

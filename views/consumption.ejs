@@ -36,8 +36,8 @@
   </div>
 </form>
 
-<% if (selectedMaterialId && selectedOperationName) { %>
-<p style="color:var(--gray-600); font-size:0.85rem; margin:0.5rem 0 0;">Mapped to Operation <strong><%= selectedOperationName %></strong>, Series: <strong><%= selectedSeries.join(', ') %></strong></p>
+<% if (selectedMaterialId && selectedOperationNames.length) { %>
+<p style="color:var(--gray-600); font-size:0.85rem; margin:0.5rem 0 0;">Mapped to Operation <strong><%= selectedOperationNames.join(' + ') %></strong>, Series: <strong><%= selectedSeries.join(', ') %></strong></p>
 <% } %>
 
 <% if (result) { %>

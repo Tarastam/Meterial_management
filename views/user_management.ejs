@@ -9,6 +9,7 @@
       <tr>
         <th class="col-left">Username</th>
         <th>Role</th>
+        <th>Expires</th>
         <th>Permissions</th>
         <th>Reset Password</th>
         <th></th>
@@ -19,6 +20,13 @@
       <tr>
         <td class="col-left"><%= u.username %></td>
         <td><%= u.is_master ? 'Master Admin' : 'User' %></td>
+        <td>
+          <% if (u.expires_at) { %>
+          <span class="hint">Temporary - expires <%= new Date(u.expires_at).toLocaleString() %></span>
+          <% } else { %>
+          <span class="hint">-</span>
+          <% } %>
+        </td>
         <td>
           <% if (u.is_master) { %>
           <span class="hint">All permissions</span>
@@ -62,6 +70,12 @@
   <div class="field">
     <label>Password *</label>
     <input type="password" name="password" required minlength="4">
+  </div>
+  <div class="field">
+    <label class="checkbox-label">
+      <input type="checkbox" name="temporary">
+      Temporary account (auto-deleted 24 hours after creation)
+    </label>
   </div>
   <div class="field">
     <label>Permissions</label>
