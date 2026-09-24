@@ -18,6 +18,26 @@ entry to the **Change Log** section below **before** ending your turn.
 
 ## Change Log
 
+### 2026-09-24 — main
+- Merged `feature/multi-operation-map-temp-users-bulk-resolve` into
+  `main` locally (`gh` CLI unavailable, so via `git merge --no-ff` +
+  `git push`, at the user's explicit request) and pushed `e912daf`.
+  Clean merge, no conflicts.
+
+### 2026-09-24 — feature/multi-operation-map-temp-users-bulk-resolve
+- Branched off `main` (`0bd6208`) and pushed `cdc5164`; unrelated
+  untracked files (pptx decks, xlsx exports, desktop.ini, mes_deck_*
+  dirs, .agents/, AGENTS.md) left out of the commit as before.
+- A material can now map to multiple MES Operations (UNIQUE moved to
+  (material_id, operation_name) with a migration); consumption and the
+  monthly report sum MES output across all mappings. Old single-pair
+  operation/serie POST routes removed in favour of the batch ones.
+- Optional 24h temporary user accounts (`users.expires_at`), deleted on
+  expired login and by a periodic sweep that also drops their sessions.
+- Tickets list gained bulk-resolve with an optional note.
+- `/issue` date picker open to all users (future dates rejected);
+  transactions undo page simplified to change-only with a date picker.
+
 <!-- Newest entries go on top. -->
 
 ### 2026-09-10 — main
