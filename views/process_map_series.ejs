@@ -35,7 +35,7 @@
 <% } else if (!materialData.length) { %>
 <div class="card empty-state">No materials match this filter.</div>
 <% } else { %>
-<p class="pm-hint">Click a material, then click a Serie to connect them (only materials with an Operation already set on the Process tab can connect; the Serie must be valid for that Operation in MES). Click a connected pair again to disconnect. Connections are kept locally &mdash; click <strong>Save</strong> when done. Click a Serie's <strong>+</strong> to restrict it to specific Part Numbers (saved immediately).</p>
+<p class="pm-hint">Click a material-operation row, then click a Serie to connect them (only rows with an Operation already set on the Process tab can connect; the Serie must be valid for that Operation in MES). A material with more than one Operation mapped shows one row per Operation. Click a connected pair again to disconnect. Connections are kept locally &mdash; click <strong>Save</strong> when done. Click a Serie's <strong>+</strong> to restrict it to specific Part Numbers (saved immediately).</p>
 
 <div class="pm-save-bar" id="pmSaveBar" hidden>
   <span id="pmPendingCount">0 pending change(s)</span>
@@ -49,11 +49,20 @@
     <div class="pm-column-title">Material</div>
     <div class="pm-column-scroll">
     <% materialData.forEach(d => { const m = d.material; %>
-    <div class="pm-node pm-material-node" data-material-id="<%= m.id %>" data-operation="<%= d.operationName || '' %>" <%= d.operationName ? '' : 'data-no-operation="1"' %>>
-      <div class="pm-node-code"><%= m.prod_material_code %></div>
-      <div class="pm-node-name"><%= m.name %></div>
-      <div class="pm-node-workshop"><%= m.workshop %><% if (!d.operationName) { %> &middot; no Operation set<% } %></div>
-    </div>
+      <% if (!d.mappings.length) { %>
+      <div class="pm-node pm-material-node" data-map-id="" data-material-id="<%= m.id %>" data-no-operation="1">
+        <div class="pm-node-code"><%= m.prod_material_code %></div>
+        <div class="pm-node-name"><%= m.name %></div>
+        <div class="pm-node-workshop"><%= m.workshop %> &middot; no Operation set</div>
+      </div>
+      <% } %>
+      <% d.mappings.forEach(mapping => { %>
+      <div class="pm-node pm-material-node" data-map-id="<%= mapping.mapId %>" data-material-id="<%= m.id %>" data-operation="<%= mapping.operationName %>">
+        <div class="pm-node-code"><%= m.prod_material_code %></div>
+        <div class="pm-node-name"><%= m.name %></div>
+        <div class="pm-node-workshop"><%= m.workshop %> &middot; <%= mapping.operationName %></div>
+      </div>
+      <% }) %>
     <% }) %>
     </div>
   </div>
@@ -77,12 +86,15 @@
 </div>
 
 <script>
-  var MATERIAL_DATA = <%- JSON.stringify(materialData.map(d => ({
-    id: d.material.id,
+  // One entry per (material, operation) row in the diagram - keyed by mapId, the
+  // material_process_map row id, since a material can have more than one such row.
+  var MAP_DATA = <%- JSON.stringify(materialData.flatMap(d => d.mappings.map(mapping => ({
+    mapId: mapping.mapId,
+    materialId: d.material.id,
     code: d.material.prod_material_code,
-    operationName: d.operationName,
-    series: d.series.map(s => ({ id: s.id, serie: s.serie, partNumbers: s.partNumbers })),
-  }))) %>;
+    operationName: mapping.operationName,
+    series: mapping.series.map(s => ({ id: s.id, serie: s.serie, partNumbers: s.partNumbers })),
+  })))) %>;
 </script>
 <% } %>
 
@@ -95,11 +107,11 @@
     setTimeout(function () { processMapToast.remove(); }, 3000);
   }
 
-  if (typeof MATERIAL_DATA !== 'undefined') {
+  if (typeof MAP_DATA !== 'undefined') {
     var diagram = document.getElementById('pmDiagram');
     var svg = document.getElementById('pmLines');
-    var materialById = {};
-    MATERIAL_DATA.forEach(function (d) { materialById[d.id] = d; });
+    var mapById = {};
+    MAP_DATA.forEach(function (d) { mapById[d.mapId] = d; });
 
     // Serie nodes are server-rendered as a flat list (all Series in MES); look them up by name.
     var serieNodesBySerie = {}; // serie -> node element
@@ -121,7 +133,7 @@
       svg.setAttribute('height', rect.height);
       svg.innerHTML = '';
       document.querySelectorAll('.pm-material-node').forEach(function (mNode) {
-        var d = materialById[mNode.dataset.materialId];
+        var d = mapById[mNode.dataset.mapId];
         if (!d) return;
         d.series.forEach(function (s) {
           var serieNode = serieNodesBySerie[s.serie];
@@ -133,11 +145,11 @@
           var x2 = oRect.left - rect.left;
           var y2 = oRect.top + oRect.height / 2 - rect.top;
           var midX = (x1 + x2) / 2;
-          var isPending = Boolean(pendingByKey[mNode.dataset.materialId + '|' + s.serie]);
+          var isPending = Boolean(pendingByKey[mNode.dataset.mapId + '|' + s.serie]);
           var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
           path.setAttribute('d', 'M ' + x1 + ' ' + y1 + ' C ' + midX + ' ' + y1 + ', ' + midX + ' ' + y2 + ', ' + x2 + ' ' + y2);
           path.setAttribute('class', 'pm-line' + (isPending ? ' pm-line-pending' : ''));
-          path.style.stroke = lineColorFor(mNode.dataset.materialId + '|' + d.operationName + '|' + s.serie);
+          path.style.stroke = lineColorFor(mNode.dataset.mapId + '|' + d.operationName + '|' + s.serie);
           svg.appendChild(path);
         });
       });
@@ -150,7 +162,7 @@
       selectedMaterial = null;
     }
 
-    // pendingByKey: "materialId|serie" -> 'add' | 'remove'. Applied to MATERIAL_DATA[].series
+    // pendingByKey: "mapId|serie" -> 'add' | 'remove'. Applied to MAP_DATA[].series
     // immediately (so lines/highlighting/PN panel reflect it), but only sent to the server on Save.
     var pendingByKey = {};
 
@@ -163,16 +175,16 @@
       pendingCountEl.textContent = count + ' pending change(s)';
     }
 
-    function updateMaterialPendingClass(materialId) {
-      var node = document.querySelector('.pm-material-node[data-material-id="' + materialId + '"]');
+    function updateMapPendingClass(mapId) {
+      var node = document.querySelector('.pm-material-node[data-map-id="' + mapId + '"]');
       if (!node) return;
-      var hasPending = Object.keys(pendingByKey).some(function (key) { return key.indexOf(materialId + '|') === 0; });
+      var hasPending = Object.keys(pendingByKey).some(function (key) { return key.indexOf(mapId + '|') === 0; });
       node.classList.toggle('pm-pending', hasPending);
     }
 
-    function toggleConnection(materialId, serie) {
-      var d = materialById[materialId];
-      var key = materialId + '|' + serie;
+    function toggleConnection(mapId, serie) {
+      var d = mapById[mapId];
+      var key = mapId + '|' + serie;
       var idx = d.series.findIndex(function (s) { return s.serie === serie; });
       var wasConnected = idx !== -1;
 
@@ -189,7 +201,7 @@
         pendingByKey[key] = wasConnected ? 'remove' : 'add';
       }
 
-      updateMaterialPendingClass(materialId);
+      updateMapPendingClass(mapId);
       updateSaveBar();
       refreshOpenPanel();
       drawLines();
@@ -199,7 +211,7 @@
       var btn = e.currentTarget;
       var changes = Object.keys(pendingByKey).map(function (key) {
         var sep = key.lastIndexOf('|');
-        return { material_id: key.slice(0, sep), serie: key.slice(sep + 1), action: pendingByKey[key] };
+        return { map_id: key.slice(0, sep), serie: key.slice(sep + 1), action: pendingByKey[key] };
       });
       if (!changes.length) return;
       btn.disabled = true;
@@ -223,20 +235,20 @@
     });
 
     document.getElementById('pmDiscardBtn').addEventListener('click', function () {
-      var materialIds = {};
+      var mapIds = {};
       Object.keys(pendingByKey).forEach(function (key) {
         var sep = key.lastIndexOf('|');
-        var materialId = key.slice(0, sep);
+        var mapId = key.slice(0, sep);
         var serie = key.slice(sep + 1);
         var action = pendingByKey[key];
-        materialIds[materialId] = true;
-        var d = materialById[materialId];
+        mapIds[mapId] = true;
+        var d = mapById[mapId];
         var idx = d.series.findIndex(function (s) { return s.serie === serie; });
         if (action === 'add' && idx !== -1) d.series.splice(idx, 1);
         if (action === 'remove' && idx === -1) d.series.push({ id: 'pending:' + key, serie: serie, partNumbers: [] });
       });
       pendingByKey = {};
-      Object.keys(materialIds).forEach(updateMaterialPendingClass);
+      Object.keys(mapIds).forEach(updateMapPendingClass);
       updateSaveBar();
       refreshOpenPanel();
       drawLines();
@@ -261,8 +273,9 @@
     document.querySelectorAll('.pm-material-node').forEach(function (node) {
       node.addEventListener('click', function (e) {
         if (e.target.closest('.pm-serie-expand')) return;
-        var d = materialById[node.dataset.materialId];
-        if (!d.operationName) return;
+        if (node.dataset.noOperation) return;
+        var d = mapById[node.dataset.mapId];
+        if (!d) return;
         if (selectedMaterial === node) { clearSelection(); refreshOpenPanel(); return; }
         clearSelection();
         selectedMaterial = node;
@@ -274,7 +287,7 @@
 
     function highlightAvailableSeries(op) {
       loadOperationSeries(op).then(function (validSeries) {
-        if (selectedMaterial && materialById[selectedMaterial.dataset.materialId].operationName !== op) return;
+        if (selectedMaterial && mapById[selectedMaterial.dataset.mapId].operationName !== op) return;
         document.querySelectorAll('.pm-serie-node').forEach(function (n) {
           n.classList.toggle('pm-serie-dim', validSeries.indexOf(n.dataset.serie) === -1);
         });
@@ -287,17 +300,17 @@
 
     function onSerieClick(node) {
       if (!selectedMaterial) return;
-      var materialId = selectedMaterial.dataset.materialId;
-      var d = materialById[materialId];
+      var mapId = selectedMaterial.dataset.mapId;
+      var d = mapById[mapId];
       var serie = node.dataset.serie;
       var alreadyConnected = d.series.some(function (s) { return s.serie === serie; });
       if (alreadyConnected) {
-        toggleConnection(materialId, serie);
+        toggleConnection(mapId, serie);
         return;
       }
       loadOperationSeries(d.operationName).then(function (validSeries) {
         if (validSeries.indexOf(serie) === -1) return;
-        toggleConnection(materialId, serie);
+        toggleConnection(mapId, serie);
       });
     }
 
@@ -362,17 +375,18 @@
     function renderPartNumberChecklist(serieNode, panel, allPartNumbers) {
       var serie = serieNode.dataset.serie;
 
-      // Restrict to the currently selected material, if any and if it's connected to this Serie.
-      var connectedMaterialIds = Object.keys(materialById).filter(function (id) {
-        var d = materialById[id];
+      // Restrict to the currently selected material-operation row, if any and if it's
+      // connected to this Serie.
+      var connectedMapIds = Object.keys(mapById).filter(function (id) {
+        var d = mapById[id];
         return d.series.some(function (s) { return s.serie === serie; });
       });
       if (selectedMaterial) {
-        var selectedId = selectedMaterial.dataset.materialId;
-        connectedMaterialIds = connectedMaterialIds.indexOf(selectedId) !== -1 ? [selectedId] : [];
+        var selectedId = selectedMaterial.dataset.mapId;
+        connectedMapIds = connectedMapIds.indexOf(selectedId) !== -1 ? [selectedId] : [];
       }
 
-      if (!connectedMaterialIds.length) {
+      if (!connectedMapIds.length) {
         panel.innerHTML = '<span class="process-map-serie-hint">' +
           (selectedMaterial ? 'Selected material is not connected to this Serie.' : 'Select (or connect) a material to this Serie first.') +
           '</span>';
@@ -382,8 +396,8 @@
       panel.innerHTML = '<div class="pm-pn-hint">Select Part Numbers, then click Save. Leave unchecked to use all Part Numbers.</div><div class="pm-pn-material-list"></div>';
       var listEl = panel.querySelector('.pm-pn-material-list');
 
-      connectedMaterialIds.forEach(function (materialId) {
-        var d = materialById[materialId];
+      connectedMapIds.forEach(function (mapId) {
+        var d = mapById[mapId];
         var seriesLink = d.series.find(function (s) { return s.serie === serie; });
         var isPendingLink = typeof seriesLink.id === 'string' && seriesLink.id.indexOf('pending:') === 0;
         var wrap = document.createElement('div');

@@ -211,16 +211,19 @@ async function ensureSchema() {
     END
   `);
 
-  // One material maps to exactly one MES Operation. Series (and their Part Numbers) are
-  // chosen underneath that Operation in material_process_series below.
+  // A material maps to one or more MES Operations (most materials need just one, but some
+  // are genuinely produced across multiple workshops/operations, e.g. UV mark spanning both
+  // FPSA and PSLA). Series (and their Part Numbers) are chosen underneath each Operation row
+  // in material_process_series below.
   await exec(`
     IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'material_process_map')
     BEGIN
       CREATE TABLE material_process_map (
         id INT IDENTITY(1,1) PRIMARY KEY,
-        material_id INT NOT NULL UNIQUE REFERENCES materials(id),
+        material_id INT NOT NULL REFERENCES materials(id),
         operation_name NVARCHAR(200) NOT NULL,
-        updated_at DATETIME2 NOT NULL DEFAULT SYSDATETIME()
+        updated_at DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+        CONSTRAINT UQ_material_process_map UNIQUE (material_id, operation_name)
       )
     END
   `);
@@ -241,9 +244,10 @@ async function ensureSchema() {
     BEGIN
       CREATE TABLE material_process_map (
         id INT IDENTITY(1,1) PRIMARY KEY,
-        material_id INT NOT NULL UNIQUE REFERENCES materials(id),
+        material_id INT NOT NULL REFERENCES materials(id),
         operation_name NVARCHAR(200) NOT NULL,
-        updated_at DATETIME2 NOT NULL DEFAULT SYSDATETIME()
+        updated_at DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+        CONSTRAINT UQ_material_process_map UNIQUE (material_id, operation_name)
       )
     END
   `);
@@ -255,6 +259,34 @@ async function ensureSchema() {
       FROM material_process_map_legacy
       WHERE material_id NOT IN (SELECT material_id FROM material_process_map)
       GROUP BY material_id
+    END
+  `);
+
+  // A material can now map to more than one Operation (e.g. its consumption is genuinely
+  // produced across two workshops), so drop the old "one Operation per material" UNIQUE
+  // constraint on installs created before this changed, and replace it with a
+  // (material_id, operation_name) UNIQUE so the same pair can't be inserted twice. SQL
+  // Server auto-names inline UNIQUE constraints, so look the old one up by column rather
+  // than by a fixed name.
+  await exec(`
+    DECLARE @c NVARCHAR(200) = (
+      SELECT kc.name
+      FROM sys.key_constraints kc
+      JOIN sys.index_columns ic ON ic.object_id = kc.parent_object_id AND ic.index_id = kc.unique_index_id
+      JOIN sys.columns col ON col.object_id = ic.object_id AND col.column_id = ic.column_id
+      WHERE kc.type = 'UQ' AND kc.parent_object_id = OBJECT_ID('material_process_map')
+        AND col.name = 'material_id'
+        AND ic.index_column_id = 1
+        AND (SELECT COUNT(*) FROM sys.index_columns ic2 WHERE ic2.object_id = ic.object_id AND ic2.index_id = ic.index_id) = 1
+    );
+    IF @c IS NOT NULL EXEC('ALTER TABLE material_process_map DROP CONSTRAINT ' + @c);
+  `);
+  await exec(`
+    IF NOT EXISTS (
+      SELECT * FROM sys.key_constraints WHERE name = 'UQ_material_process_map' AND parent_object_id = OBJECT_ID('material_process_map')
+    )
+    BEGIN
+      ALTER TABLE material_process_map ADD CONSTRAINT UQ_material_process_map UNIQUE (material_id, operation_name)
     END
   `);
 
@@ -345,6 +377,13 @@ async function ensureSchema() {
         permissions NVARCHAR(MAX) NOT NULL DEFAULT '[]',
         created_at DATETIME2 NOT NULL DEFAULT SYSDATETIME()
       )
+    END
+  `);
+
+  await exec(`
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('users') AND name = 'expires_at')
+    BEGIN
+      ALTER TABLE users ADD expires_at DATETIME2 NULL
     END
   `);
 }

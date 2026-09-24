@@ -18,18 +18,8 @@
 
 <form class="filters" method="get" action="/transactions/undo">
   <div class="field" style="margin-bottom:0;">
-    <label>Mode</label>
-    <select name="mode" onchange="this.form.submit()">
-      <option value="CREATE" <%= mode === 'CREATE' ? 'selected' : '' %>>Create (forgot to key in)</option>
-      <option value="CHANGE" <%= mode === 'CHANGE' ? 'selected' : '' %>>Change (correct existing data)</option>
-    </select>
-  </div>
-  <div class="field" style="margin-bottom:0;">
     <label>Date</label>
-    <select name="date_choice" onchange="this.form.submit()">
-      <option value="yesterday" <%= dateChoice === 'yesterday' ? 'selected' : '' %>>Yesterday (<%= allowedDate %>)</option>
-      <option value="day_before" <%= dateChoice === 'day_before' ? 'selected' : '' %>>Day Before Yesterday (<%= dayBeforeDate %>)</option>
-    </select>
+    <input type="date" name="entry_date" value="<%= entryDate %>" max="<%= todayBiz %>" onchange="this.form.submit()">
   </div>
   <div class="field" style="margin-bottom:0;">
     <label>Workshop</label>
@@ -55,17 +45,14 @@
 <div class="card empty-state">Select a workshop to continue.</div>
 <% } else if (!materials.length) { %>
 <div class="card empty-state">
-  <% if (mode === 'CHANGE') { %>No existing entries to change for <%= entryDate %> in this workshop.
-  <% } else { %>All materials in this workshop already have an entry for <%= entryDate %>.<% } %>
+  No existing entries to change for <%= entryDate %> in this workshop.
 </div>
 <% } %>
 
-<% const ready = mode === 'CHANGE' ? selectedEntry : selectedMaterial; %>
-<% if (workshop && materialId && ready) { %>
+<% if (workshop && materialId && selectedEntry) { %>
 <% const v = values[materialId] || {}; %>
 <form class="card form-card" method="post" action="/transactions/undo">
-  <input type="hidden" name="mode" value="<%= mode %>">
-  <input type="hidden" name="date_choice" value="<%= dateChoice %>">
+  <input type="hidden" name="entry_date" value="<%= entryDate %>">
   <input type="hidden" name="workshop" value="<%= workshop %>">
   <input type="hidden" name="material_id" value="<%= materialId %>">
 
@@ -74,23 +61,23 @@
   <div class="field">
     <label>Current Stock</label>
     <input type="number" step="any" min="0" name="current_stock"
-      value="<%= v.current_stock !== undefined ? v.current_stock : (mode === 'CHANGE' && selectedEntry.current_stock != null ? selectedEntry.current_stock : '') %>"
+      value="<%= v.current_stock !== undefined ? v.current_stock : (selectedEntry.current_stock != null ? selectedEntry.current_stock : '') %>"
       placeholder="<%= stockMap[materialId] != null ? fmtNum(stockMap[materialId]) : '' %>">
   </div>
   <div class="field">
     <label>Issue</label>
     <input type="number" step="any" min="0" name="issue_qty"
-      value="<%= v.issue_qty !== undefined ? v.issue_qty : (mode === 'CHANGE' && selectedEntry.issue_qty != null ? selectedEntry.issue_qty : '') %>">
+      value="<%= v.issue_qty !== undefined ? v.issue_qty : (selectedEntry.issue_qty != null ? selectedEntry.issue_qty : '') %>">
   </div>
   <div class="field">
     <label>Issue NCN</label>
     <input type="number" step="any" min="0" name="issue_ncn"
-      value="<%= v.issue_ncn !== undefined ? v.issue_ncn : (mode === 'CHANGE' && selectedEntry.issue_ncn != null ? selectedEntry.issue_ncn : '') %>">
+      value="<%= v.issue_ncn !== undefined ? v.issue_ncn : (selectedEntry.issue_ncn != null ? selectedEntry.issue_ncn : '') %>">
   </div>
   <div class="field">
     <label>Return NCN</label>
     <input type="number" step="any" min="0" name="return_ncn"
-      value="<%= v.return_ncn !== undefined ? v.return_ncn : (mode === 'CHANGE' && selectedEntry.return_ncn != null ? selectedEntry.return_ncn : '') %>">
+      value="<%= v.return_ncn !== undefined ? v.return_ncn : (selectedEntry.return_ncn != null ? selectedEntry.return_ncn : '') %>">
   </div>
   <div class="field">
     <label>Employee ID *</label>
@@ -105,7 +92,7 @@
       <% }) %>
     </select>
   </div>
-  <button class="btn" type="submit"><%= mode === 'CHANGE' ? 'Submit Correction' : 'Submit Entry' %></button>
+  <button class="btn" type="submit">Submit Correction</button>
 </form>
 <% } %>
 
